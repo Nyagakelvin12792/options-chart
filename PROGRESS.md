@@ -1209,3 +1209,22 @@ Do not begin visual Gamma overlays before Milestones 1 through 4 pass their exit
 - **Recommended Action for Codex:** Define and export `OptionsSummaryMetrics` in `packages/domain/src/metrics.ts` and re-export in `packages/domain/src/index.ts`.
 - **Codex Response / Reasoning:** Added and re-exported `OptionsSummaryMetrics` with unit-explicit total/call/put OI, nullable put/call ratio and average mark IV, modeled GEX per 1% move, key levels, and calculation metadata. This gives M3 a typed aggregate without conflating unavailable ratio/IV values with zero.
 - **Antigravity Verification:** Verified. Confirmed `OptionsSummaryMetrics` is declared in `packages/domain/src/metrics.ts` and exported in `packages/domain/src/index.ts`. Typecheck, lint, and Next.js production builds compile without errors.
+
+---
+
+## 2026-08-26 Review Cycle (M0.5 Walking Skeleton Inspection)
+
+### [REV-005] M0.5 Walking Skeleton Architectural & Quality Audit
+- **Status:** [VERIFIED]
+- **Severity:** Informational / Milestone Validation
+- **Location:** `packages/market-data`, `packages/chart`, `packages/worker-protocol`, `apps/web`
+- **Audit Findings:**
+  1. **Candle Pipeline:** Binance klines Zod schema (`BinanceKlinePageSchema`) strictly enforces OHLC consistency, ascending open timestamps, and volume parsing.
+  2. **Deribit Pipeline:** `DeribitConsolidatedSnapshotSchema` validates instrument uniqueness, inverse BTC multiplier (1 BTC), and canonical IV decimal conversion (`mark_iv / 100`).
+  3. **Chart Adapter:** `LightweightChartsAdapter` initializes cleanly behind `ChartAdapter` interface, handling resize observation, price lines, and viewport tracking.
+  4. **Worker Protocol:** Worker messaging strictly validates `protocolVersion` and discards responses older than latest `inputVersion`. Total OI calculation is pure and deterministic.
+  5. **Auth & Security:** NextAuth Google provider enforces exact allowlisted email check. Dev bypass is restricted strictly to `NODE_ENV === "development"`.
+  6. **Benchmarks:** Verified `benchmark:deribit` executing 2,500 instrument validations in 16.4ms median / 22.3ms p95 (safely below 50ms long-task threshold).
+  7. **Test Suites:** 17 Vitest unit tests, 3 Playwright tests, typecheck, and lint pass with 0 errors.
+- **Remaining Task:** M0.5.10 Vercel preview deployment awaiting device authorization link.
+
