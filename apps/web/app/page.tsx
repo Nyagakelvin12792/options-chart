@@ -1,4 +1,5 @@
 import { DashboardClient } from "@/components/dashboard-client";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { getDashboardAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -20,14 +21,7 @@ export default async function HomePage() {
               ? "Google access has not been configured for this deployment."
               : "Sign in with the allowlisted Google account to continue."}
           </p>
-          {access.reason === "session" ? (
-            <a
-              className="primary-command"
-              href="/api/auth/signin/google?callbackUrl=%2F"
-            >
-              Sign in with Google
-            </a>
-          ) : null}
+          {access.reason === "session" ? <GoogleSignInButton /> : null}
         </div>
       </main>
     );

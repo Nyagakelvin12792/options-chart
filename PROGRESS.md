@@ -736,19 +736,21 @@ Implementation:
 - Added Auth.js Google login with one exact allowlisted email; the local preview bypass is limited to development mode.
 - Added package-level boundary tests, browser canvas-pixel and responsive-layout checks, and repeatable benchmark commands.
 - Connected the GitHub repository to Vercel and deployed a public preview at `https://options-chart-upload-qk2w77qog-kelvin12792.vercel.app`.
+- Corrected the production Google entry points to use Auth.js's CSRF-protected sign-in action and added visible authentication error messages.
 
 Tests run:
 
 - `npm run format:check`: PASS.
 - `npm run lint`: PASS.
 - `npm run typecheck`: PASS.
-- `npm test`: PASS, 17 tests.
+- `npm test`: PASS, 19 tests.
 - `npm run build`: PASS.
 - `npm run test:e2e`: PASS, 3 Chromium checks.
 - `npm audit`: PASS, 0 vulnerabilities.
 - Production-mode access gate: PASS; unconfigured deployment shows configuration-required and protected API returns HTTP 401.
 - Live local Binance proxy: PASS, 120 candles returned.
 - Vercel preview reachability: PASS, HTTP 200 with the expected dashboard configuration gate.
+- Production Google sign-in initiation: PASS; Chromium submitted POST and reached `accounts.google.com` with the stable Vercel callback.
 
 Benchmarks:
 
@@ -763,8 +765,8 @@ Architecture decisions:
 
 Next:
 
-- Configure Google OAuth, `NEXTAUTH_SECRET`, and the exact allowlisted account directly in Vercel.
-- Verify the application login and authorized-user check on the public preview before M0.5 exit approval.
+- Complete Google sign-in with the allowlisted account on the stable Vercel deployment.
+- Verify the authenticated dashboard session before M0.5 exit approval.
 
 ---
 
@@ -1228,4 +1230,4 @@ Do not begin visual Gamma overlays before Milestones 1 through 4 pass their exit
   5. **Auth & Security:** NextAuth Google provider enforces exact allowlisted email check. Dev bypass is restricted strictly to `NODE_ENV === "development"`.
   6. **Benchmarks:** Verified `benchmark:deribit` executing 2,500 instrument validations in 16.4ms median / 22.3ms p95 (safely below 50ms long-task threshold).
   7. **Test Suites:** 17 Vitest unit tests, 3 Playwright tests, typecheck, and lint pass with 0 errors.
-- **Remaining Task:** The Vercel preview is deployed and public. Configure the private Google OAuth and allowlist values in Vercel, then verify the authorized-user login flow for M0.5.10.
+- **Remaining Task:** The Vercel deployment and Google sign-in initiation are verified. Complete sign-in with the allowlisted account and verify the resulting authenticated dashboard session for M0.5.10.
