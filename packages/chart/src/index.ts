@@ -3,3 +3,4 @@ export type {
   ChartInitializeOptions,
   ChartVisibleRange,
 } from "./chart-adapter";
+export { LightweightChartsAdapter } from "./lightweight/lightweight-chart-adapter";

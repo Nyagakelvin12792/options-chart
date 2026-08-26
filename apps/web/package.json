@@ -8,8 +8,12 @@
     "start": "next start"
   },
   "dependencies": {
+    "@options-chart/chart": "*",
+    "@options-chart/market-data": "*",
     "@options-chart/options-engine": "*",
+    "@options-chart/worker-protocol": "*",
     "next": "16.3.3",
+    "next-auth": "4.24.15",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   }
