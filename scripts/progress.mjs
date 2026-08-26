@@ -66,6 +66,11 @@ const buildGeneratedSection = (configuration) => {
       ? configuration.completedNext
       : (tasks.find((task) => task.status !== "COMPLETE")?.id ??
         "Review task journals.");
+  const blockedTasks = tasks.filter((task) => task.status === "BLOCKED");
+  const blockers =
+    blockedTasks.length === 0
+      ? "- None."
+      : blockedTasks.map((task) => `- ${task.id} ${task.title}`).join("\n");
   const startMarker = `<!-- progress:${configuration.id}:start -->`;
   const endMarker = `<!-- progress:${configuration.id}:end -->`;
 
@@ -80,7 +85,7 @@ Progress: ${completedCount} / ${tasks.length}
 
 Blockers:
 
-- None.
+${blockers}
 
 Next recommended task:
 
