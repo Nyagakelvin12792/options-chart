@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { GEX_ASSUMPTIONS } from "./assumptions";
 import {
   CALCULATION_ENGINE_VERSION,
+  ENGINE_VERSION,
   GAMMA_PROFILE_VERSION,
   GEX_MODEL_VERSION,
   MAX_PAIN_VERSION,
@@ -10,6 +11,7 @@ import {
 
 describe("calculation architecture lock", () => {
   it("pins auditable calculation versions", () => {
+    expect(ENGINE_VERSION).toBe("0.1.0");
     expect(CALCULATION_ENGINE_VERSION).toBe("1.0.0");
     expect(GEX_MODEL_VERSION).toBe("gex-heuristic-v1");
     expect(GAMMA_PROFILE_VERSION).toBe("sticky-iv-v1");

@@ -1,0 +1,3814 @@
+{
+  "schemaVersion": "golden-options-snapshot-v1",
+  "engineVersion": "0.1.0",
+  "regime": "normal-market",
+  "description": "Normal market regime with balanced calls/puts across 4 expiries (1D, 7D, 30D, 90D) and 9 strikes",
+  "input": {
+    "underlyingPriceUsd": 80000,
+    "calculatedAt": 1787731200000,
+    "expiryScope": {
+      "kind": "all"
+    },
+    "interestRateFallbackDecimal": 0,
+    "maxPainExpiry": 1788336000000,
+    "secondaryLevelCount": 3,
+    "chain": {
+      "metadata": {
+        "source": "deribit",
+        "sourceTimestamp": 1787731200000,
+        "receivedTimestamp": 1787731200000,
+        "normalizedTimestamp": 1787731200000,
+        "schemaVersion": "golden-fixture-v1"
+      },
+      "currency": "BTC",
+      "instruments": [
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-60000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 60000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-60000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 60000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-60000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 60000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-60000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 60000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.6,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-65000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 65000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-65000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 65000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5781,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-65000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 65000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-65000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 65000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1250,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-70000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 70000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-70000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 70000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5688,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-70000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 70000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-70000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 70000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1000,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.575,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-75000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 75000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-75000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 75000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5594,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-75000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 75000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-75000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 75000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 750,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5625,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-80000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 80000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-80000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 80000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.55,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-80000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 80000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-80000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 80000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.55,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-85000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 85000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-85000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 85000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 750,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5594,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-85000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 85000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-85000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 85000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5625,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-90000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 90000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-90000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 90000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1000,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5688,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-90000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 90000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-90000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 90000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.575,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-95000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 95000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-95000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 95000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1250,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5781,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-95000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 95000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-95000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 95000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-100000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 100000,
+            "optionType": "call",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-100000-C",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 100000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-100000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 100000,
+            "optionType": "put",
+            "creationTimestamp": 1785225600000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1787814000000,
+              "receivedTimestamp": 1787814000000,
+              "normalizedTimestamp": 1787814000000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1787817600000-100000-P",
+            "symbol": "BTC",
+            "expiry": 1787817600000,
+            "strike": 100000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.6,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-60000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 60000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-60000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 60000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-60000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 60000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-60000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 60000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.6,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-65000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 65000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-65000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 65000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5781,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-65000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 65000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-65000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 65000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1250,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-70000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 70000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-70000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 70000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5688,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-70000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 70000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-70000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 70000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1000,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.575,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-75000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 75000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-75000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 75000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5594,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-75000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 75000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-75000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 75000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 750,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5625,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-80000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 80000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-80000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 80000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.55,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-80000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 80000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-80000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 80000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.55,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-85000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 85000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-85000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 85000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 750,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5594,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-85000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 85000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-85000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 85000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5625,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-90000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 90000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-90000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 90000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1000,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5688,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-90000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 90000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-90000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 90000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.575,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-95000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 95000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-95000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 95000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1250,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5781,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-95000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 95000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-95000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 95000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-100000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 100000,
+            "optionType": "call",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-100000-C",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 100000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-100000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 100000,
+            "optionType": "put",
+            "creationTimestamp": 1785744000000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1788332400000,
+              "receivedTimestamp": 1788332400000,
+              "normalizedTimestamp": 1788332400000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1788336000000-100000-P",
+            "symbol": "BTC",
+            "expiry": 1788336000000,
+            "strike": 100000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.6,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-60000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 60000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-60000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 60000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-60000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 60000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-60000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 60000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.6,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-65000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 65000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-65000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 65000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5781,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-65000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 65000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-65000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 65000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1250,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-70000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 70000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-70000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 70000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5688,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-70000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 70000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-70000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 70000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1000,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.575,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-75000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 75000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-75000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 75000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5594,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-75000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 75000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-75000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 75000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 750,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5625,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-80000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 80000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-80000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 80000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.55,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-80000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 80000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-80000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 80000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.55,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-85000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 85000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-85000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 85000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 750,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5594,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-85000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 85000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-85000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 85000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5625,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-90000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 90000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-90000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 90000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1000,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5688,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-90000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 90000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-90000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 90000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.575,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-95000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 95000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-95000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 95000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1250,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5781,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-95000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 95000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-95000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 95000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-100000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 100000,
+            "optionType": "call",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-100000-C",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 100000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-100000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 100000,
+            "optionType": "put",
+            "creationTimestamp": 1787731200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1790319600000,
+              "receivedTimestamp": 1790319600000,
+              "normalizedTimestamp": 1790319600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1790323200000-100000-P",
+            "symbol": "BTC",
+            "expiry": 1790323200000,
+            "strike": 100000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.6,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-60000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 60000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-60000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 60000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-60000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 60000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-60000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 60000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.6,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-65000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 65000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-65000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 65000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5781,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-65000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 65000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-65000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 65000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1250,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-70000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 70000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-70000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 70000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5688,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-70000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 70000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-70000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 70000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1000,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.575,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-75000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 75000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-75000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 75000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5594,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-75000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 75000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-75000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 75000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 750,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5625,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-80000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 80000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-80000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 80000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.55,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-80000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 80000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-80000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 80000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.55,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-85000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 85000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-85000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 85000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 750,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5594,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-85000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 85000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-85000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 85000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5625,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-90000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 90000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-90000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 90000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1000,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5688,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-90000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 90000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-90000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 90000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.575,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-95000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 95000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-95000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 95000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1250,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5781,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-95000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 95000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-95000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 95000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-100000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 100000,
+            "optionType": "call",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-100000-C",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 100000,
+            "optionType": "call",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 1500,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.5875,
+            "interestRateDecimal": 0
+          }
+        },
+        {
+          "instrument": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-100000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 100000,
+            "optionType": "put",
+            "creationTimestamp": 1792915200000,
+            "isActive": true,
+            "settlementAsset": "BTC",
+            "contractMultiplierBtc": 1
+          },
+          "quote": {
+            "metadata": {
+              "source": "deribit",
+              "sourceTimestamp": 1795503600000,
+              "receivedTimestamp": 1795503600000,
+              "normalizedTimestamp": 1795503600000,
+              "schemaVersion": "golden-fixture-v1"
+            },
+            "instrumentName": "BTC-1795507200000-100000-P",
+            "symbol": "BTC",
+            "expiry": 1795507200000,
+            "strike": 100000,
+            "optionType": "put",
+            "underlyingPriceUsd": 80000,
+            "openInterestBtc": 150,
+            "markPriceBtc": 0.05,
+            "markIvDecimal": 0.6,
+            "interestRateDecimal": 0
+          }
+        }
+      ]
+    }
+  },
+  "outputSha256": "d546d01b65d2258245bd24faeb0694c9a34c38cdc2eb5a79c7724aa653a5a770",
+  "expectedOutput": {
+    "summary": {
+      "totalOpenInterestBtc": 44800,
+      "totalCallOpenInterestBtc": 22400,
+      "totalPutOpenInterestBtc": 22400,
+      "putCallOpenInterestRatio": 1,
+      "averageMarkIvDecimal": 0.5773477678571427,
+      "modeledGexOnePercentUsd": 3615084.548427815,
+      "keyLevels": [
+        {
+          "id": "call-wall",
+          "kind": "call-wall",
+          "label": "Call Wall",
+          "price": 80000,
+          "importance": "primary",
+          "metadata": {
+            "event": {
+              "source": "calculated",
+              "sourceTimestamp": 1787731200000,
+              "receivedTimestamp": 1787731200000,
+              "normalizedTimestamp": 1787731200000,
+              "schemaVersion": "1.0.0"
+            },
+            "calculatedAt": 1787731200000,
+            "calculationEngineVersion": "1.0.0",
+            "gexModelVersion": "gex-heuristic-v1",
+            "gammaProfileVersion": "sticky-iv-v1",
+            "expiryScope": "all",
+            "contractsSeen": 72,
+            "contractsIncluded": 72,
+            "excludedCountByReason": {},
+            "nearestIncludedExpiry": 1787817600000,
+            "nearestIncludedDte": 1,
+            "qualifyingCrossings": [
+              {
+                "price": 78883.21084437627,
+                "distanceFromUnderlying": 1116.78915562373,
+                "lowerBracketPrice": 78880,
+                "upperBracketPrice": 78900,
+                "lowerBracketGex": -10579.483156127115,
+                "upperBracketGex": 55318.9654531812,
+                "significanceThreshold": 236612.90144574904
+              }
+            ],
+            "durationMs": 0
+          }
+        },
+        {
+          "id": "put-wall",
+          "kind": "put-wall",
+          "label": "Put Wall",
+          "price": 80000,
+          "importance": "primary",
+          "metadata": {
+            "event": {
+              "source": "calculated",
+              "sourceTimestamp": 1787731200000,
+              "receivedTimestamp": 1787731200000,
+              "normalizedTimestamp": 1787731200000,
+              "schemaVersion": "1.0.0"
+            },
+            "calculatedAt": 1787731200000,
+            "calculationEngineVersion": "1.0.0",
+            "gexModelVersion": "gex-heuristic-v1",
+            "gammaProfileVersion": "sticky-iv-v1",
+            "expiryScope": "all",
+            "contractsSeen": 72,
+            "contractsIncluded": 72,
+            "excludedCountByReason": {},
+            "nearestIncludedExpiry": 1787817600000,
+            "nearestIncludedDte": 1,
+            "qualifyingCrossings": [
+              {
+                "price": 78883.21084437627,
+                "distanceFromUnderlying": 1116.78915562373,
+                "lowerBracketPrice": 78880,
+                "upperBracketPrice": 78900,
+                "lowerBracketGex": -10579.483156127115,
+                "upperBracketGex": 55318.9654531812,
+                "significanceThreshold": 236612.90144574904
+              }
+            ],
+            "durationMs": 0
+          }
+        },
+        {
+          "id": "gamma-flip",
+          "kind": "gamma-flip",
+          "label": "Modeled Gamma Flip",
+          "price": 78883.21084437627,
+          "importance": "primary",
+          "metadata": {
+            "event": {
+              "source": "calculated",
+              "sourceTimestamp": 1787731200000,
+              "receivedTimestamp": 1787731200000,
+              "normalizedTimestamp": 1787731200000,
+              "schemaVersion": "1.0.0"
+            },
+            "calculatedAt": 1787731200000,
+            "calculationEngineVersion": "1.0.0",
+            "gexModelVersion": "gex-heuristic-v1",
+            "gammaProfileVersion": "sticky-iv-v1",
+            "expiryScope": "all",
+            "contractsSeen": 72,
+            "contractsIncluded": 72,
+            "excludedCountByReason": {},
+            "nearestIncludedExpiry": 1787817600000,
+            "nearestIncludedDte": 1,
+            "qualifyingCrossings": [
+              {
+                "price": 78883.21084437627,
+                "distanceFromUnderlying": 1116.78915562373,
+                "lowerBracketPrice": 78880,
+                "upperBracketPrice": 78900,
+                "lowerBracketGex": -10579.483156127115,
+                "upperBracketGex": 55318.9654531812,
+                "significanceThreshold": 236612.90144574904
+              }
+            ],
+            "durationMs": 0
+          }
+        },
+        {
+          "id": "max-pain",
+          "kind": "max-pain",
+          "label": "Max Pain",
+          "price": 80000,
+          "importance": "primary",
+          "metadata": {
+            "event": {
+              "source": "calculated",
+              "sourceTimestamp": 1787731200000,
+              "receivedTimestamp": 1787731200000,
+              "normalizedTimestamp": 1787731200000,
+              "schemaVersion": "1.0.0"
+            },
+            "calculatedAt": 1787731200000,
+            "calculationEngineVersion": "1.0.0",
+            "gexModelVersion": "gex-heuristic-v1",
+            "gammaProfileVersion": "sticky-iv-v1",
+            "expiryScope": "expiry:1788336000000",
+            "contractsSeen": 18,
+            "contractsIncluded": 18,
+            "excludedCountByReason": {},
+            "nearestIncludedExpiry": 1788336000000,
+            "nearestIncludedDte": 7,
+            "qualifyingCrossings": [],
+            "durationMs": 0
+          }
+        },
+        {
+          "id": "secondary-gex-1",
+          "kind": "secondary-gex",
+          "label": "GEX 1",
+          "price": 85000,
+          "importance": "secondary",
+          "metadata": {
+            "event": {
+              "source": "calculated",
+              "sourceTimestamp": 1787731200000,
+              "receivedTimestamp": 1787731200000,
+              "normalizedTimestamp": 1787731200000,
+              "schemaVersion": "1.0.0"
+            },
+            "calculatedAt": 1787731200000,
+            "calculationEngineVersion": "1.0.0",
+            "gexModelVersion": "gex-heuristic-v1",
+            "gammaProfileVersion": "sticky-iv-v1",
+            "expiryScope": "all",
+            "contractsSeen": 72,
+            "contractsIncluded": 72,
+            "excludedCountByReason": {},
+            "nearestIncludedExpiry": 1787817600000,
+            "nearestIncludedDte": 1,
+            "qualifyingCrossings": [
+              {
+                "price": 78883.21084437627,
+                "distanceFromUnderlying": 1116.78915562373,
+                "lowerBracketPrice": 78880,
+                "upperBracketPrice": 78900,
+                "lowerBracketGex": -10579.483156127115,
+                "upperBracketGex": 55318.9654531812,
+                "significanceThreshold": 236612.90144574904
+              }
+            ],
+            "durationMs": 0
+          }
+        },
+        {
+          "id": "secondary-gex-2",
+          "kind": "secondary-gex",
+          "label": "GEX 2",
+          "price": 75000,
+          "importance": "secondary",
+          "metadata": {
+            "event": {
+              "source": "calculated",
+              "sourceTimestamp": 1787731200000,
+              "receivedTimestamp": 1787731200000,
+              "normalizedTimestamp": 1787731200000,
+              "schemaVersion": "1.0.0"
+            },
+            "calculatedAt": 1787731200000,
+            "calculationEngineVersion": "1.0.0",
+            "gexModelVersion": "gex-heuristic-v1",
+            "gammaProfileVersion": "sticky-iv-v1",
+            "expiryScope": "all",
+            "contractsSeen": 72,
+            "contractsIncluded": 72,
+            "excludedCountByReason": {},
+            "nearestIncludedExpiry": 1787817600000,
+            "nearestIncludedDte": 1,
+            "qualifyingCrossings": [
+              {
+                "price": 78883.21084437627,
+                "distanceFromUnderlying": 1116.78915562373,
+                "lowerBracketPrice": 78880,
+                "upperBracketPrice": 78900,
+                "lowerBracketGex": -10579.483156127115,
+                "upperBracketGex": 55318.9654531812,
+                "significanceThreshold": 236612.90144574904
+              }
+            ],
+            "durationMs": 0
+          }
+        },
+        {
+          "id": "secondary-gex-3",
+          "kind": "secondary-gex",
+          "label": "GEX 3",
+          "price": 90000,
+          "importance": "secondary",
+          "metadata": {
+            "event": {
+              "source": "calculated",
+              "sourceTimestamp": 1787731200000,
+              "receivedTimestamp": 1787731200000,
+              "normalizedTimestamp": 1787731200000,
+              "schemaVersion": "1.0.0"
+            },
+            "calculatedAt": 1787731200000,
+            "calculationEngineVersion": "1.0.0",
+            "gexModelVersion": "gex-heuristic-v1",
+            "gammaProfileVersion": "sticky-iv-v1",
+            "expiryScope": "all",
+            "contractsSeen": 72,
+            "contractsIncluded": 72,
+            "excludedCountByReason": {},
+            "nearestIncludedExpiry": 1787817600000,
+            "nearestIncludedDte": 1,
+            "qualifyingCrossings": [
+              {
+                "price": 78883.21084437627,
+                "distanceFromUnderlying": 1116.78915562373,
+                "lowerBracketPrice": 78880,
+                "upperBracketPrice": 78900,
+                "lowerBracketGex": -10579.483156127115,
+                "upperBracketGex": 55318.9654531812,
+                "significanceThreshold": 236612.90144574904
+              }
+            ],
+            "durationMs": 0
+          }
+        }
+      ],
+      "metadata": {
+        "event": {
+          "source": "calculated",
+          "sourceTimestamp": 1787731200000,
+          "receivedTimestamp": 1787731200000,
+          "normalizedTimestamp": 1787731200000,
+          "schemaVersion": "1.0.0"
+        },
+        "calculatedAt": 1787731200000,
+        "calculationEngineVersion": "1.0.0",
+        "gexModelVersion": "gex-heuristic-v1",
+        "gammaProfileVersion": "sticky-iv-v1",
+        "expiryScope": "all",
+        "contractsSeen": 72,
+        "contractsIncluded": 72,
+        "excludedCountByReason": {},
+        "nearestIncludedExpiry": 1787817600000,
+        "nearestIncludedDte": 1,
+        "qualifyingCrossings": [
+          {
+            "price": 78883.21084437627,
+            "distanceFromUnderlying": 1116.78915562373,
+            "lowerBracketPrice": 78880,
+            "upperBracketPrice": 78900,
+            "lowerBracketGex": -10579.483156127115,
+            "upperBracketGex": 55318.9654531812,
+            "significanceThreshold": 236612.90144574904
+          }
+        ],
+        "durationMs": 0
+      }
+    },
+    "strikeExposures": [
+      {
+        "strike": 60000,
+        "optionType": "call",
+        "openInterestBtc": 600,
+        "grossGammaOnePercentUsd": 144489.5037297436,
+        "modeledGexOnePercentUsd": 144489.5037297436
+      },
+      {
+        "strike": 60000,
+        "optionType": "put",
+        "openInterestBtc": 6000,
+        "grossGammaOnePercentUsd": 1468900.2170731477,
+        "modeledGexOnePercentUsd": -1468900.2170731477
+      },
+      {
+        "strike": 65000,
+        "optionType": "call",
+        "openInterestBtc": 600,
+        "grossGammaOnePercentUsd": 251555.9660525474,
+        "modeledGexOnePercentUsd": 251555.9660525474
+      },
+      {
+        "strike": 65000,
+        "optionType": "put",
+        "openInterestBtc": 5000,
+        "grossGammaOnePercentUsd": 2111866.3571736356,
+        "modeledGexOnePercentUsd": -2111866.3571736356
+      },
+      {
+        "strike": 70000,
+        "optionType": "call",
+        "openInterestBtc": 600,
+        "grossGammaOnePercentUsd": 471192.7510382189,
+        "modeledGexOnePercentUsd": 471192.7510382189
+      },
+      {
+        "strike": 70000,
+        "optionType": "put",
+        "openInterestBtc": 4000,
+        "grossGammaOnePercentUsd": 3146608.8043380696,
+        "modeledGexOnePercentUsd": -3146608.8043380696
+      },
+      {
+        "strike": 75000,
+        "optionType": "call",
+        "openInterestBtc": 600,
+        "grossGammaOnePercentUsd": 988617.6049599117,
+        "modeledGexOnePercentUsd": 988617.6049599117
+      },
+      {
+        "strike": 75000,
+        "optionType": "put",
+        "openInterestBtc": 3000,
+        "grossGammaOnePercentUsd": 4943905.767805183,
+        "modeledGexOnePercentUsd": -4943905.767805183
+      },
+      {
+        "strike": 80000,
+        "optionType": "call",
+        "openInterestBtc": 2000,
+        "grossGammaOnePercentUsd": 9223883.19496252,
+        "modeledGexOnePercentUsd": 9223883.19496252
+      },
+      {
+        "strike": 80000,
+        "optionType": "put",
+        "openInterestBtc": 2000,
+        "grossGammaOnePercentUsd": 9223883.19496252,
+        "modeledGexOnePercentUsd": -9223883.19496252
+      },
+      {
+        "strike": 85000,
+        "optionType": "call",
+        "openInterestBtc": 3000,
+        "grossGammaOnePercentUsd": 5617778.979360472,
+        "modeledGexOnePercentUsd": 5617778.979360472
+      },
+      {
+        "strike": 85000,
+        "optionType": "put",
+        "openInterestBtc": 600,
+        "grossGammaOnePercentUsd": 1123854.5992036154,
+        "modeledGexOnePercentUsd": -1123854.5992036154
+      },
+      {
+        "strike": 90000,
+        "optionType": "call",
+        "openInterestBtc": 4000,
+        "grossGammaOnePercentUsd": 4090300.191075716,
+        "modeledGexOnePercentUsd": 4090300.191075716
+      },
+      {
+        "strike": 90000,
+        "optionType": "put",
+        "openInterestBtc": 600,
+        "grossGammaOnePercentUsd": 613680.3290393215,
+        "modeledGexOnePercentUsd": -613680.3290393215
+      },
+      {
+        "strike": 95000,
+        "optionType": "call",
+        "openInterestBtc": 5000,
+        "grossGammaOnePercentUsd": 3321955.5074787224,
+        "modeledGexOnePercentUsd": 3321955.5074787224
+      },
+      {
+        "strike": 95000,
+        "optionType": "put",
+        "openInterestBtc": 600,
+        "grossGammaOnePercentUsd": 400986.3119970232,
+        "modeledGexOnePercentUsd": -400986.3119970232
+      },
+      {
+        "strike": 100000,
+        "optionType": "call",
+        "openInterestBtc": 6000,
+        "grossGammaOnePercentUsd": 2824334.759797029,
+        "modeledGexOnePercentUsd": 2824334.759797029
+      },
+      {
+        "strike": 100000,
+        "optionType": "put",
+        "openInterestBtc": 600,
+        "grossGammaOnePercentUsd": 285338.32843454997,
+        "modeledGexOnePercentUsd": -285338.32843454997
+      }
+    ],
+    "expiryExposures": [
+      {
+        "expiry": 1787817600000,
+        "openInterestBtc": 11200,
+        "grossGammaOnePercentUsd": 13131824.058200829,
+        "modeledGexOnePercentUsd": 217193.08025794476
+      },
+      {
+        "expiry": 1788336000000,
+        "openInterestBtc": 11200,
+        "grossGammaOnePercentUsd": 13183654.485617118,
+        "modeledGexOnePercentUsd": 1041710.3652143378
+      },
+      {
+        "expiry": 1790323200000,
+        "openInterestBtc": 11200,
+        "grossGammaOnePercentUsd": 13569492.94118208,
+        "modeledGexOnePercentUsd": 1452720.2198455122
+      },
+      {
+        "expiry": 1795507200000,
+        "openInterestBtc": 11200,
+        "grossGammaOnePercentUsd": 10368160.88348192,
+        "modeledGexOnePercentUsd": 903460.8831100205
+      }
+    ],
+    "gammaProfile": [
+      {
+        "spotPrice": 56000,
+        "modeledGexOnePercentUsd": -9440090.525382314
+      },
+      {
+        "spotPrice": 56400,
+        "modeledGexOnePercentUsd": -10419151.98126627
+      },
+      {
+        "spotPrice": 56800,
+        "modeledGexOnePercentUsd": -11606921.138094634
+      },
+      {
+        "spotPrice": 57200,
+        "modeledGexOnePercentUsd": -13013019.91295228
+      },
+      {
+        "spotPrice": 57600,
+        "modeledGexOnePercentUsd": -14615193.862960123
+      },
+      {
+        "spotPrice": 58000,
+        "modeledGexOnePercentUsd": -16351998.241059419
+      },
+      {
+        "spotPrice": 58400,
+        "modeledGexOnePercentUsd": -18123867.443110857
+      },
+      {
+        "spotPrice": 58800,
+        "modeledGexOnePercentUsd": -19804794.5942617
+      },
+      {
+        "spotPrice": 59200,
+        "modeledGexOnePercentUsd": -21263662.475362964
+      },
+      {
+        "spotPrice": 59600,
+        "modeledGexOnePercentUsd": -22390757.41405194
+      },
+      {
+        "spotPrice": 60000,
+        "modeledGexOnePercentUsd": -23122561.43120725
+      },
+      {
+        "spotPrice": 60400,
+        "modeledGexOnePercentUsd": -23457646.387722515
+      },
+      {
+        "spotPrice": 60800,
+        "modeledGexOnePercentUsd": -23458644.23080605
+      },
+      {
+        "spotPrice": 61200,
+        "modeledGexOnePercentUsd": -23239135.4115729
+      },
+      {
+        "spotPrice": 61600,
+        "modeledGexOnePercentUsd": -22938547.07127082
+      },
+      {
+        "spotPrice": 62000,
+        "modeledGexOnePercentUsd": -22691398.093443062
+      },
+      {
+        "spotPrice": 62400,
+        "modeledGexOnePercentUsd": -22598555.155883834
+      },
+      {
+        "spotPrice": 62800,
+        "modeledGexOnePercentUsd": -22707364.062118016
+      },
+      {
+        "spotPrice": 63200,
+        "modeledGexOnePercentUsd": -23005014.93349593
+      },
+      {
+        "spotPrice": 63600,
+        "modeledGexOnePercentUsd": -23426083.381178845
+      },
+      {
+        "spotPrice": 64000,
+        "modeledGexOnePercentUsd": -23871759.572801106
+      },
+      {
+        "spotPrice": 64400,
+        "modeledGexOnePercentUsd": -24235630.820194304
+      },
+      {
+        "spotPrice": 64800,
+        "modeledGexOnePercentUsd": -24429588.033837963
+      },
+      {
+        "spotPrice": 65200,
+        "modeledGexOnePercentUsd": -24403726.94254761
+      },
+      {
+        "spotPrice": 65600,
+        "modeledGexOnePercentUsd": -24155880.180690054
+      },
+      {
+        "spotPrice": 66000,
+        "modeledGexOnePercentUsd": -23729157.278390396
+      },
+      {
+        "spotPrice": 66400,
+        "modeledGexOnePercentUsd": -23198858.645249993
+      },
+      {
+        "spotPrice": 66800,
+        "modeledGexOnePercentUsd": -22652601.959889453
+      },
+      {
+        "spotPrice": 67200,
+        "modeledGexOnePercentUsd": -22168868.58293381
+      },
+      {
+        "spotPrice": 67600,
+        "modeledGexOnePercentUsd": -21799185.69603013
+      },
+      {
+        "spotPrice": 68000,
+        "modeledGexOnePercentUsd": -21557914.52557821
+      },
+      {
+        "spotPrice": 68400,
+        "modeledGexOnePercentUsd": -21421519.937309008
+      },
+      {
+        "spotPrice": 68800,
+        "modeledGexOnePercentUsd": -21336817.723462917
+      },
+      {
+        "spotPrice": 69200,
+        "modeledGexOnePercentUsd": -21235612.352353368
+      },
+      {
+        "spotPrice": 69600,
+        "modeledGexOnePercentUsd": -21051813.62740171
+      },
+      {
+        "spotPrice": 70000,
+        "modeledGexOnePercentUsd": -20736812.27065831
+      },
+      {
+        "spotPrice": 70400,
+        "modeledGexOnePercentUsd": -20269606.76986336
+      },
+      {
+        "spotPrice": 70800,
+        "modeledGexOnePercentUsd": -19659670.037891053
+      },
+      {
+        "spotPrice": 71200,
+        "modeledGexOnePercentUsd": -18942412.261734143
+      },
+      {
+        "spotPrice": 71600,
+        "modeledGexOnePercentUsd": -18168858.051357776
+      },
+      {
+        "spotPrice": 72000,
+        "modeledGexOnePercentUsd": -17392393.12419306
+      },
+      {
+        "spotPrice": 72400,
+        "modeledGexOnePercentUsd": -16655891.922985611
+      },
+      {
+        "spotPrice": 72800,
+        "modeledGexOnePercentUsd": -15982170.711222997
+      },
+      {
+        "spotPrice": 73200,
+        "modeledGexOnePercentUsd": -15369683.865302902
+      },
+      {
+        "spotPrice": 73600,
+        "modeledGexOnePercentUsd": -14794001.509835297
+      },
+      {
+        "spotPrice": 74000,
+        "modeledGexOnePercentUsd": -14214235.86275879
+      },
+      {
+        "spotPrice": 74400,
+        "modeledGexOnePercentUsd": -13582544.691186555
+      },
+      {
+        "spotPrice": 74800,
+        "modeledGexOnePercentUsd": -12854343.7470699
+      },
+      {
+        "spotPrice": 75200,
+        "modeledGexOnePercentUsd": -11996963.992506383
+      },
+      {
+        "spotPrice": 75600,
+        "modeledGexOnePercentUsd": -10995099.487982493
+      },
+      {
+        "spotPrice": 76000,
+        "modeledGexOnePercentUsd": -9852299.708687495
+      },
+      {
+        "spotPrice": 76400,
+        "modeledGexOnePercentUsd": -8588708.84422349
+      },
+      {
+        "spotPrice": 76800,
+        "modeledGexOnePercentUsd": -7236011.899162801
+      },
+      {
+        "spotPrice": 77200,
+        "modeledGexOnePercentUsd": -5830964.52555635
+      },
+      {
+        "spotPrice": 77600,
+        "modeledGexOnePercentUsd": -4408924.132111879
+      },
+      {
+        "spotPrice": 78000,
+        "modeledGexOnePercentUsd": -2998531.4466027026
+      },
+      {
+        "spotPrice": 78400,
+        "modeledGexOnePercentUsd": -1618247.4661403156
+      },
+      {
+        "spotPrice": 78800,
+        "modeledGexOnePercentUsd": -274977.7094873515
+      },
+      {
+        "spotPrice": 79200,
+        "modeledGexOnePercentUsd": 1035370.9338236476
+      },
+      {
+        "spotPrice": 79600,
+        "modeledGexOnePercentUsd": 2325798.481440245
+      },
+      {
+        "spotPrice": 80000,
+        "modeledGexOnePercentUsd": 3615084.548427786
+      },
+      {
+        "spotPrice": 80400,
+        "modeledGexOnePercentUsd": 4924127.538019558
+      },
+      {
+        "spotPrice": 80800,
+        "modeledGexOnePercentUsd": 6272211.394032805
+      },
+      {
+        "spotPrice": 81200,
+        "modeledGexOnePercentUsd": 7673617.289153341
+      },
+      {
+        "spotPrice": 81600,
+        "modeledGexOnePercentUsd": 9134963.964494605
+      },
+      {
+        "spotPrice": 82000,
+        "modeledGexOnePercentUsd": 10653621.139381563
+      },
+      {
+        "spotPrice": 82400,
+        "modeledGexOnePercentUsd": 12217464.394094761
+      },
+      {
+        "spotPrice": 82800,
+        "modeledGexOnePercentUsd": 13806100.177990515
+      },
+      {
+        "spotPrice": 83200,
+        "modeledGexOnePercentUsd": 15393481.135694116
+      },
+      {
+        "spotPrice": 83600,
+        "modeledGexOnePercentUsd": 16951581.1684732
+      },
+      {
+        "spotPrice": 84000,
+        "modeledGexOnePercentUsd": 18454561.11736779
+      },
+      {
+        "spotPrice": 84400,
+        "modeledGexOnePercentUsd": 19882697.279368434
+      },
+      {
+        "spotPrice": 84800,
+        "modeledGexOnePercentUsd": 21225324.70341181
+      },
+      {
+        "spotPrice": 85200,
+        "modeledGexOnePercentUsd": 22482193.356674716
+      },
+      {
+        "spotPrice": 85600,
+        "modeledGexOnePercentUsd": 23662931.978446294
+      },
+      {
+        "spotPrice": 86000,
+        "modeledGexOnePercentUsd": 24784702.090101954
+      },
+      {
+        "spotPrice": 86400,
+        "modeledGexOnePercentUsd": 25868513.58977075
+      },
+      {
+        "spotPrice": 86800,
+        "modeledGexOnePercentUsd": 26934967.854328886
+      },
+      {
+        "spotPrice": 87200,
+        "modeledGexOnePercentUsd": 28000318.889386006
+      },
+      {
+        "spotPrice": 87600,
+        "modeledGexOnePercentUsd": 29073664.00884779
+      },
+      {
+        "spotPrice": 88000,
+        "modeledGexOnePercentUsd": 30155810.309836864
+      },
+      {
+        "spotPrice": 88400,
+        "modeledGexOnePercentUsd": 31239976.215532716
+      },
+      {
+        "spotPrice": 88800,
+        "modeledGexOnePercentUsd": 32314072.753001735
+      },
+      {
+        "spotPrice": 89200,
+        "modeledGexOnePercentUsd": 33363966.346763622
+      },
+      {
+        "spotPrice": 89600,
+        "modeledGexOnePercentUsd": 34376932.97189024
+      },
+      {
+        "spotPrice": 90000,
+        "modeledGexOnePercentUsd": 35344512.43872757
+      },
+      {
+        "spotPrice": 90400,
+        "modeledGexOnePercentUsd": 36264153.53386934
+      },
+      {
+        "spotPrice": 90800,
+        "modeledGexOnePercentUsd": 37139354.0768241
+      },
+      {
+        "spotPrice": 91200,
+        "modeledGexOnePercentUsd": 37978363.92109437
+      },
+      {
+        "spotPrice": 91600,
+        "modeledGexOnePercentUsd": 38791844.825072035
+      },
+      {
+        "spotPrice": 92000,
+        "modeledGexOnePercentUsd": 39590094.22789751
+      },
+      {
+        "spotPrice": 92400,
+        "modeledGexOnePercentUsd": 40380496.83694051
+      },
+      {
+        "spotPrice": 92800,
+        "modeledGexOnePercentUsd": 41165764.9993834
+      },
+      {
+        "spotPrice": 93200,
+        "modeledGexOnePercentUsd": 41943300.81557051
+      },
+      {
+        "spotPrice": 93600,
+        "modeledGexOnePercentUsd": 42705722.129877664
+      },
+      {
+        "spotPrice": 94000,
+        "modeledGexOnePercentUsd": 43442314.0636838
+      },
+      {
+        "spotPrice": 94400,
+        "modeledGexOnePercentUsd": 44140963.53849098
+      },
+      {
+        "spotPrice": 94800,
+        "modeledGexOnePercentUsd": 44790049.78932775
+      },
+      {
+        "spotPrice": 95200,
+        "modeledGexOnePercentUsd": 45379811.58627836
+      },
+      {
+        "spotPrice": 95600,
+        "modeledGexOnePercentUsd": 45902872.32092397
+      },
+      {
+        "spotPrice": 96000,
+        "modeledGexOnePercentUsd": 46353832.8100012
+      },
+      {
+        "spotPrice": 96400,
+        "modeledGexOnePercentUsd": 46728081.28096147
+      },
+      {
+        "spotPrice": 96800,
+        "modeledGexOnePercentUsd": 47020164.49075211
+      },
+      {
+        "spotPrice": 97200,
+        "modeledGexOnePercentUsd": 47222171.25930225
+      },
+      {
+        "spotPrice": 97600,
+        "modeledGexOnePercentUsd": 47322580.289149806
+      },
+      {
+        "spotPrice": 98000,
+        "modeledGexOnePercentUsd": 47305923.45803091
+      },
+      {
+        "spotPrice": 98400,
+        "modeledGexOnePercentUsd": 47153441.05510133
+      },
+      {
+        "spotPrice": 98800,
+        "modeledGexOnePercentUsd": 46844697.88086328
+      },
+      {
+        "spotPrice": 99200,
+        "modeledGexOnePercentUsd": 46359933.753664546
+      },
+      {
+        "spotPrice": 99600,
+        "modeledGexOnePercentUsd": 45682777.63360381
+      },
+      {
+        "spotPrice": 100000,
+        "modeledGexOnePercentUsd": 44802886.45682831
+      },
+      {
+        "spotPrice": 100400,
+        "modeledGexOnePercentUsd": 43718085.533777446
+      },
+      {
+        "spotPrice": 100800,
+        "modeledGexOnePercentUsd": 42435677.4949002
+      },
+      {
+        "spotPrice": 101200,
+        "modeledGexOnePercentUsd": 40972728.450372696
+      },
+      {
+        "spotPrice": 101600,
+        "modeledGexOnePercentUsd": 39355303.24672937
+      },
+      {
+        "spotPrice": 102000,
+        "modeledGexOnePercentUsd": 37616775.97078306
+      },
+      {
+        "spotPrice": 102400,
+        "modeledGexOnePercentUsd": 35795462.10188403
+      },
+      {
+        "spotPrice": 102800,
+        "modeledGexOnePercentUsd": 33931889.22601869
+      },
+      {
+        "spotPrice": 103200,
+        "modeledGexOnePercentUsd": 32066039.121687584
+      },
+      {
+        "spotPrice": 103600,
+        "modeledGexOnePercentUsd": 30234860.442100286
+      },
+      {
+        "spotPrice": 104000,
+        "modeledGexOnePercentUsd": 28470280.7124655
+      }
+    ],
+    "gammaFlipPrice": 78883.21084437627,
+    "qualifyingCrossings": [
+      {
+        "price": 78883.21084437627,
+        "distanceFromUnderlying": 1116.78915562373,
+        "lowerBracketPrice": 78880,
+        "upperBracketPrice": 78900,
+        "lowerBracketGex": -10579.483156127115,
+        "upperBracketGex": 55318.9654531812,
+        "significanceThreshold": 236612.90144574904
+      }
+    ],
+    "maxPain": {
+      "expiry": 1788336000000,
+      "price": 80000,
+      "totalPayoutUsd": 15000000,
+      "metadata": {
+        "event": {
+          "source": "calculated",
+          "sourceTimestamp": 1787731200000,
+          "receivedTimestamp": 1787731200000,
+          "normalizedTimestamp": 1787731200000,
+          "schemaVersion": "1.0.0"
+        },
+        "calculatedAt": 1787731200000,
+        "calculationEngineVersion": "1.0.0",
+        "gexModelVersion": "gex-heuristic-v1",
+        "gammaProfileVersion": "sticky-iv-v1",
+        "expiryScope": "expiry:1788336000000",
+        "contractsSeen": 18,
+        "contractsIncluded": 18,
+        "excludedCountByReason": {},
+        "nearestIncludedExpiry": 1788336000000,
+        "nearestIncludedDte": 7,
+        "qualifyingCrossings": [],
+        "durationMs": 0
+      }
+    }
+  }
+}

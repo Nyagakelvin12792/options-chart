@@ -323,19 +323,19 @@ Implementation evidence (2026-08-26):
 
 ## M4 Independent Validation
 
-Status: NOT STARTED
+Status: IN PROGRESS
 
-- [ ] M4.1 Python Black-Scholes.
-- [ ] M4.2 Python gamma.
-- [ ] M4.3 Python Max Pain.
-- [ ] M4.4 real Deribit fixtures.
-- [ ] M4.5 TypeScript vs Python.
-- [ ] M4.6 document Deribit Greek conventions.
+- [x] M4.1 Python Black-Scholes.
+- [x] M4.2 Python gamma.
+- [x] M4.3 Python Max Pain.
+- [x] M4.4 real Deribit fixtures.
+- [x] M4.5 TypeScript vs Python.
+- [x] M4.6 document Deribit Greek conventions.
 - [ ] M4.7 set tolerances only after M4.6.
-- [ ] M4.8 TypeScript vs Deribit gamma.
+- [x] M4.8 TypeScript vs Deribit gamma.
 - [ ] M4.9 tolerance investigation.
 - [ ] M4.10 automate TS/Python CI comparison.
-- [ ] M4.11 regression snapshots.
+- [x] M4.11 regression snapshots.
 - [ ] M4.12 near-expiry cases.
 - [ ] M4.13 zero-DTE handling.
 - [ ] M4.14 ITM/OTM extremes.
@@ -352,7 +352,7 @@ Status: NOT STARTED
 - [ ] M4.25 wall-guardrail sensitivity.
 - [ ] M4.26 assumptions document.
 
-Progress: 0 / 26
+Progress: 8 / 26
 
 ## M5 Chart Engine
 

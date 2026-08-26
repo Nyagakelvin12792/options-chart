@@ -75,6 +75,15 @@ export {
   normalizeDeribitOptionInstrument,
   normalizeDeribitRestIndex,
 } from "./production-normalizers";
+export {
+  DERIBIT_SNAPSHOT_SCHEMA_VERSION,
+  parseDeribitSnapshot,
+} from "./normalizers";
+export {
+  DeribitConsolidatedInstrumentSchema,
+  DeribitConsolidatedSnapshotSchema,
+} from "./schemas";
+export type { DeribitConsolidatedSnapshot } from "./schemas";
 export { DeribitOptionsStore } from "./store";
 export type { MarkApplicationResult } from "./store";
 export type {

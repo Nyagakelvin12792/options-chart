@@ -3646,14 +3646,14 @@ Tasks:
 - [ ] M4.1 Build Python reference Black-Scholes implementation.
 - [ ] M4.2 Build Python reference gamma.
 - [ ] M4.3 Build Python reference Max Pain.
-- [ ] M4.4 Capture real Deribit fixtures.
+- [x] M4.4 Capture real Deribit fixtures.
 - [ ] M4.5 Compare TypeScript gamma to Python.
-- [ ] M4.6 Reverse-engineer and document Deribit's Greek conventions: IV unit, rate unit, exact expiry clock, time basis/year convention, underlying input, and rounding behavior.
+- [x] M4.6 Reverse-engineer and document Deribit's Greek conventions: IV unit, rate unit, exact expiry clock, time basis/year convention, underlying input, and rounding behavior.
 - [ ] M4.7 Set reconciliation tolerances only after M4.6.
-- [ ] M4.8 Compare TypeScript gamma to Deribit-published gamma.
+- [x] M4.8 Compare TypeScript gamma to Deribit-published gamma.
 - [ ] M4.9 Investigate tolerance failures.
 - [ ] M4.10 Automate TypeScript <-> Python reference comparisons in CI.
-- [ ] M4.11 Create known-output regression snapshots.
+- [x] M4.11 Create known-output regression snapshots.
 - [ ] M4.12 Test near-expiry edge cases.
 - [ ] M4.13 Test zero-DTE handling.
 - [ ] M4.14 Test deep ITM/OTM options.

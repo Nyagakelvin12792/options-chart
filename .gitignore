@@ -11,3 +11,9 @@ test-results/
 .DS_Store
 
 .vercel
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/

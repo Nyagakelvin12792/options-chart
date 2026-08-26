@@ -14,52 +14,133 @@ concurrency:
 
 jobs:
   quality:
+    name: Code Quality & Policy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+
+      - name: Set up Node.js 22.x
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22.x
           cache: npm
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run progress:check
-      - run: npm run progress:policy
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prettier check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Progress check
+        run: npm run progress:check
+
+      - name: Progress policy
+        run: npm run progress:policy
+
+  python-reference:
+    name: Python 3.13 Reference Engine Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13.x
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13.x"
+
+      - name: Run Black-Scholes Reference Tests
+        run: python tools/reference-python/test_black_scholes.py
+
+      - name: Run Gamma & GEX Reference Tests
+        run: python tools/reference-python/test_gamma_reference.py
+
+      - name: Run Max Pain Reference Tests
+        run: python tools/reference-python/test_max_pain.py
 
   unit:
+    name: Dual-Runtime Parity & Unit Tests (Node ${{ matrix.node-version }} / Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
+        python-version: ["3.13.x"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ matrix.node-version }}
           cache: npm
-      - run: npm ci
-      - run: npm test
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Python Reference Unit Tests
+        run: |
+          python tools/reference-python/test_black_scholes.py
+          python tools/reference-python/test_gamma_reference.py
+          python tools/reference-python/test_max_pain.py
+
+      - name: Run TypeScript Unit & Dual-Engine Parity Tests
+        run: npm test
+
+      - name: Run Large-Scale Parity Verification (100k Vectors)
+        run: npm run test:parity
 
   build:
+    name: Build Packages & Web Application
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22.x
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22.x
           cache: npm
-      - run: npm ci
-      - run: npm run build
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages and application
+        run: npm run build
 
   e2e-smoke:
+    name: Playwright E2E Smoke Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22.x
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22.x
           cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E smoke tests
+        run: npm run test:e2e
