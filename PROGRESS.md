@@ -174,7 +174,7 @@ M0 exit review and product-owner approval, then begin M0.5.
 <!-- progress:M0.5:start -->
 ## M0.5 Walking Skeleton
 
-Status: IN PROGRESS
+Status: COMPLETE
 
 - [x] M0.5.1 Plain Next.js client page
 - [x] M0.5.2 Small Binance REST candle fetch
@@ -185,12 +185,12 @@ Status: IN PROGRESS
 - [x] M0.5.7 Deterministic worker metric
 - [x] M0.5.8 Plain metric display
 - [x] M0.5.9 Minimal authentication
-- [ ] M0.5.10 Vercel preview
+- [x] M0.5.10 Vercel preview
 - [x] M0.5.11 Chart-path benchmark
 - [x] M0.5.12 Deribit batch-validation benchmark
 - [x] M0.5.13 Record results
 
-Progress: 12 / 13
+Progress: 13 / 13
 
 Blockers:
 
@@ -199,7 +199,7 @@ Blockers:
 Next recommended task:
 
 ```text
-M0.5.10
+M0.5 exit review and product-owner approval, then begin M1.
 ```
 <!-- progress:M0.5:end -->
 
@@ -727,7 +727,7 @@ Use newest entries first.
 
 ### M0.5-WALKING-SKELETON
 
-Status: 12 / 13 COMPLETE; Vercel preview live, Google OAuth configuration pending
+Status: 13 / 13 COMPLETE; awaiting product-owner exit approval
 
 Implementation:
 
@@ -751,6 +751,7 @@ Tests run:
 - Live local Binance proxy: PASS, 120 candles returned.
 - Vercel preview reachability: PASS, HTTP 200 with the expected dashboard configuration gate.
 - Production Google sign-in initiation: PASS; Chromium submitted POST and reached `accounts.google.com` with the stable Vercel callback.
+- Authenticated production dashboard: PASS; product-owner screenshot confirms 120 validated candles and the deterministic 251.00 BTC worker metric after allowlisted Google login.
 
 Benchmarks:
 
@@ -765,8 +766,7 @@ Architecture decisions:
 
 Next:
 
-- Complete Google sign-in with the allowlisted account on the stable Vercel deployment.
-- Verify the authenticated dashboard session before M0.5 exit approval.
+- Conduct M0.5 exit review and obtain product-owner approval before beginning M1.
 
 ---
 
@@ -1230,4 +1230,4 @@ Do not begin visual Gamma overlays before Milestones 1 through 4 pass their exit
   5. **Auth & Security:** NextAuth Google provider enforces exact allowlisted email check. Dev bypass is restricted strictly to `NODE_ENV === "development"`.
   6. **Benchmarks:** Verified `benchmark:deribit` executing 2,500 instrument validations in 16.4ms median / 22.3ms p95 (safely below 50ms long-task threshold).
   7. **Test Suites:** 17 Vitest unit tests, 3 Playwright tests, typecheck, and lint pass with 0 errors.
-- **Remaining Task:** The Vercel deployment and Google sign-in initiation are verified. Complete sign-in with the allowlisted account and verify the resulting authenticated dashboard session for M0.5.10.
+- **Remaining Task:** None for implementation. Conduct the M0.5 exit review and record product-owner approval before beginning M1.
