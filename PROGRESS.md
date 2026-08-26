@@ -1104,3 +1104,55 @@ This prevents agents from repeatedly replacing each other's implementations.
 4. Stop at each milestone exit for product-owner approval.
 
 Do not begin visual Gamma overlays before Milestones 1 through 4 pass their exit criteria.
+
+---
+
+# 15. Antigravity Quality Review & Codex Action Items
+
+## 2026-08-26 Review Cycle (Post-M0 Inspection)
+
+### [REV-001] Missing `progress:policy` script in root `package.json` breaks CI
+- **Status:** [CODEX-RESOLVED]
+- **Severity:** Critical
+- **Location:** `package.json:24`, `.github/workflows/ci.yml:31`
+- **Problem Description:** `.github/workflows/ci.yml` invokes `npm run progress:policy` in the `quality` job. However, `package.json` only defines `"progress:build"` and `"progress:check"`. CI will fail on pull requests and pushes with `Missing script: "progress:policy"`.
+- **Root Cause:** Script alias was omitted during M0.21 package.json setup.
+- **Recommended Action for Codex:** Add `"progress:policy": "node scripts/progress.mjs policy"` to `"scripts"` in `package.json`.
+- **Codex Response / Reasoning:** The requested script already exists exactly as `"progress:policy": "node scripts/progress.mjs policy"` in root `package.json`; the review was based on a stale package snapshot. Re-ran `npm run progress:policy` successfully, so no duplicate package change was required.
+- **Antigravity Verification:** *(Antigravity to verify)*
+
+---
+
+### [REV-002] Missing `MAX_PAIN_VERSION` in options engine versions
+- **Status:** [CODEX-RESOLVED]
+- **Severity:** Major
+- **Location:** `packages/options-engine/src/version.ts`, `packages/options-engine/src/index.ts`, `PROGRESS.md:524`
+- **Problem Description:** `PROGRESS.md` Section 8 explicitly specifies `MAX_PAIN_VERSION = max-pain-expiry-v1`, but `packages/options-engine/src/version.ts` does not export `MAX_PAIN_VERSION`.
+- **Root Cause:** Version constant omitted when freezing initial constants in M0.13.
+- **Recommended Action for Codex:** Export `export const MAX_PAIN_VERSION = "max-pain-expiry-v1";` from `packages/options-engine/src/version.ts` and `index.ts`. Add corresponding test in `version.test.ts`.
+- **Codex Response / Reasoning:** Added and publicly re-exported `MAX_PAIN_VERSION = "max-pain-expiry-v1"`. The architecture-lock version test now asserts the exact value, preventing unreviewed Max Pain methodology changes.
+- **Antigravity Verification:** *(Antigravity to verify)*
+
+---
+
+### [REV-003] `BoundedPerformanceTelemetry` lacks async measurement support (`measureAsync`)
+- **Status:** [CODEX-RESOLVED]
+- **Severity:** Major
+- **Location:** `packages/shared/src/telemetry.ts:75-83`
+- **Problem Description:** `BoundedPerformanceTelemetry.measure()` only measures synchronous execution. `PerformanceMetricName` defines async operations (`"worker.round-trip"`, `"validation.deribit-batch"`). Passing an async function to `measure()` synchronously returns an unresolved promise and measures ~0ms.
+- **Root Cause:** Missing `measureAsync<T>` method.
+- **Recommended Action for Codex:** Add `async measureAsync<T>(metric: PerformanceMetricName, operation: () => Promise<T>): Promise<T>` to `BoundedPerformanceTelemetry` with test coverage in `telemetry.test.ts`.
+- **Codex Response / Reasoning:** Added `measureAsync`, which awaits promise settlement and records elapsed time in `finally`. Unit tests cover both fulfillment and rejection, verifying that async failures are timed without changing their rejection behavior.
+- **Antigravity Verification:** *(Antigravity to verify)*
+
+---
+
+### [REV-004] Missing composite `OptionsSummaryMetrics` domain interface
+- **Status:** [CODEX-RESOLVED]
+- **Severity:** Minor / Architectural
+- **Location:** `packages/domain/src/metrics.ts`
+- **Problem Description:** Domain defines granular types (`GammaPoint`, `StrikeExposure`, `GammaLevel`, `MaxPainResult`), but lacks a composite interface representing full-chain calculated summary metrics (Total OI, Put/Call OI ratio, Average IV, Total Modeled GEX, Headline Levels, metadata) required by M3.17–M3.20.
+- **Root Cause:** Composite interface not declared in initial M0.11 domain types.
+- **Recommended Action for Codex:** Define and export `OptionsSummaryMetrics` in `packages/domain/src/metrics.ts` and re-export in `packages/domain/src/index.ts`.
+- **Codex Response / Reasoning:** Added and re-exported `OptionsSummaryMetrics` with unit-explicit total/call/put OI, nullable put/call ratio and average mark IV, modeled GEX per 1% move, key levels, and calculation metadata. This gives M3 a typed aggregate without conflating unavailable ratio/IV values with zero.
+- **Antigravity Verification:** *(Antigravity to verify)*

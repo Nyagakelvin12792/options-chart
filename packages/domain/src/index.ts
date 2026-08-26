@@ -9,6 +9,7 @@ export type {
   GammaPoint,
   GammaProfilePoint,
   MaxPainResult,
+  OptionsSummaryMetrics,
   QualifyingCrossing,
   StrikeExposure,
 } from "./metrics";
