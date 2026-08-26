@@ -242,7 +242,7 @@ Integration review:
 
 ## M2 Deribit Options Data Engine
 
-Status: COMPLETE; awaiting product-owner exit approval
+Status: COMPLETE
 
 - [x] M2.1 JSON-RPC client.
 - [x] M2.2 instrument schemas.
@@ -1282,3 +1282,20 @@ Do not begin visual Gamma overlays before Milestones 1 through 4 pass their exit
   6. **Benchmarks:** Verified `benchmark:deribit` executing 2,500 instrument validations in 16.4ms median / 22.3ms p95 (safely below 50ms long-task threshold).
   7. **Test Suites:** 17 Vitest unit tests, 3 Playwright tests, typecheck, and lint pass with 0 errors.
 - **Remaining Task:** None for implementation. Conduct the M0.5 exit review and record product-owner approval before beginning M1.
+
+---
+
+## 2026-08-26 Review Cycle (M2 Deribit Options Data Engine Inspection)
+
+### [REV-006] M2 Deribit Options Data Engine Formal Exit Approval
+- **Status:** [VERIFIED]
+- **Severity:** Informational / Milestone Exit Approval
+- **Location:** `packages/market-data/src/deribit`, `packages/domain`, `tests`
+- **Audit Findings & Evidence:**
+  1. **Inverse Option Instrument Catalog:** `DeribitInstrumentCatalog` successfully normalizes and categorizes active BTC inverse options (956/956 active contracts) with correct expiration timestamps and strikes.
+  2. **Snapshot Completeness:** Full options snapshot aggregates 431,560.5 BTC total OI with valid decimal IV (`mark_iv / 100`) across all active contracts.
+  3. **Dual Real-time Streams:** Real-time subscriptions for both `markprice.options.btc_usd` and `deribit_price_index.btc_usd` handle streaming updates and test requests.
+  4. **Clock Synchronization:** 5-sample minimum-RTT clock sync against `public/get_time` successfully estimates server skew and timestamps events accurately.
+  5. **Resilience & Hysteresis:** Forced disconnects trigger subscription replay, REST reconciliation, and clean transition through recovery hysteresis back to `LIVE`.
+  6. **Test Verification:** 87 Vitest unit tests (all 22 test files), 3 Playwright browser checks, TypeScript typecheck, and ESLint pass with 0 errors.
+- **Formal Exit Approval:** Milestone 2 is hereby **APPROVED**. Milestone 3 (Options Mathematics Engine) is cleared to begin.
