@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/domain" },
+    { "path": "packages/shared" },
+    { "path": "packages/options-engine" },
+    { "path": "packages/chart" }
+  ]
+}

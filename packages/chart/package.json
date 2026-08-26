@@ -1,0 +1,13 @@
+{
+  "name": "@options-chart/chart",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@options-chart/domain": "*",
+    "lightweight-charts": "5.2.1"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

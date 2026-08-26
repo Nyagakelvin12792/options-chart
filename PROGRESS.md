@@ -2,8 +2,8 @@
 ## PROGRESS.md
 
 Version: 0.5.0  
-Last updated: 2026-08-25  
-Overall status: Planning and architecture revision  
+Last updated: 2026-08-26
+Overall status: M0 complete; awaiting milestone-exit approval
 Current milestone: M0 Architecture Lock  
 Production status: NOT READY
 
@@ -28,8 +28,8 @@ Do not mark work complete based only on a screenshot or successful page render.
 
 | Area | Status | Notes |
 |---|---|---|
-| Architecture | IN PROGRESS | Research baseline completed |
-| Repository scaffold | IN PROGRESS | Repository confirmed: Nyagakelvin12792/options-chart |
+| Architecture | COMPLETE | M0 contracts compile; awaiting exit approval |
+| Repository scaffold | COMPLETE | npm workspace, tooling, CI, and governance configured |
 | Binance candles | NOT STARTED | Architecture defined |
 | Deribit options data | NOT STARTED | Architecture defined |
 | Options engine | NOT STARTED | Methodology baseline defined |
@@ -49,20 +49,20 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ID | Decision | Status |
 |---|---|---|
 | ADR-001 | Binance BTCUSDT Spot is the master candlestick source | ACCEPTED |
-| ADR-002 | Deribit is the BTC options source | PROPOSED |
-| ADR-003 | Deribit index context is used for Deribit option mathematics | PROPOSED |
-| ADR-004 | TradingView Lightweight Charts is the primary chart engine | PROPOSED |
-| ADR-005 | KLineChart is the fallback chart engine | PROPOSED |
-| ADR-006 | Chart engines sit behind ChartAdapter | PROPOSED |
-| ADR-007 | Production calculations are TypeScript | PROPOSED |
-| ADR-008 | Python exists only as an independent reference implementation | PROPOSED |
-| ADR-009 | Full gamma profile runs in a Web Worker | PROPOSED |
-| ADR-010 | Vercel hosts the app, browser connects directly to exchange WebSockets | PROPOSED |
-| ADR-011 | Deribit OI uses periodic full-chain REST snapshots | PROPOSED |
-| ADR-012 | Deribit live mark/IV uses markprice.options.btc_usd | PROPOSED |
+| ADR-002 | Deribit is the BTC options source | ACCEPTED |
+| ADR-003 | Deribit index context is used for Deribit option mathematics | ACCEPTED |
+| ADR-004 | TradingView Lightweight Charts is the primary chart engine | ACCEPTED |
+| ADR-005 | KLineChart is the fallback chart engine | ACCEPTED |
+| ADR-006 | Chart engines sit behind ChartAdapter | ACCEPTED |
+| ADR-007 | Production calculations are TypeScript | ACCEPTED |
+| ADR-008 | Python exists only as an independent reference implementation | ACCEPTED |
+| ADR-009 | Full gamma profile runs in a Web Worker | ACCEPTED |
+| ADR-010 | Vercel hosts the app, browser connects directly to exchange WebSockets | ACCEPTED |
+| ADR-011 | Deribit OI uses periodic full-chain REST snapshots | ACCEPTED |
+| ADR-012 | Deribit live mark/IV uses markprice.options.btc_usd | ACCEPTED |
 | ADR-013 | App is read-only analytics in v1 | ACCEPTED |
-| ADR-014 | Max Pain is expiry-specific | PROPOSED |
-| ADR-015 | Signed GEX is labeled as modeled, not known dealer inventory | PROPOSED |
+| ADR-014 | Max Pain is expiry-specific | ACCEPTED |
+| ADR-015 | Signed GEX is labeled as modeled, not known dealer inventory | ACCEPTED |
 | ADR-016 | v1 Deribit universe is BTC-settled inverse BTC options only | ACCEPTED |
 | ADR-017 | v0 ships with Lightweight Charts only; KLineChart remains behind adapter and is post-v0 unless needed | ACCEPTED |
 | ADR-018 | Average IV means OI-weighted mark IV | ACCEPTED |
@@ -128,40 +128,45 @@ No product-decision blocker remains for M0/M0.5.
 
 # 5. Milestone Status
 
+<!-- progress:M0:start -->
 ## M0 Architecture Lock
 
-Status: IN PROGRESS
+Status: COMPLETE
 
-- [x] M0.1 Confirm new dedicated repository: options-chart.
-- [x] M0.2 Draft PROJECT_PLAN.md.
-- [x] M0.3 Draft PROGRESS.md.
-- [ ] M0.4 Add AGENTS.md.
-- [ ] M0.5 Scaffold npm workspace.
-- [ ] M0.6 Configure strict TypeScript.
-- [ ] M0.7 Configure linting.
-- [ ] M0.8 Configure Vitest.
-- [ ] M0.9 Configure Playwright.
-- [ ] M0.10 Configure GitHub Actions.
-- [ ] M0.11 Define canonical domain types.
-- [ ] M0.12 Define typed error model.
-- [ ] M0.13 Define calculation version constants.
-- [ ] M0.14 Freeze initial GEX assumptions.
-- [ ] M0.15 Define ChartAdapter.
-- [ ] M0.16 Install/check Lightweight Charts agent skill.
-- [ ] M0.17 Establish baseline performance telemetry.
+- [x] M0.1 Confirm the dedicated options-chart repository.
+- [x] M0.2 Add PROJECT_PLAN.md version 0.5.0.
+- [x] M0.3 Add PROGRESS.md version 0.5.0.
+- [x] M0.4 Add the root AGENTS.md operating contract.
+- [x] M0.5 Scaffold the npm workspace.
+- [x] M0.6 Configure strict TypeScript.
+- [x] M0.7 Configure linting and formatting checks.
+- [x] M0.8 Configure Vitest.
+- [x] M0.9 Configure Playwright.
+- [x] M0.10 Configure GitHub Actions.
+- [x] M0.11 Define canonical domain types.
+- [x] M0.12 Define the typed error taxonomy.
+- [x] M0.13 Define calculation version constants.
+- [x] M0.14 Record initial mathematical assumptions.
+- [x] M0.15 Define ChartAdapter.
+- [x] M0.16 Check the Lightweight Charts Codex skill and package typings.
+- [x] M0.17 Establish baseline performance telemetry.
+- [x] M0.18 Create the ADR index.
+- [x] M0.19 Create the ADR template.
+- [x] M0.20 Register ADR-001 through ADR-039.
+- [x] M0.21 Create the progress journal generator and checker.
 
-Progress: 3 / 17
+Progress: 21 / 21
 
 Blockers:
 
-- None at product-definition level.
-- Implementation findings from the walking skeleton may still require scoped ADR updates.
+- None.
 
 Next recommended task:
 
 ```text
-M0.5 scaffold workspace, then complete the M0.5 walking skeleton.
+M0 exit review and product-owner approval, then begin M0.5.
 ```
+<!-- progress:M0:end -->
 
 ---
 
@@ -706,6 +711,43 @@ Mitigation:
 
 Use newest entries first.
 
+## 2026-08-26
+
+### M0-ARCHITECTURE-LOCK
+
+Status: COMPLETED; awaiting product-owner exit approval
+
+Implementation:
+
+- Added the npm/Next.js workspace and exact dependency lockfile.
+- Added strict TypeScript, ESLint, Prettier, Vitest, Playwright, and GitHub Actions.
+- Defined canonical domain models, typed errors, calculation versions, GEX assumptions, ChartAdapter, and bounded telemetry.
+- Registered ADR-001 through ADR-039 and explicit open validation items.
+- Added one journal per M0 task plus deterministic progress build/check/policy tooling.
+
+Tests run:
+
+- `npm run format:check`: PASS.
+- `npm run lint`: PASS.
+- `npm run typecheck`: PASS.
+- `npm test`: PASS, 4 tests.
+- `npm run build`: PASS.
+- `npm run test:e2e`: PASS, 1 Chromium smoke test.
+- `npm audit`: PASS, 0 vulnerabilities.
+
+Architecture decisions:
+
+- Pinned Next.js 16.3.3, React 19.2.8, Lightweight Charts 5.2.1, TypeScript 6.0.3, and ESLint 9.39.5.
+- TypeScript 7 and ESLint 10 were not used because the current Next lint stack does not support them together.
+- The optional Lightweight Charts agent skill was checked but not installed; installed v5 package typings are authoritative.
+
+Next:
+
+- Product owner reviews and approves the M0 exit.
+- Begin M0.5 walking skeleton after approval.
+
+---
+
 ## 2026-08-25
 
 ### PLAN-005
@@ -1056,11 +1098,9 @@ This prevents agents from repeatedly replacing each other's implementations.
 
 # 14. Next Action
 
-1. Add PROJECT_PLAN.md and PROGRESS.md to the `Nyagakelvin12792/options-chart` repository root.
-3. Add AGENTS.md with the four-agent role split.
-4. Scaffold Milestone 0.
-5. Complete Milestone 0.5 walking skeleton before deep Milestone 1 implementation.
-6. Prototype the Level Rail early enough to verify chart readability and performance.
-7. Stop at each milestone exit for product-owner approval.
+1. Review and approve the M0 milestone exit.
+2. Complete the M0.5 walking skeleton before deep Milestone 1 implementation.
+3. Prototype the Level Rail early enough to verify chart readability and performance.
+4. Stop at each milestone exit for product-owner approval.
 
 Do not begin visual Gamma overlays before Milestones 1 through 4 pass their exit criteria.

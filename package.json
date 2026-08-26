@@ -1,0 +1,42 @@
+{
+  "name": "options-chart",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.8.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @options-chart/web",
+    "build": "npm run build:packages && npm run build --workspace @options-chart/web",
+    "build:packages": "tsc -b packages/domain packages/shared packages/options-engine packages/chart",
+    "lint": "eslint apps/web/app apps/web/next.config.ts apps/web/next-env.d.ts packages tests scripts eslint.config.mjs playwright.config.ts vitest.config.ts",
+    "typecheck": "tsc -b packages/domain packages/shared packages/options-engine packages/chart && tsc --noEmit -p apps/web/tsconfig.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:list": "playwright test --list",
+    "format:check": "prettier --check .",
+    "progress:build": "node scripts/progress.mjs build",
+    "progress:check": "node scripts/progress.mjs check",
+    "progress:policy": "node scripts/progress.mjs policy"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/node": "26.3.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@vitest/coverage-v8": "4.1.11",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.3",
+    "prettier": "3.9.6",
+    "tsx": "4.23.12",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}
