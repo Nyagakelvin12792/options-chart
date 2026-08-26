@@ -82,6 +82,19 @@ export class BoundedPerformanceTelemetry {
     }
   }
 
+  async measureAsync<T>(
+    metric: PerformanceMetricName,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    const startedAt = this.#monotonicClock();
+
+    try {
+      return await operation();
+    } finally {
+      this.record(metric, this.#monotonicClock() - startedAt);
+    }
+  }
+
   snapshot(): PerformanceSnapshot {
     const samples = Object.fromEntries(
       [...this.#samples.entries()].map(([metric, values]) => [

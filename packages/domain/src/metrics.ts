@@ -59,6 +59,17 @@ export interface GammaLevel {
   readonly metadata: CalculationMetadata;
 }
 
+export interface OptionsSummaryMetrics {
+  readonly totalOpenInterestBtc: number;
+  readonly totalCallOpenInterestBtc: number;
+  readonly totalPutOpenInterestBtc: number;
+  readonly putCallOpenInterestRatio: number | null;
+  readonly averageMarkIvDecimal: number | null;
+  readonly modeledGexOnePercentUsd: number;
+  readonly keyLevels: readonly GammaLevel[];
+  readonly metadata: CalculationMetadata;
+}
+
 export interface QualifyingCrossing {
   readonly price: number;
   readonly distanceFromUnderlying: number;

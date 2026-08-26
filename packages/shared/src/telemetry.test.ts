@@ -35,4 +35,42 @@ describe("BoundedPerformanceTelemetry", () => {
       telemetry.snapshot().samples["calculation.summary"]?.[0]?.durationMs,
     ).toBe(18);
   });
+
+  it("records async operation duration through promise settlement", async () => {
+    const ticks = [20, 47];
+    const telemetry = new BoundedPerformanceTelemetry(
+      2,
+      () => ticks.shift() ?? 47,
+      () => 1_000,
+    );
+
+    const result = await telemetry.measureAsync(
+      "worker.round-trip",
+      async () => "ok",
+    );
+
+    expect(result).toBe("ok");
+    expect(
+      telemetry.snapshot().samples["worker.round-trip"]?.[0]?.durationMs,
+    ).toBe(27);
+  });
+
+  it("records async duration when the operation rejects", async () => {
+    const ticks = [4, 19];
+    const telemetry = new BoundedPerformanceTelemetry(
+      2,
+      () => ticks.shift() ?? 19,
+      () => 1_000,
+    );
+
+    await expect(
+      telemetry.measureAsync("validation.deribit-batch", async () => {
+        throw new Error("invalid batch");
+      }),
+    ).rejects.toThrow("invalid batch");
+
+    expect(
+      telemetry.snapshot().samples["validation.deribit-batch"]?.[0]?.durationMs,
+    ).toBe(15);
+  });
 });
