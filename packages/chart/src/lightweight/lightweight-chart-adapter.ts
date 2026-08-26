@@ -3,8 +3,10 @@ import {
   CandlestickSeries,
   ColorType,
   createChart,
+  HistogramSeries,
   LineStyle,
   type CandlestickData,
+  type HistogramData,
   type IChartApi,
   type IPriceLine,
   type ISeriesApi,
@@ -36,12 +38,22 @@ const toChartCandle = (candle: Candle): CandlestickData<UTCTimestamp> => ({
   close: candle.close,
 });
 
+const toChartVolume = (candle: Candle): HistogramData<UTCTimestamp> => ({
+  time: toChartTimestamp(candle.openTime),
+  value: candle.volume,
+  color:
+    candle.close >= candle.open
+      ? "rgba(37, 169, 119, 0.45)"
+      : "rgba(220, 83, 98, 0.45)",
+});
+
 export class LightweightChartsAdapter implements ChartAdapter {
   readonly name = "lightweight-charts";
   readonly version = "5.2.1";
 
   private chart: IChartApi | null = null;
   private series: ISeriesApi<"Candlestick"> | null = null;
+  private volumeSeries: ISeriesApi<"Histogram"> | null = null;
   private readonly levelLines = new Map<string, IPriceLine>();
 
   initialize(container: HTMLElement, options: ChartInitializeOptions): void {
@@ -61,7 +73,13 @@ export class LightweightChartsAdapter implements ChartAdapter {
         vertLines: { color: "#202b35" },
         horzLines: { color: "#202b35" },
       },
-      rightPriceScale: { borderColor: "#33414e" },
+      rightPriceScale: {
+        borderColor: "#33414e",
+        scaleMargins: {
+          top: 0.08,
+          bottom: 0.22,
+        },
+      },
       timeScale: {
         borderColor: "#33414e",
         timeVisible: true,
@@ -84,15 +102,31 @@ export class LightweightChartsAdapter implements ChartAdapter {
       priceLineVisible: true,
       lastValueVisible: true,
     });
+
+    this.volumeSeries = this.chart.addSeries(HistogramSeries, {
+      priceFormat: {
+        type: "volume",
+      },
+      priceScaleId: "",
+    });
+
+    this.volumeSeries.priceScale().applyOptions({
+      scaleMargins: {
+        top: 0.8,
+        bottom: 0,
+      },
+    });
   }
 
   setHistory(candles: readonly Candle[]): void {
     this.requireSeries().setData(candles.map(toChartCandle));
+    this.volumeSeries?.setData(candles.map(toChartVolume));
     this.requireChart().timeScale().fitContent();
   }
 
   updateCandle(candle: Candle): void {
     this.requireSeries().update(toChartCandle(candle));
+    this.volumeSeries?.update(toChartVolume(candle));
   }
 
   setLevels(levels: readonly GammaLevel[]): void {
@@ -160,6 +194,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.chart?.remove();
     this.chart = null;
     this.series = null;
+    this.volumeSeries = null;
   }
 
   private requireChart(): IChartApi {

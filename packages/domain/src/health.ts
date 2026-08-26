@@ -1,7 +1,14 @@
 import type { DataSource, DomainEventMetadata } from "./event";
 
 export type FeedHealthState =
-  "CONNECTING" | "LIVE" | "STALE" | "RECONNECTING" | "DEGRADED" | "ERROR";
+  | "CONNECTING"
+  | "LIVE"
+  | "DEGRADED"
+  | "STALE"
+  | "RECONNECTING"
+  | "FALLBACK"
+  | "OFFLINE"
+  | "ERROR";
 
 export interface DataFreshness {
   readonly source: DataSource;

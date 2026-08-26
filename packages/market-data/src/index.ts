@@ -1,12 +1,36 @@
+// Re-export all Binance market-data modules.
 export {
   BINANCE_KLINE_SCHEMA_VERSION,
-  parseBinanceKlines,
-} from "./binance/normalizers";
-export {
   BinanceKlinePageSchema,
   BinanceKlineSchema,
+  BinanceKlineSocket,
+  BinanceRestClient,
+  BinanceWsKlineDataSchema,
+  BinanceWsKlineEventSchema,
+  bootstrapHistory,
+  BOOTSTRAP_TARGET_BARS,
+  CandleStore,
+  INTERVAL_MS,
+  parseBinanceKlines,
+  runEndpointDiagnostics,
+  syncBinanceClock,
+  type BinanceClientOptions,
   type BinanceKline,
-} from "./binance/schemas";
+  type BinanceWsKlineData,
+  type BinanceWsKlineEvent,
+  type BinanceWsOptions,
+  type BootstrapOptions,
+  type BootstrapResult,
+  type ClockSyncResult,
+  type DiagnosticsBundle,
+  type EndpointDiagnostic,
+  type HistoryCompleteness,
+  type KlinesRequestParams,
+  type ReconciliationResult,
+  type RepairAction,
+} from "./binance";
+
+// Re-export Deribit modules.
 export {
   DERIBIT_SNAPSHOT_SCHEMA_VERSION,
   parseDeribitSnapshot,

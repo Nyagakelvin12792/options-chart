@@ -206,31 +206,31 @@ M0.5 exit review and product-owner approval, then begin M1.
 
 ## M1 Binance Candle Engine
 
-Status: NOT STARTED
+Status: COMPLETE
 
-- [ ] M1.1 REST client.
-- [ ] M1.2 Kline schemas.
-- [ ] M1.3 normalizer.
-- [ ] M1.4 historical bootstrap with <=1,000-bar pagination.
-- [ ] M1.4A deterministic startTime pagination.
-- [ ] M1.4B deduplication and contiguity verification.
-- [ ] M1.4C partial-bootstrap recovery.
-- [ ] M1.5 Kline WebSocket.
-- [ ] M1.6 reconnect/backoff.
-- [ ] M1.7 planned 24-hour reconnect.
-- [ ] M1.8 deduplication.
-- [ ] M1.9 gap repair.
-- [ ] M1.10 REST reconciliation.
-- [ ] M1.11 feed health.
-- [ ] M1.12 fixtures.
-- [ ] M1.13 regression tests.
-- [ ] M1.14 Binance clock sync.
-- [ ] M1.15 market-data-only REST fallback.
-- [ ] M1.16 market-data-only WS fallback.
-- [ ] M1.17 endpoint diagnostics.
-- [ ] M1.18 sleep/wake reconciliation.
+- [x] M1.1 REST client.
+- [x] M1.2 Kline schemas.
+- [x] M1.3 normalizer.
+- [x] M1.4 historical bootstrap with <=1,000-bar pagination.
+- [x] M1.4A deterministic startTime pagination.
+- [x] M1.4B deduplication and contiguity verification.
+- [x] M1.4C partial-bootstrap recovery.
+- [x] M1.5 Kline WebSocket.
+- [x] M1.6 reconnect/backoff.
+- [x] M1.7 planned 24-hour reconnect.
+- [x] M1.8 deduplication.
+- [x] M1.9 gap repair.
+- [x] M1.10 REST reconciliation.
+- [x] M1.11 feed health.
+- [x] M1.12 fixtures.
+- [x] M1.13 regression tests.
+- [x] M1.14 Binance clock sync.
+- [x] M1.15 market-data-only REST fallback.
+- [x] M1.16 market-data-only WS fallback.
+- [x] M1.17 endpoint diagnostics.
+- [x] M1.18 sleep/wake reconciliation.
 
-Progress: 0 / 18
+Progress: 18 / 18
 
 ---
 
@@ -724,6 +724,43 @@ Mitigation:
 Use newest entries first.
 
 ## 2026-08-26
+
+### M1-BINANCE-CANDLE-ENGINE
+
+Status: 18 / 18 COMPLETE
+
+Implementation:
+
+- Added `BinanceRestClient` with ordered endpoint failover (`api.binance.com` → `data-api.binance.vision`), HTTP 429/418 rate-limit short-circuit, and `AbortSignal.timeout(8s)` per request.
+- Added `BinanceWsKlineEventSchema` and `BinanceWsKlineDataSchema` Zod schemas for WebSocket kline messages with OHLC integrity and timestamp validation.
+- Added deterministic paginated `bootstrapHistory()` fetching ≤1,000 bars per request, assembling up to 2,000 candles with sort, deduplication by openTime, and interval contiguity verification. Reports explicit `DEGRADED` completeness on partial failures.
+- Added `BinanceKlineSocket` managed WebSocket client with exponential backoff (1s–30s + ±25% jitter), planned 23-hour proactive reconnection, stale detection (15s threshold), endpoint rotation, and `FeedHealthState` lifecycle (`CONNECTING` → `LIVE` → `STALE`/`RECONNECTING` → `ERROR`).
+- Added `CandleStore` in-memory canonical candle buffer with ordered insert/update by openTime, out-of-order rejection, and REST-based gap reconciliation returning minimal chart repair action (`update` vs `setData`).
+- Added `syncBinanceClock()` 5-sample minimum-RTT clock synchronization against `/api/v3/time`.
+- Added `runEndpointDiagnostics()` testing REST and WS endpoint reachability and latency.
+- Added Binance module barrel export consolidating all M1 exports.
+
+Tests run:
+
+- `npm run typecheck`: PASS.
+- `npm run lint`: PASS.
+- `npm test`: PASS, 58 tests (39 new M1 tests).
+- New test files: `constants.test.ts`, `client.test.ts`, `ws-schemas.test.ts`, `clock.test.ts`, `pagination.test.ts`, `reconciliation.test.ts`.
+
+Architecture decisions:
+
+- WebSocket kline normalization shares the canonical `Candle` type with REST but uses `binance-ws-kline-v1` schema version for traceability.
+- `CandleStore.applyLiveCandle()` enforces PROJECT_PLAN §5.3 rules: same openTime updates, newer appends, older rejected.
+- Reconciliation determines chart action: single-bar update uses `update()`, multi-bar insertion uses `setData()` with viewport preservation.
+- Backoff resets after 60s of healthy connection, not after a single successful message.
+- Planned reconnect fires at 23 hours (1h buffer before Binance 24h limit).
+
+Next:
+
+- Dashboard integration (timeframe selector, volume pane, feed health indicator, sleep/wake listener).
+- Begin M2 Deribit Options Data Engine.
+
+---
 
 ### M0.5-WALKING-SKELETON
 
