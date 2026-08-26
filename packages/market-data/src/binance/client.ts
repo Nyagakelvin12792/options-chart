@@ -5,10 +5,7 @@ import {
   TransportError,
 } from "@options-chart/shared";
 
-import {
-  BINANCE_REST_ENDPOINTS,
-  REST_TIMEOUT_MS,
-} from "./constants";
+import { BINANCE_REST_ENDPOINTS, REST_TIMEOUT_MS } from "./constants";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -118,16 +115,13 @@ export class BinanceRestClient {
         }
 
         if (!response.ok) {
-          throw new TransportError(
-            `Binance REST HTTP ${response.status}`,
-            {
-              source: "binance",
-              operation: "rest-request",
-              timestamp: Date.now(),
-              retryable: response.status >= 500,
-              context: { url, status: response.status },
-            },
-          );
+          throw new TransportError(`Binance REST HTTP ${response.status}`, {
+            source: "binance",
+            operation: "rest-request",
+            timestamp: Date.now(),
+            retryable: response.status >= 500,
+            context: { url, status: response.status },
+          });
         }
 
         return await response.json();
@@ -155,19 +149,20 @@ export class BinanceRestClient {
 
         // Network failure — try next endpoint.
         if (error instanceof TypeError || error instanceof TransportError) {
-          lastError = error instanceof TransportError
-            ? error
-            : new TransportError(
-                `Binance REST network error: ${error.message}`,
-                {
-                  source: "binance",
-                  operation: "rest-request",
-                  timestamp: Date.now(),
-                  retryable: true,
-                  context: { url },
-                  cause: error,
-                },
-              );
+          lastError =
+            error instanceof TransportError
+              ? error
+              : new TransportError(
+                  `Binance REST network error: ${error.message}`,
+                  {
+                    source: "binance",
+                    operation: "rest-request",
+                    timestamp: Date.now(),
+                    retryable: true,
+                    context: { url },
+                    cause: error,
+                  },
+                );
           continue;
         }
 

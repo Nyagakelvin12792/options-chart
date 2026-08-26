@@ -1,7 +1,11 @@
 "use client";
 
 import { LightweightChartsAdapter } from "@options-chart/chart";
-import type { Candle, CandleInterval, FeedHealthState } from "@options-chart/domain";
+import type {
+  Candle,
+  CandleInterval,
+  FeedHealthState,
+} from "@options-chart/domain";
 import {
   BinanceKlineSocket,
   BinanceRestClient,
@@ -68,13 +72,16 @@ export function DashboardClient({
   const latestCandleRef = useRef<Candle | null>(null);
   const latestInputVersionRef = useRef(0);
 
-  const [selectedInterval, setSelectedInterval] = useState<CandleInterval>("1h");
+  const [selectedInterval, setSelectedInterval] =
+    useState<CandleInterval>("1h");
   const [feedState, setFeedState] = useState<FeedHealthState>("CONNECTING");
   const [candleStatus, setCandleStatus] = useState("Initializing");
   const [candleCount, setCandleCount] = useState(0);
   const [lastPrice, setLastPrice] = useState<number | null>(null);
   const [metricStatus, setMetricStatus] = useState("Worker queued");
-  const [totalOpenInterest, setTotalOpenInterest] = useState<number | null>(null);
+  const [totalOpenInterest, setTotalOpenInterest] = useState<number | null>(
+    null,
+  );
   const [workerDuration, setWorkerDuration] = useState<number | null>(null);
 
   // Initialize REST client once
@@ -311,14 +318,19 @@ export function DashboardClient({
         </div>
 
         <div className="session-cluster">
-          <nav aria-label="Timeframe selector" className="timeframe-nav" style={{ display: "flex", gap: "4px" }}>
+          <nav
+            aria-label="Timeframe selector"
+            className="timeframe-nav"
+            style={{ display: "flex", gap: "4px" }}
+          >
             {SUPPORTED_INTERVALS.map((tf) => (
               <button
                 key={tf}
                 type="button"
                 className={`interval-chip ${tf === selectedInterval ? "active" : ""}`}
                 style={{
-                  background: tf === selectedInterval ? "#223544" : "transparent",
+                  background:
+                    tf === selectedInterval ? "#223544" : "transparent",
                   color: tf === selectedInterval ? "#78d5ad" : "#9fadb9",
                   borderColor: tf === selectedInterval ? "#3e8f73" : "#354552",
                   cursor: "pointer",
@@ -340,7 +352,8 @@ export function DashboardClient({
                     ? "#39b980"
                     : feedState === "STALE" || feedState === "DEGRADED"
                       ? "#e0a135"
-                      : feedState === "RECONNECTING" || feedState === "CONNECTING"
+                      : feedState === "RECONNECTING" ||
+                          feedState === "CONNECTING"
                         ? "#5498e8"
                         : "#dc5362",
               }}

@@ -19,6 +19,7 @@ export const DERIBIT_MARK_STALE_AFTER_MS = 15_000;
 export const DERIBIT_MARK_HARD_STALE_AFTER_MS = 30_000;
 export const DERIBIT_CATALOG_REFRESH_MS = 60 * 60_000;
 export const DERIBIT_HEARTBEAT_INTERVAL_SECONDS = 30;
+export const DERIBIT_CLIENT_RECONNECT_CLOSE_CODE = 4_000;
 export const DERIBIT_CLOCK_SYNC_SAMPLES = 5;
 export const DERIBIT_CLOCK_RESYNC_MS = 15 * 60_000;
 export const DERIBIT_CLOCK_DEGRADED_OFFSET_MS = 5_000;
@@ -42,5 +43,7 @@ export const deribitReconnectDelay = (
   );
   const centeredRandom = Math.min(1, Math.max(0, random())) * 2 - 1;
   const jitter = base * DERIBIT_BACKOFF_JITTER_RATIO * centeredRandom;
-  return Math.round(Math.min(DERIBIT_BACKOFF_MAX_MS, Math.max(0, base + jitter)));
+  return Math.round(
+    Math.min(DERIBIT_BACKOFF_MAX_MS, Math.max(0, base + jitter)),
+  );
 };

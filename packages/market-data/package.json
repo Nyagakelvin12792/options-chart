@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@options-chart/domain": "*",
+    "@options-chart/shared": "*",
     "zod": "4.4.3"
   },
   "exports": {

@@ -31,7 +31,9 @@ export class DeribitOptionsStore {
     return this.currentSnapshot;
   }
 
-  applyMarkUpdates(updates: readonly DeribitMarkUpdate[]): MarkApplicationResult {
+  applyMarkUpdates(
+    updates: readonly DeribitMarkUpdate[],
+  ): MarkApplicationResult {
     if (this.currentSnapshot === null) {
       return {
         snapshot: null,
@@ -40,9 +42,13 @@ export class DeribitOptionsStore {
       };
     }
 
-    const updatesByName = new Map(updates.map((update) => [update.instrumentName, update]));
+    const updatesByName = new Map(
+      updates.map((update) => [update.instrumentName, update]),
+    );
     const knownNames = new Set(
-      this.currentSnapshot.instruments.map((item) => item.instrument.instrumentName),
+      this.currentSnapshot.instruments.map(
+        (item) => item.instrument.instrumentName,
+      ),
     );
     let applied = 0;
     const instruments = this.currentSnapshot.instruments.map((item) => {

@@ -17,10 +17,7 @@ import type {
   DeribitBookSummaryPayload,
   DeribitOptionInstrumentPayload,
 } from "./api-schemas";
-import {
-  DERIBIT_REST_ENDPOINT,
-  DERIBIT_REST_TIMEOUT_MS,
-} from "./constants";
+import { DERIBIT_REST_ENDPOINT, DERIBIT_REST_TIMEOUT_MS } from "./constants";
 
 export interface DeribitRestClientOptions {
   readonly endpoint?: string;
@@ -31,7 +28,12 @@ export interface DeribitRestClientOptions {
 type RpcParams = Readonly<Record<string, string | number | boolean>>;
 
 const isAbortError = (error: unknown): boolean =>
-  error instanceof DOMException && error.name === "AbortError";
+  error instanceof DOMException
+    ? error.name === "AbortError"
+    : typeof error === "object" &&
+      error !== null &&
+      "name" in error &&
+      error.name === "AbortError";
 
 export class DeribitRestClient {
   private readonly endpoint: string;
@@ -39,7 +41,10 @@ export class DeribitRestClient {
   private readonly fetcher: typeof fetch;
 
   constructor(options: DeribitRestClientOptions = {}) {
-    this.endpoint = (options.endpoint ?? DERIBIT_REST_ENDPOINT).replace(/\/$/, "");
+    this.endpoint = (options.endpoint ?? DERIBIT_REST_ENDPOINT).replace(
+      /\/$/,
+      "",
+    );
     this.timeoutMs = options.timeoutMs ?? DERIBIT_REST_TIMEOUT_MS;
     this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
   }
@@ -98,40 +103,50 @@ export class DeribitRestClient {
       });
     }
     if (!response.ok) {
-      throw new TransportError(`Deribit ${method} returned HTTP ${response.status}`, {
-        source: "deribit",
-        operation,
-        timestamp: Date.now(),
-        retryable: response.status >= 500,
-        context: { status: response.status },
-      });
+      throw new TransportError(
+        `Deribit ${method} returned HTTP ${response.status}`,
+        {
+          source: "deribit",
+          operation,
+          timestamp: Date.now(),
+          retryable: response.status >= 500,
+          context: { status: response.status },
+        },
+      );
     }
 
     let payload: unknown;
     try {
       payload = await response.json();
     } catch (error) {
-      throw new SchemaValidationError(`Deribit ${method} returned invalid JSON`, {
-        source: "deribit",
-        operation,
-        timestamp: Date.now(),
-        retryable: true,
-        cause: error,
-      });
+      throw new SchemaValidationError(
+        `Deribit ${method} returned invalid JSON`,
+        {
+          source: "deribit",
+          operation,
+          timestamp: Date.now(),
+          retryable: true,
+          cause: error,
+        },
+      );
     }
 
     const envelope = DeribitRpcResponseSchema.safeParse(payload);
     if (!envelope.success) {
-      throw new SchemaValidationError(`Deribit ${method} JSON-RPC envelope is invalid`, {
-        source: "deribit",
-        operation,
-        timestamp: Date.now(),
-        retryable: false,
-        context: { issues: envelope.error.issues },
-      });
+      throw new SchemaValidationError(
+        `Deribit ${method} JSON-RPC envelope is invalid`,
+        {
+          source: "deribit",
+          operation,
+          timestamp: Date.now(),
+          retryable: false,
+          context: { issues: envelope.error.issues },
+        },
+      );
     }
     if (envelope.data.error !== undefined) {
-      const ErrorType = envelope.data.error.code === 10028 ? RateLimitError : TransportError;
+      const ErrorType =
+        envelope.data.error.code === 10028 ? RateLimitError : TransportError;
       throw new ErrorType(`Deribit ${method}: ${envelope.data.error.message}`, {
         source: "deribit",
         operation,

@@ -5,7 +5,9 @@ import { BinanceRestClient } from "./client";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function mockFetch(responses: Array<{ ok: boolean; status: number; body?: unknown }>) {
+function mockFetch(
+  responses: Array<{ ok: boolean; status: number; body?: unknown }>,
+) {
   let callIndex = 0;
   return vi.fn(async () => {
     const resp = responses[callIndex] ?? responses[responses.length - 1];
@@ -22,7 +24,22 @@ function mockFetch(responses: Array<{ ok: boolean; status: number; body?: unknow
 
 describe("BinanceRestClient", () => {
   it("returns JSON from a successful klines request", async () => {
-    const body = [[1700000000000, "36000", "36150", "35950", "36100", "12.0", 1700000059999, "432000", 100, "6.0", "216000", "0"]];
+    const body = [
+      [
+        1700000000000,
+        "36000",
+        "36150",
+        "35950",
+        "36100",
+        "12.0",
+        1700000059999,
+        "432000",
+        100,
+        "6.0",
+        "216000",
+        "0",
+      ],
+    ];
     const fetchMock = mockFetch([{ ok: true, status: 200, body }]);
     vi.stubGlobal("fetch", fetchMock);
 

@@ -3,9 +3,9 @@
 
 Version: 0.5.0  
 Last updated: 2026-08-26
-Overall status: M0 complete; awaiting milestone-exit approval
-Current milestone: M0 Architecture Lock  
-Production status: NOT READY
+Overall status: M2 complete; awaiting milestone-exit approval
+Current milestone: M2 Deribit Options Data Engine
+Production status: M0.5 DEPLOYED; M2 DATA ENGINE LIVE-VERIFIED, NOT YET UI-WIRED
 
 ---
 
@@ -30,16 +30,16 @@ Do not mark work complete based only on a screenshot or successful page render.
 |---|---|---|
 | Architecture | COMPLETE | M0 contracts compile; awaiting exit approval |
 | Repository scaffold | COMPLETE | npm workspace, tooling, CI, and governance configured |
-| Binance candles | NOT STARTED | Architecture defined |
-| Deribit options data | NOT STARTED | Architecture defined |
+| Binance candles | IN REVIEW | M1 implementation published; integration audit findings remain |
+| Deribit options data | COMPLETE | 22/22 tasks and live REST/WebSocket reconnect verification passed |
 | Options engine | NOT STARTED | Methodology baseline defined |
 | Mathematical validation | NOT STARTED | Required before trusted display |
-| Primary chart | NOT STARTED | Lightweight Charts selected |
+| Primary chart | IN PROGRESS | M1 Binance candles integrated through ChartAdapter |
 | Fallback chart | NOT STARTED | KLineChart selected |
 | Gamma overlays | NOT STARTED | Depends on math validation |
 | Reliability testing | NOT STARTED | Failure injection planned |
-| Vercel deployment | NOT STARTED | Browser-direct market feeds planned |
-| Private authentication | NOT STARTED | Application-level auth required |
+| Vercel deployment | IN PROGRESS | Authenticated M0.5 production deployment is live |
+| Private authentication | COMPLETE | Google login with one exact allowlisted account |
 | Trading-readiness validation | NOT STARTED | Final milestone |
 
 ---
@@ -206,7 +206,7 @@ M0.5 exit review and product-owner approval, then begin M1.
 
 ## M1 Binance Candle Engine
 
-Status: COMPLETE
+Status: IMPLEMENTATION COMPLETE - INTEGRATION REVIEW PENDING
 
 - [x] M1.1 REST client.
 - [x] M1.2 Kline schemas.
@@ -232,36 +232,50 @@ Status: COMPLETE
 
 Progress: 18 / 18
 
+Integration review:
+
+- Binance clock sync and endpoint diagnostics exist as library functions but are not wired into the dashboard lifecycle.
+- WebSocket recovery currently marks LIVE on socket open instead of waiting for reconciliation plus normal recovery hysteresis.
+- REST reconciliation starts after the latest closed candle, so it does not revalidate that authoritative closed bar and is capped to one 1,000-bar request.
+
 ---
 
 ## M2 Deribit Options Data Engine
 
-Status: NOT STARTED
+Status: COMPLETE; awaiting product-owner exit approval
 
-- [ ] M2.1 JSON-RPC client.
-- [ ] M2.2 instrument schemas.
-- [ ] M2.3 book-summary schemas.
-- [ ] M2.4 markprice schemas.
-- [ ] M2.5 index schemas.
-- [ ] M2.6 normalizers.
-- [ ] M2.7 instrument catalog.
-- [ ] M2.8 full options snapshot.
-- [ ] M2.9 markprice.options.btc_usd.
-- [ ] M2.10 deribit_price_index.btc_usd.
-- [ ] M2.11 heartbeat.
-- [ ] M2.12 test_request handling.
-- [ ] M2.13 reconnect/backoff.
-- [ ] M2.14 subscription replay.
-- [ ] M2.15 OI refresh.
-- [ ] M2.16 stale detection.
-- [ ] M2.17 last-valid cache.
-- [ ] M2.18 fixtures/error tests.
-- [ ] M2.19 Deribit clock sync.
-- [ ] M2.20 hourly instrument refresh.
-- [ ] M2.21 unknown-instrument refresh.
-- [ ] M2.22 sleep/wake reconciliation.
+- [x] M2.1 JSON-RPC client.
+- [x] M2.2 instrument schemas.
+- [x] M2.3 book-summary schemas.
+- [x] M2.4 markprice schemas.
+- [x] M2.5 index schemas.
+- [x] M2.6 normalizers.
+- [x] M2.7 instrument catalog.
+- [x] M2.8 full options snapshot.
+- [x] M2.9 markprice.options.btc_usd.
+- [x] M2.10 deribit_price_index.btc_usd.
+- [x] M2.11 heartbeat.
+- [x] M2.12 test_request handling.
+- [x] M2.13 reconnect/backoff.
+- [x] M2.14 subscription replay.
+- [x] M2.15 OI refresh.
+- [x] M2.16 stale detection.
+- [x] M2.17 last-valid cache.
+- [x] M2.18 fixtures/error tests.
+- [x] M2.19 Deribit clock sync.
+- [x] M2.20 hourly instrument refresh.
+- [x] M2.21 unknown-instrument refresh.
+- [x] M2.22 sleep/wake reconciliation.
 
-Progress: 0 / 22
+Progress: 22 / 22
+
+Live exit verification (2026-08-26):
+
+- Normalized 956 / 956 active BTC inverse options from live Deribit REST.
+- Full snapshot contained 431,560.5 BTC total OI and mark IV for all 956 contracts.
+- Five-sample clock sync selected 233 ms RTT and a 1,592.5 ms accepted offset.
+- Received `markprice.options.btc_usd` and `deribit_price_index.btc_usd` on the intended socket.
+- Forced a disconnect; a second socket replayed subscriptions, reconciled REST state, and returned to LIVE through recovery hysteresis.
 
 ---
 

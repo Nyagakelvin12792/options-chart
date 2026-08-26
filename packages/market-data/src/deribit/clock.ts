@@ -17,7 +17,9 @@ export const syncDeribitClock = async (
   now: () => number = Date.now,
 ): Promise<DeribitClockSyncResult> => {
   if (!Number.isInteger(sampleCount) || sampleCount <= 0) {
-    throw new RangeError("Deribit clock sample count must be a positive integer");
+    throw new RangeError(
+      "Deribit clock sample count must be a positive integer",
+    );
   }
 
   const samples: Array<{ offsetMs: number; rttMs: number }> = [];
@@ -34,17 +36,20 @@ export const syncDeribitClock = async (
     sample.rttMs < best.rttMs ? sample : best,
   );
   if (Math.abs(selected.offsetMs) > DERIBIT_CLOCK_REJECT_OFFSET_MS) {
-    throw new StaleDataError("Deribit clock offset exceeds the accepted limit", {
-      source: "deribit",
-      operation: "clock-sync",
-      timestamp: now(),
-      retryable: true,
-      context: {
-        offsetMs: selected.offsetMs,
-        rttMs: selected.rttMs,
-        sampleCount,
+    throw new StaleDataError(
+      "Deribit clock offset exceeds the accepted limit",
+      {
+        source: "deribit",
+        operation: "clock-sync",
+        timestamp: now(),
+        retryable: true,
+        context: {
+          offsetMs: selected.offsetMs,
+          rttMs: selected.rttMs,
+          sampleCount,
+        },
       },
-    });
+    );
   }
 
   return {

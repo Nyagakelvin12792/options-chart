@@ -10,6 +10,7 @@ import {
 } from "./api-schemas";
 import {
   DERIBIT_HEARTBEAT_INTERVAL_SECONDS,
+  DERIBIT_CLIENT_RECONNECT_CLOSE_CODE,
   DERIBIT_INDEX_CHANNEL,
   DERIBIT_MARK_HARD_STALE_AFTER_MS,
   DERIBIT_MARK_PRICE_CHANNEL,
@@ -48,7 +49,10 @@ export interface DeribitWebSocketOptions {
   readonly random?: () => number;
   readonly onMarkUpdates: (updates: readonly DeribitMarkUpdate[]) => void;
   readonly onIndexPrice: (price: MarketPrice) => void;
-  readonly onHealthChange: (state: FeedHealthState, detail: string | null) => void;
+  readonly onHealthChange: (
+    state: FeedHealthState,
+    detail: string | null,
+  ) => void;
   readonly onError: (error: Error) => void;
   readonly onConnected?: (reconnected: boolean) => void;
 }
@@ -60,7 +64,9 @@ export class DeribitWebSocketClient {
   private readonly socketFactory: DeribitSocketFactory;
   private readonly now: () => number;
   private readonly random: () => number;
-  private readonly onMarkUpdates: (updates: readonly DeribitMarkUpdate[]) => void;
+  private readonly onMarkUpdates: (
+    updates: readonly DeribitMarkUpdate[],
+  ) => void;
   private readonly onIndexPrice: (price: MarketPrice) => void;
   private readonly onHealthChange: (
     state: FeedHealthState,
@@ -84,6 +90,7 @@ export class DeribitWebSocketClient {
   private subscriptionsConfirmed = false;
   private currentState: FeedHealthState = "CONNECTING";
   private currentDetail: string | null = null;
+  private connectedAt: number | null = null;
   private lastMarkMessageAt: number | null = null;
   private lastIndexMessageAt: number | null = null;
   private consecutiveValidMessages = 0;
@@ -170,6 +177,21 @@ export class DeribitWebSocketClient {
       this.lastMarkMessageAt === null || this.lastIndexMessageAt === null
         ? null
         : Math.min(this.lastMarkMessageAt, this.lastIndexMessageAt);
+    if (oldestExpectedMessageAt === null && this.connectedAt !== null) {
+      const connectedAgeMs = now - this.connectedAt;
+      if (connectedAgeMs >= DERIBIT_MARK_HARD_STALE_AFTER_MS) {
+        this.resetRecovery();
+        this.setState(
+          "STALE",
+          "Deribit required channels produced no valid data",
+        );
+        this.scheduleReconnect("required channels are silent", true);
+        return this.currentState;
+      }
+      if (connectedAgeMs >= DERIBIT_MARK_STALE_AFTER_MS) {
+        this.setState("DEGRADED", "Deribit required channels are delayed");
+      }
+    }
     if (oldestExpectedMessageAt !== null) {
       const ageMs = now - oldestExpectedMessageAt;
       if (ageMs >= DERIBIT_MARK_HARD_STALE_AFTER_MS) {
@@ -189,6 +211,7 @@ export class DeribitWebSocketClient {
       this.heartbeatConfirmed &&
       this.subscriptionsConfirmed &&
       this.reconciliationComplete &&
+      oldestExpectedMessageAt !== null &&
       this.consecutiveValidMessages >= DERIBIT_RECOVERY_VALID_MESSAGES &&
       this.recoveryStartedAt !== null &&
       now - this.recoveryStartedAt >= DERIBIT_RECOVERY_HEALTHY_MS
@@ -225,6 +248,9 @@ export class DeribitWebSocketClient {
       }
       const reconnected = this.hasConnected;
       this.hasConnected = true;
+      this.connectedAt = this.now();
+      this.lastMarkMessageAt = null;
+      this.lastIndexMessageAt = null;
       this.heartbeatRequestId = this.sendRpc("public/set_heartbeat", {
         interval: DERIBIT_HEARTBEAT_INTERVAL_SECONDS,
       });
@@ -243,6 +269,7 @@ export class DeribitWebSocketClient {
         return;
       }
       this.socket = null;
+      this.connectedAt = null;
       this.stopHealthTimer();
       if (!this.stopped) {
         this.scheduleReconnect(`socket closed (${event.code})`);
@@ -275,7 +302,10 @@ export class DeribitWebSocketClient {
           subscription.data.params.data,
         );
         if (!updates.success) {
-          this.handleMalformed("Deribit mark-price update is invalid", updates.error);
+          this.handleMalformed(
+            "Deribit mark-price update is invalid",
+            updates.error,
+          );
           return;
         }
         this.lastMarkMessageAt = receivedTimestamp;
@@ -288,21 +318,28 @@ export class DeribitWebSocketClient {
         return;
       }
       if (subscription.data.params.channel === DERIBIT_INDEX_CHANNEL) {
-        const update = DeribitIndexUpdateSchema.safeParse(subscription.data.params.data);
+        const update = DeribitIndexUpdateSchema.safeParse(
+          subscription.data.params.data,
+        );
         if (!update.success) {
           this.handleMalformed("Deribit index update is invalid", update.error);
           return;
         }
         this.lastIndexMessageAt = receivedTimestamp;
         this.recordValidMessage(receivedTimestamp);
-        this.onIndexPrice(normalizeDeribitIndexUpdate(update.data, receivedTimestamp));
+        this.onIndexPrice(
+          normalizeDeribitIndexUpdate(update.data, receivedTimestamp),
+        );
       }
       return;
     }
 
     const response = DeribitRpcResponseSchema.safeParse(payload);
     if (!response.success) {
-      this.handleMalformed("Deribit WebSocket message envelope is invalid", response.error);
+      this.handleMalformed(
+        "Deribit WebSocket message envelope is invalid",
+        response.error,
+      );
       return;
     }
     if (response.data.error !== undefined) {
@@ -313,21 +350,29 @@ export class DeribitWebSocketClient {
       this.scheduleReconnect("JSON-RPC request failed", true);
       return;
     }
-    if (response.data.id === this.heartbeatRequestId && response.data.result === "ok") {
+    if (
+      response.data.id === this.heartbeatRequestId &&
+      response.data.result === "ok"
+    ) {
       this.heartbeatConfirmed = true;
       return;
     }
     if (response.data.id === this.subscriptionRequestId) {
       const channels = Array.isArray(response.data.result)
-        ? response.data.result.filter((channel): channel is string => typeof channel === "string")
+        ? response.data.result.filter(
+            (channel): channel is string => typeof channel === "string",
+          )
         : [];
       this.subscriptionsConfirmed = DERIBIT_REQUIRED_CHANNELS.every((channel) =>
         channels.includes(channel),
       );
       if (!this.subscriptionsConfirmed) {
-        this.reportTransportError("Deribit did not confirm all required subscriptions", {
-          channels,
-        });
+        this.reportTransportError(
+          "Deribit did not confirm all required subscriptions",
+          {
+            channels,
+          },
+        );
         this.scheduleReconnect("subscription confirmation incomplete", true);
       }
     }
@@ -367,11 +412,17 @@ export class DeribitWebSocketClient {
     );
   }
 
-  private sendRpc(method: string, params: Readonly<Record<string, unknown>>): number {
+  private sendRpc(
+    method: string,
+    params: Readonly<Record<string, unknown>>,
+  ): number {
     const id = this.requestId;
     this.requestId += 1;
     if (!this.connected || this.socket === null) {
-      this.reportTransportError(`Cannot send ${method} while socket is closed`, null);
+      this.reportTransportError(
+        `Cannot send ${method} while socket is closed`,
+        null,
+      );
       return id;
     }
     this.socket.send(JSON.stringify({ jsonrpc: "2.0", id, method, params }));
@@ -385,7 +436,8 @@ export class DeribitWebSocketClient {
     this.setState("RECONNECTING", detail);
     const socket = this.socket;
     this.socket = null;
-    socket?.close(1012, "reconnect");
+    this.connectedAt = null;
+    socket?.close(DERIBIT_CLIENT_RECONNECT_CLOSE_CODE, "reconnect");
     this.stopHealthTimer();
     const delay = immediate
       ? 0
@@ -404,7 +456,10 @@ export class DeribitWebSocketClient {
 
   private startHealthTimer(): void {
     this.stopHealthTimer();
-    this.healthTimer = setInterval(() => this.evaluateHealth(this.now()), 1_000);
+    this.healthTimer = setInterval(
+      () => this.evaluateHealth(this.now()),
+      1_000,
+    );
   }
 
   private stopHealthTimer(): void {

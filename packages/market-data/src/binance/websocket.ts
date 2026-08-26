@@ -26,7 +26,10 @@ export interface BinanceWsOptions {
   /** Callback for validated candle updates. */
   readonly onCandle: (candle: Candle) => void;
   /** Callback for feed health state changes. */
-  readonly onHealthChange: (state: FeedHealthState, detail: string | null) => void;
+  readonly onHealthChange: (
+    state: FeedHealthState,
+    detail: string | null,
+  ) => void;
   /** Callback when the socket reconnects (caller should run gap repair). */
   readonly onReconnect: () => void;
 }
@@ -98,7 +101,10 @@ export class BinanceKlineSocket {
   private interval: CandleInterval;
   private readonly endpoints: readonly string[];
   private readonly onCandle: (candle: Candle) => void;
-  private readonly onHealthChange: (state: FeedHealthState, detail: string | null) => void;
+  private readonly onHealthChange: (
+    state: FeedHealthState,
+    detail: string | null,
+  ) => void;
   private readonly onReconnect: () => void;
 
   private ws: WebSocket | null = null;
@@ -230,11 +236,7 @@ export class BinanceKlineSocket {
       return;
     }
 
-    const candle = wsKlineToCandle(
-      result.data.k,
-      this.interval,
-      Date.now(),
-    );
+    const candle = wsKlineToCandle(result.data.k, this.interval, Date.now());
     this.onCandle(candle);
   }
 
@@ -242,7 +244,10 @@ export class BinanceKlineSocket {
     this.clearAllTimers();
 
     if (this.reconnectAttempt >= MAX_RECONNECT_ATTEMPTS) {
-      this.setState("ERROR", `Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) exhausted`);
+      this.setState(
+        "ERROR",
+        `Max reconnect attempts (${MAX_RECONNECT_ATTEMPTS}) exhausted`,
+      );
       return;
     }
 

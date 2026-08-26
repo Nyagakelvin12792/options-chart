@@ -1,0 +1,38 @@
+[
+  {
+    "instrument_name": "BTC-25DEC26-80000-C",
+    "kind": "option",
+    "base_currency": "BTC",
+    "quote_currency": "BTC",
+    "counter_currency": "USD",
+    "settlement_currency": "BTC",
+    "price_index": "btc_usd",
+    "instrument_type": "reversed",
+    "creation_timestamp": 1700000000000,
+    "expiration_timestamp": 1800000000000,
+    "strike": 80000,
+    "option_type": "call",
+    "contract_size": 1,
+    "is_active": true,
+    "state": "open",
+    "tick_size": 0.0001
+  },
+  {
+    "instrument_name": "BTC-25DEC26-80000-P",
+    "kind": "option",
+    "base_currency": "BTC",
+    "quote_currency": "BTC",
+    "counter_currency": "USD",
+    "settlement_currency": "BTC",
+    "price_index": "btc_usd",
+    "instrument_type": "reversed",
+    "creation_timestamp": 1700000000000,
+    "expiration_timestamp": 1800000000000,
+    "strike": 80000,
+    "option_type": "put",
+    "contract_size": 1,
+    "is_active": true,
+    "state": "open",
+    "tick_size": 0.0001
+  }
+]

@@ -25,7 +25,8 @@ export const DeribitRpcResponseSchema = z
     if (hasResult === hasError) {
       context.addIssue({
         code: "custom",
-        message: "A JSON-RPC response must contain exactly one of result or error",
+        message:
+          "A JSON-RPC response must contain exactly one of result or error",
       });
     }
   });
@@ -58,11 +59,14 @@ export const DeribitOptionInstrumentSchema = z
   })
   .passthrough()
   .refine(
-    (instrument) => instrument.expiration_timestamp > instrument.creation_timestamp,
+    (instrument) =>
+      instrument.expiration_timestamp > instrument.creation_timestamp,
     "Expiration must follow instrument creation",
   );
 
-export const DeribitOptionInstrumentsSchema = z.array(DeribitOptionInstrumentSchema);
+export const DeribitOptionInstrumentsSchema = z.array(
+  DeribitOptionInstrumentSchema,
+);
 
 export const DeribitBookSummarySchema = z
   .object({
@@ -146,8 +150,12 @@ export type DeribitRpcError = z.infer<typeof DeribitRpcErrorSchema>;
 export type DeribitOptionInstrumentPayload = z.infer<
   typeof DeribitOptionInstrumentSchema
 >;
-export type DeribitBookSummaryPayload = z.infer<typeof DeribitBookSummarySchema>;
+export type DeribitBookSummaryPayload = z.infer<
+  typeof DeribitBookSummarySchema
+>;
 export type DeribitMarkPriceUpdatePayload = z.infer<
   typeof DeribitMarkPriceUpdateSchema
 >;
-export type DeribitIndexUpdatePayload = z.infer<typeof DeribitIndexUpdateSchema>;
+export type DeribitIndexUpdatePayload = z.infer<
+  typeof DeribitIndexUpdateSchema
+>;

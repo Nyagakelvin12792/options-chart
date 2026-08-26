@@ -100,21 +100,27 @@ export const buildDeribitOptionsSnapshot = (
   const summaryByName = new Map<string, DeribitBookSummaryPayload>();
   for (const summary of summaries) {
     if (summaryByName.has(summary.instrument_name)) {
-      throw new NormalizationError("Deribit book summary contains duplicate instruments", {
-        source: "deribit",
-        operation: "build-options-snapshot",
-        timestamp: receivedTimestamp,
-        retryable: false,
-        context: { instrumentName: summary.instrument_name },
-      });
+      throw new NormalizationError(
+        "Deribit book summary contains duplicate instruments",
+        {
+          source: "deribit",
+          operation: "build-options-snapshot",
+          timestamp: receivedTimestamp,
+          retryable: false,
+          context: { instrumentName: summary.instrument_name },
+        },
+      );
     }
     summaryByName.set(summary.instrument_name, summary);
   }
 
   const activeCatalog = catalog.filter(
-    (instrument) => instrument.isActive && instrument.expiry > receivedTimestamp,
+    (instrument) =>
+      instrument.isActive && instrument.expiry > receivedTimestamp,
   );
-  const catalogNames = new Set(activeCatalog.map((instrument) => instrument.instrumentName));
+  const catalogNames = new Set(
+    activeCatalog.map((instrument) => instrument.instrumentName),
+  );
   const missingSummaryInstrumentNames: string[] = [];
   const normalized: OptionSnapshot[] = [];
 

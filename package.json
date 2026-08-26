@@ -22,6 +22,7 @@
     "test:e2e": "playwright test",
     "test:e2e:list": "playwright test --list",
     "benchmark:deribit": "node scripts/benchmark-deribit.mts",
+    "verify:deribit-live": "vitest run --config vitest.live.config.ts",
     "format:check": "prettier --check .",
     "progress:build": "node scripts/progress.mjs build",
     "progress:check": "node scripts/progress.mjs check",

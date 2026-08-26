@@ -72,7 +72,10 @@ export class DeribitPollHealth {
     return this.currentState;
   }
 
-  evaluate(now: number, staleAfterMs = DERIBIT_OI_STALE_AFTER_MS): FeedHealthState {
+  evaluate(
+    now: number,
+    staleAfterMs = DERIBIT_OI_STALE_AFTER_MS,
+  ): FeedHealthState {
     if (
       !this.hidden &&
       this.lastSuccessAt !== null &&

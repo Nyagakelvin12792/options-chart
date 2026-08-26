@@ -49,18 +49,24 @@ export class DeribitInstrumentCatalog {
   ): readonly OptionInstrument[] {
     const next = new Map<string, OptionInstrument>();
     for (const payload of payloads) {
-      const instrument = normalizeDeribitOptionInstrument(payload, receivedTimestamp);
+      const instrument = normalizeDeribitOptionInstrument(
+        payload,
+        receivedTimestamp,
+      );
       if (!instrument.isActive || instrument.expiry <= receivedTimestamp) {
         continue;
       }
       if (next.has(instrument.instrumentName)) {
-        throw new NormalizationError("Deribit instrument catalog contains duplicates", {
-          source: "deribit",
-          operation: "replace-instrument-catalog",
-          timestamp: receivedTimestamp,
-          retryable: false,
-          context: { instrumentName: instrument.instrumentName },
-        });
+        throw new NormalizationError(
+          "Deribit instrument catalog contains duplicates",
+          {
+            source: "deribit",
+            operation: "replace-instrument-catalog",
+            timestamp: receivedTimestamp,
+            retryable: false,
+            context: { instrumentName: instrument.instrumentName },
+          },
+        );
       }
       next.set(instrument.instrumentName, instrument);
     }

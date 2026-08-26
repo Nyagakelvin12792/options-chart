@@ -47,14 +47,11 @@ describe("bootstrapHistory", () => {
       }),
     };
 
-    const result = await bootstrapHistory(
-      mockClient as BinanceRestClient,
-      {
-        interval: "1h",
-        targetBars: 2000,
-        endTime: T0 + 2100 * HOUR,
-      },
-    );
+    const result = await bootstrapHistory(mockClient as BinanceRestClient, {
+      interval: "1h",
+      targetBars: 2000,
+      endTime: T0 + 2100 * HOUR,
+    });
 
     expect(result.pagesFetched).toBe(2);
     expect(result.candles.length).toBe(2000);
@@ -85,14 +82,11 @@ describe("bootstrapHistory", () => {
       }),
     };
 
-    const result = await bootstrapHistory(
-      mockClient as BinanceRestClient,
-      {
-        interval: "1h",
-        targetBars: 2000,
-        endTime: T0 + 2100 * HOUR,
-      },
-    );
+    const result = await bootstrapHistory(mockClient as BinanceRestClient, {
+      interval: "1h",
+      targetBars: 2000,
+      endTime: T0 + 2100 * HOUR,
+    });
 
     // Should have removed 1 duplicate
     expect(result.duplicatesRemoved).toBe(1);
@@ -116,15 +110,12 @@ describe("bootstrapHistory", () => {
       }),
     };
 
-    const result = await bootstrapHistory(
-      mockClient as BinanceRestClient,
-      {
-        interval: "1h",
-        targetBars: 2000,
-        endTime: T0 + 2100 * HOUR,
-        maxPageRetries: 1,
-      },
-    );
+    const result = await bootstrapHistory(mockClient as BinanceRestClient, {
+      interval: "1h",
+      targetBars: 2000,
+      endTime: T0 + 2100 * HOUR,
+      maxPageRetries: 1,
+    });
 
     expect(result.pagesFetched).toBe(1);
     expect(result.candles.length).toBe(1000);
@@ -143,14 +134,11 @@ describe("bootstrapHistory", () => {
       }),
     };
 
-    const result = await bootstrapHistory(
-      mockClient as BinanceRestClient,
-      {
-        interval: "1h",
-        targetBars: 3,
-        endTime: T0 + 5 * HOUR,
-      },
-    );
+    const result = await bootstrapHistory(mockClient as BinanceRestClient, {
+      interval: "1h",
+      targetBars: 3,
+      endTime: T0 + 5 * HOUR,
+    });
 
     expect(result.contiguityGaps.length).toBeGreaterThan(0);
     expect(result.completeness).toBe("DEGRADED");
@@ -161,14 +149,11 @@ describe("bootstrapHistory", () => {
       fetchKlines: vi.fn(async () => []),
     };
 
-    const result = await bootstrapHistory(
-      mockClient as BinanceRestClient,
-      {
-        interval: "1h",
-        targetBars: 100,
-        endTime: T0 + 200 * HOUR,
-      },
-    );
+    const result = await bootstrapHistory(mockClient as BinanceRestClient, {
+      interval: "1h",
+      targetBars: 100,
+      endTime: T0 + 200 * HOUR,
+    });
 
     expect(result.candles.length).toBe(0);
     expect(result.completeness).toBe("DEGRADED");

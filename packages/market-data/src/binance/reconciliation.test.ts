@@ -7,10 +7,7 @@ import type { BinanceRestClient } from "./client";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeCandle(
-  openTime: number,
-  overrides: Partial<Candle> = {},
-): Candle {
+function makeCandle(openTime: number, overrides: Partial<Candle> = {}): Candle {
   return {
     metadata: {
       source: "binance",
@@ -137,10 +134,7 @@ describe("CandleStore", () => {
       // Store has candle at T0. Missing T0+1h and T0+2h.
       store.setHistory([makeCandle(T0)]);
 
-      const gapCandles = [
-        makeCandle(T0 + HOUR),
-        makeCandle(T0 + 2 * HOUR),
-      ];
+      const gapCandles = [makeCandle(T0 + HOUR), makeCandle(T0 + 2 * HOUR)];
 
       // Build a minimal kline array matching BinanceKlinePageSchema format.
       const klinePayload = gapCandles.map((c) => [
@@ -176,10 +170,7 @@ describe("CandleStore", () => {
 
     it("returns null action when no gaps exist", async () => {
       const store = new CandleStore("1h");
-      store.setHistory([
-        makeCandle(T0),
-        makeCandle(T0 + HOUR),
-      ]);
+      store.setHistory([makeCandle(T0), makeCandle(T0 + HOUR)]);
 
       // REST returns same candles (no gaps).
       const mockClient: Pick<BinanceRestClient, "fetchKlines"> = {

@@ -27,14 +27,10 @@ import type {
   DeribitEngineSnapshot,
   DeribitMarkUpdate,
 } from "./types";
-import {
-  DeribitWebSocketClient,
-  type DeribitSocketFactory,
-} from "./websocket";
+import { DeribitWebSocketClient, type DeribitSocketFactory } from "./websocket";
 
 export interface DeribitEngineRestClient
-  extends DeribitInstrumentClient,
-    DeribitTimeClient {
+  extends DeribitInstrumentClient, DeribitTimeClient {
   getBookSummary(): Promise<readonly DeribitBookSummaryPayload[]>;
 }
 
@@ -77,7 +73,9 @@ export class DeribitOptionsDataEngine {
     detail: string | null,
   ) => void;
   private readonly onClockSync: (clock: DeribitClockSyncResult) => void;
-  private readonly onResumeReconciled: (snapshot: DeribitEngineSnapshot) => void;
+  private readonly onResumeReconciled: (
+    snapshot: DeribitEngineSnapshot,
+  ) => void;
   private readonly onError: (error: Error) => void;
   private readonly stream: DeribitWebSocketClient;
   private readonly catalog = new DeribitInstrumentCatalog();
@@ -88,7 +86,8 @@ export class DeribitOptionsDataEngine {
   private clock: DeribitClockSyncResult | null = null;
   private started = false;
   private catalogRefreshPromise: Promise<void> | null = null;
-  private snapshotRefreshPromise: Promise<OptionsChainSnapshot | null> | null = null;
+  private snapshotRefreshPromise: Promise<OptionsChainSnapshot | null> | null =
+    null;
   private optionsTimer: ReturnType<typeof setInterval> | null = null;
   private catalogTimer: ReturnType<typeof setInterval> | null = null;
   private clockTimer: ReturnType<typeof setInterval> | null = null;
@@ -181,7 +180,11 @@ export class DeribitOptionsDataEngine {
       return;
     }
 
-    this.onHealthChange("options", this.pollHealth.enterRecovery(), "browser resumed");
+    this.onHealthChange(
+      "options",
+      this.pollHealth.enterRecovery(),
+      "browser resumed",
+    );
     this.stream.enterRecovery("browser resumed", true);
     await this.synchronizeClock();
     if (this.catalog.isStale(this.now())) {
@@ -238,7 +241,9 @@ export class DeribitOptionsDataEngine {
       this.onSnapshot(snapshot);
       const fallbackIndex = summaries[0]?.underlying_price;
       if (fallbackIndex !== undefined && this.stream.state !== "LIVE") {
-        this.handleIndexPrice(normalizeDeribitRestIndex(fallbackIndex, receivedTimestamp));
+        this.handleIndexPrice(
+          normalizeDeribitRestIndex(fallbackIndex, receivedTimestamp),
+        );
       }
 
       if (built.missingSummaryInstrumentNames.length > 0) {
@@ -327,7 +332,11 @@ export class DeribitOptionsDataEngine {
       this.onHealthChange("clock", this.clock.state, null);
     } catch (error) {
       this.clock = null;
-      this.onHealthChange("clock", "ERROR", "Deribit clock synchronization failed");
+      this.onHealthChange(
+        "clock",
+        "ERROR",
+        "Deribit clock synchronization failed",
+      );
       this.reportError(error);
       this.scheduleClockRetry();
     }
@@ -337,10 +346,16 @@ export class DeribitOptionsDataEngine {
     this.optionsTimer = setInterval(() => {
       void this.refreshOptionsSnapshot();
       const state = this.pollHealth.evaluate(this.now());
-      this.onHealthChange("options", state, state === "STALE" ? "OI snapshot stale" : null);
+      this.onHealthChange(
+        "options",
+        state,
+        state === "STALE" ? "OI snapshot stale" : null,
+      );
     }, DERIBIT_BOOK_SUMMARY_REFRESH_MS);
     this.catalogTimer = setInterval(() => {
-      void this.refreshCatalog().catch((error: unknown) => this.reportError(error));
+      void this.refreshCatalog().catch((error: unknown) =>
+        this.reportError(error),
+      );
     }, DERIBIT_CATALOG_REFRESH_MS);
     this.clockTimer = setInterval(() => {
       void this.synchronizeClock();

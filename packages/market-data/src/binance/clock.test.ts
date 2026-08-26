@@ -12,7 +12,8 @@ describe("syncBinanceClock", () => {
       // Sample 1: t0=100, t1=200 → RTT=100, midpoint=150, offset=server-150
       100, 200,
       // Sample 2: t0=200, t1=210 → RTT=10, midpoint=205, offset=server-205 (best!)
-      200, 210,
+      200,
+      210,
       // Sample 3: t0=300, t1=450 → RTT=150, midpoint=375, offset=server-375
       300, 450,
       // Sample 4: t0=500, t1=600 → RTT=100

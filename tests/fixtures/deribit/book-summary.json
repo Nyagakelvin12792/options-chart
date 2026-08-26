@@ -1,0 +1,28 @@
+[
+  {
+    "instrument_name": "BTC-25DEC26-80000-C",
+    "base_currency": "BTC",
+    "quote_currency": "BTC",
+    "creation_timestamp": 1780000000100,
+    "open_interest": 125.5,
+    "mark_price": 0.12,
+    "mark_iv": 65,
+    "interest_rate": 0.01,
+    "underlying_price": 78500,
+    "underlying_index": "index_price",
+    "volume": 20
+  },
+  {
+    "instrument_name": "BTC-25DEC26-80000-P",
+    "base_currency": "BTC",
+    "quote_currency": "BTC",
+    "creation_timestamp": 1780000000100,
+    "open_interest": 80.25,
+    "mark_price": 0.08,
+    "mark_iv": 80,
+    "interest_rate": 0.01,
+    "underlying_price": 78500,
+    "underlying_index": "index_price",
+    "volume": 15
+  }
+]

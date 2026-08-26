@@ -142,7 +142,13 @@ export async function bootstrapHistory(
   }
 
   // Assemble: sort, deduplicate, verify contiguity.
-  return assembleCandles(allCandles, interval, targetBars, pagesFetched, completeness);
+  return assembleCandles(
+    allCandles,
+    interval,
+    targetBars,
+    pagesFetched,
+    completeness,
+  );
 }
 
 // ---------------------------------------------------------------------------
