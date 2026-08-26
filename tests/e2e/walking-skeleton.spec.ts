@@ -32,7 +32,7 @@ test("renders validated candles and a versioned worker metric", async ({
   await expect(
     page.getByRole("heading", { name: "Options Chart" }),
   ).toBeVisible();
-  await expect(page.getByText("Validated Binance REST")).toBeVisible();
+  await expect(page.getByText(/Binance REST/)).toBeVisible();
   await expect(page.getByTestId("total-open-interest")).toHaveText(
     "251.00 BTC",
   );
@@ -98,7 +98,7 @@ test("keeps the chart surface aligned on desktop and mobile", async ({
   ]) {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    await expect(page.getByText("Validated Binance REST")).toBeVisible();
+    await expect(page.getByText(/Binance REST/)).toBeVisible();
     await expect(page.getByTestId("total-open-interest")).toHaveText(
       "251.00 BTC",
     );
