@@ -1,5 +1,9 @@
-import { calculateTotalOpenInterestBtc } from "@options-chart/options-engine";
 import {
+  calculateOptionsMetrics,
+  calculateTotalOpenInterestBtc,
+} from "@options-chart/options-engine";
+import {
+  isOptionsCalculationRequest,
   isTotalOpenInterestRequest,
   OPTIONS_WORKER_PROTOCOL_VERSION,
   type OptionsMetricResponse,
@@ -14,22 +18,34 @@ const workerScope = self as unknown as {
 };
 
 workerScope.addEventListener("message", (event) => {
-  if (!isTotalOpenInterestRequest(event.data)) {
+  const isTotalRequest = isTotalOpenInterestRequest(event.data);
+  const isFullCalculationRequest = isOptionsCalculationRequest(event.data);
+  if (!isTotalRequest && !isFullCalculationRequest) {
     return;
   }
 
   const startedAt = performance.now();
   try {
-    const totalOpenInterestBtc = calculateTotalOpenInterestBtc(
-      event.data.openInterestBtc,
-    );
-    workerScope.postMessage({
-      protocolVersion: OPTIONS_WORKER_PROTOCOL_VERSION,
-      type: "total-open-interest-result",
-      inputVersion: event.data.inputVersion,
-      totalOpenInterestBtc,
-      durationMs: performance.now() - startedAt,
-    });
+    if (isTotalRequest) {
+      const totalOpenInterestBtc = calculateTotalOpenInterestBtc(
+        event.data.openInterestBtc,
+      );
+      workerScope.postMessage({
+        protocolVersion: OPTIONS_WORKER_PROTOCOL_VERSION,
+        type: "total-open-interest-result",
+        inputVersion: event.data.inputVersion,
+        totalOpenInterestBtc,
+        durationMs: performance.now() - startedAt,
+      });
+    } else {
+      workerScope.postMessage({
+        protocolVersion: OPTIONS_WORKER_PROTOCOL_VERSION,
+        type: "options-metrics-result",
+        inputVersion: event.data.inputVersion,
+        result: calculateOptionsMetrics(event.data.input),
+        durationMs: performance.now() - startedAt,
+      });
+    }
   } catch (error) {
     workerScope.postMessage({
       protocolVersion: OPTIONS_WORKER_PROTOCOL_VERSION,

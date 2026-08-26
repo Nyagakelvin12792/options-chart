@@ -281,35 +281,43 @@ Live exit verification (2026-08-26):
 
 ## M3 Options Mathematics Engine
 
-Status: NOT STARTED
+Status: IMPLEMENTATION COMPLETE - ANTIGRAVITY REVIEW PENDING
 
-- [ ] M3.1 normal distribution helpers.
-- [ ] M3.2 d1/d2.
-- [ ] M3.3 gamma.
-- [ ] M3.4 DTE.
-- [ ] M3.5 gross gamma.
-- [ ] M3.6 modeled signed GEX.
-- [ ] M3.7 strike aggregation.
-- [ ] M3.8 expiry aggregation.
-- [ ] M3.9 spot grid.
-- [ ] M3.10 gamma profile.
-- [ ] M3.11 zero crossing.
-- [ ] M3.12 Gamma Flip.
-- [ ] M3.13 Call Wall.
-- [ ] M3.14 Put Wall.
-- [ ] M3.15 secondary levels.
-- [ ] M3.16 Max Pain.
-- [ ] M3.17 Total OI.
-- [ ] M3.18 Put/Call OI.
-- [ ] M3.19 OI-weighted Average IV.
-- [ ] M3.19A null-safe Put/Call OI ratio.
-- [ ] M3.19B excludedCountByReason metadata.
-- [ ] M3.19C preserve all qualifying Gamma Flip crossings.
-- [ ] M3.20 metadata/version.
-- [ ] M3.21 worker protocol.
-- [ ] M3.22 worker implementation.
+- [x] M3.1 normal distribution helpers.
+- [x] M3.2 d1/d2.
+- [x] M3.3 gamma.
+- [x] M3.4 DTE.
+- [x] M3.5 gross gamma.
+- [x] M3.6 modeled signed GEX.
+- [x] M3.7 strike aggregation.
+- [x] M3.8 expiry aggregation.
+- [x] M3.9 spot grid.
+- [x] M3.10 gamma profile.
+- [x] M3.11 zero crossing.
+- [x] M3.12 Gamma Flip.
+- [x] M3.13 Call Wall.
+- [x] M3.14 Put Wall.
+- [x] M3.15 secondary levels.
+- [x] M3.16 Max Pain.
+- [x] M3.17 Total OI.
+- [x] M3.18 Put/Call OI.
+- [x] M3.19 OI-weighted Average IV.
+- [x] M3.19A null-safe Put/Call OI ratio.
+- [x] M3.19B excludedCountByReason metadata.
+- [x] M3.19C preserve all qualifying Gamma Flip crossings.
+- [x] M3.20 metadata/version.
+- [x] M3.21 worker protocol.
+- [x] M3.22 worker implementation.
 
-Progress: 0 / 22
+Progress: 22 / 22
+
+Implementation evidence (2026-08-26):
+
+- Pure TypeScript engine with no UI, DOM, network, or market-data imports.
+- Versioned `options-worker-v2` full-chain request/result protocol with `inputVersion` preservation.
+- 117 deterministic Vitest checks pass across 29 files, including 30 new M3 and protocol checks.
+- Typecheck and lint pass with zero errors.
+- Independent M4 reconciliation against Python and Deribit Greeks remains intentionally separate.
 
 ---
 

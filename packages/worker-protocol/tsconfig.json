@@ -8,5 +8,6 @@
     "outDir": "dist",
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
+  "references": [{ "path": "../options-engine" }],
   "include": ["src/**/*.ts"]
 }

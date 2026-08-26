@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "@options-chart/domain": "*"
+  },
   "exports": {
     ".": "./src/index.ts"
   }

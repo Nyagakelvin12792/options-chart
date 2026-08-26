@@ -263,6 +263,10 @@ export function DashboardClient({
           return;
         }
 
+        if (event.data.type !== "total-open-interest-result") {
+          return;
+        }
+
         setTotalOpenInterest(event.data.totalOpenInterestBtc);
         setWorkerDuration(event.data.durationMs);
         setMetricStatus("Validated fixture via worker");

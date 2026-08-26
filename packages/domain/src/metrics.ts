@@ -23,6 +23,9 @@ export interface CalculationMetadata {
   readonly excludedCountByReason: Readonly<
     Partial<Record<ExclusionReason, number>>
   >;
+  readonly nearestIncludedExpiry: number | null;
+  readonly nearestIncludedDte: number | null;
+  readonly qualifyingCrossings: readonly QualifyingCrossing[];
   readonly durationMs: number;
 }
 

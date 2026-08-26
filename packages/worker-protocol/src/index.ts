@@ -1,6 +1,9 @@
 export {
+  isOptionsCalculationRequest,
   isOptionsMetricResponse,
   isTotalOpenInterestRequest,
+  type OptionsCalculationRequest,
+  type OptionsCalculationSuccess,
   type OptionsMetricFailure,
   type OptionsMetricResponse,
   type TotalOpenInterestRequest,
