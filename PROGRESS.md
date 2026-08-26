@@ -194,7 +194,7 @@ Progress: 12 / 13
 
 Blockers:
 
-- None.
+- M0.5.10 Vercel preview
 
 Next recommended task:
 
@@ -727,7 +727,7 @@ Use newest entries first.
 
 ### M0.5-WALKING-SKELETON
 
-Status: 12 / 13 COMPLETE; Vercel preview authorization in progress
+Status: 12 / 13 COMPLETE; Vercel preview awaiting owner authorization
 
 Implementation:
 
@@ -761,7 +761,7 @@ Architecture decisions:
 
 Next:
 
-- Complete Vercel device authorization and create the preview.
+- Start a fresh Vercel device authorization, approve it in the browser, and create the preview.
 - Configure Google OAuth and the exact allowlisted account in Vercel before M0.5 exit approval.
 
 ---
