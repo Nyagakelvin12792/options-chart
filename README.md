@@ -16,10 +16,10 @@ The first production release is intentionally read-only. It uses public market d
 
 ## Current Status
 
-The project is in planning and architecture lock.
+M0 architecture lock is complete and awaiting milestone-exit approval.
 
 - Current plan version: `0.5.0`
-- Current milestone: M0 Architecture Lock
+- Current milestone: M0 exit review
 - Production status: Not ready
 
 See [PROJECT_PLAN.md](PROJECT_PLAN.md) for the architecture and roadmap.
@@ -34,4 +34,3 @@ Implementation should stay focused on reliability:
 - avoid silently substituting missing data with zero.
 - never label stale values as live.
 - version material calculation changes.
-

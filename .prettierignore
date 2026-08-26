@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+coverage
+playwright-report
+test-results
+package-lock.json
+PROJECT_PLAN.md
+PROGRESS.md
