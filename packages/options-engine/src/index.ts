@@ -6,3 +6,4 @@ export {
   GEX_MODEL_VERSION,
   MAX_PAIN_VERSION,
 } from "./version";
+export { calculateTotalOpenInterestBtc } from "./total-open-interest";

@@ -1,0 +1,13 @@
+{
+  "name": "@options-chart/market-data",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@options-chart/domain": "*",
+    "zod": "4.4.3"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

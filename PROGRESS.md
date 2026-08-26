@@ -171,25 +171,37 @@ M0 exit review and product-owner approval, then begin M0.5.
 ---
 
 
+<!-- progress:M0.5:start -->
 ## M0.5 Walking Skeleton
 
-Status: NOT STARTED
+Status: IN PROGRESS
 
-- [ ] M0.5.1 Plain Next.js client page.
-- [ ] M0.5.2 Small Binance REST candle fetch.
-- [ ] M0.5.3 Validate and normalize candles.
-- [ ] M0.5.4 Render through ChartAdapter.
-- [ ] M0.5.5 Stub Deribit fixture.
-- [ ] M0.5.6 Worker bridge.
-- [ ] M0.5.7 Deterministic worker metric.
-- [ ] M0.5.8 Plain metric display.
-- [ ] M0.5.9 Minimal authentication.
-- [ ] M0.5.10 Vercel preview.
-- [ ] M0.5.11 Chart-path benchmark.
-- [ ] M0.5.12 Deribit batch-validation benchmark.
-- [ ] M0.5.13 Record results.
+- [x] M0.5.1 Plain Next.js client page
+- [x] M0.5.2 Small Binance REST candle fetch
+- [x] M0.5.3 Validate and normalize candles
+- [x] M0.5.4 Render through ChartAdapter
+- [x] M0.5.5 Stub Deribit fixture
+- [x] M0.5.6 Worker bridge
+- [x] M0.5.7 Deterministic worker metric
+- [x] M0.5.8 Plain metric display
+- [x] M0.5.9 Minimal authentication
+- [ ] M0.5.10 Vercel preview
+- [x] M0.5.11 Chart-path benchmark
+- [x] M0.5.12 Deribit batch-validation benchmark
+- [x] M0.5.13 Record results
 
-Progress: 0 / 13
+Progress: 12 / 13
+
+Blockers:
+
+- None.
+
+Next recommended task:
+
+```text
+M0.5.10
+```
+<!-- progress:M0.5:end -->
 
 
 ## M1 Binance Candle Engine
@@ -712,6 +724,47 @@ Mitigation:
 Use newest entries first.
 
 ## 2026-08-26
+
+### M0.5-WALKING-SKELETON
+
+Status: 12 / 13 COMPLETE; Vercel preview authorization in progress
+
+Implementation:
+
+- Added an authenticated Binance REST proxy, Zod validation, canonical candle normalization, and a concrete Lightweight Charts 5.2.1 adapter.
+- Added a validated six-contract Deribit fixture, versioned Web Worker protocol, deterministic Total OI calculation, and chart-first metric display.
+- Added Auth.js Google login with one exact allowlisted email; the local preview bypass is limited to development mode.
+- Added package-level boundary tests, browser canvas-pixel and responsive-layout checks, and repeatable benchmark commands.
+
+Tests run:
+
+- `npm run format:check`: PASS.
+- `npm run lint`: PASS.
+- `npm run typecheck`: PASS.
+- `npm test`: PASS, 17 tests.
+- `npm run build`: PASS.
+- `npm run test:e2e`: PASS, 3 Chromium checks.
+- `npm audit`: PASS, 0 vulnerabilities.
+- Production-mode access gate: PASS; unconfigured deployment shows configuration-required and protected API returns HTTP 401.
+- Live local Binance proxy: PASS, 120 candles returned.
+
+Benchmarks:
+
+- Chart path: 500 updates in 51.4 ms total; 0.103 ms average per update in Chromium.
+- Consolidated Deribit validation: 2,500 instruments, 20.030 ms median and 27.113 ms p95 over 12 runs.
+
+Architecture decisions:
+
+- Keep full Zod validation on the main thread for the measured walking-skeleton batch; move it into the worker if representative production payload p95 reaches the 50 ms long-task threshold.
+- Keep all worker messages protocol-versioned and discard responses older than the latest `inputVersion`.
+- Label the Deribit fixture explicitly and never present it as live market data.
+
+Next:
+
+- Complete Vercel device authorization and create the preview.
+- Configure Google OAuth and the exact allowlisted account in Vercel before M0.5 exit approval.
+
+---
 
 ### M0-ARCHITECTURE-LOCK
 
