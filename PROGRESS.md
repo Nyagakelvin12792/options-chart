@@ -482,36 +482,41 @@ Progress: 0 / 18
 
 ## M8 Vercel Production
 
-Status: NOT STARTED
+Status: COMPLETE - VERIFIED AND APPROVED 2026-08-27 AT 01ede2b
 
-- [ ] M8.1 Vercel project.
-- [ ] M8.2 GitHub connection.
-- [ ] M8.3 environment variables.
-- [ ] M8.4 authentication.
-- [ ] M8.5 account allowlist.
-- [ ] M8.6 live exchange connectivity.
-- [ ] M8.7 optional REST proxy.
-- [ ] M8.8 production errors.
-- [ ] M8.9 build.
-- [ ] M8.10 preview.
-- [ ] M8.11 production.
-- [ ] M8.12 production smoke test.
-- [ ] M8.13 mobile check.
-- [ ] M8.14 secret audit.
+- [x] M8.1 Vercel project.
+- [x] M8.2 GitHub connection.
+- [x] M8.3 environment variables.
+- [x] M8.4 authentication.
+- [x] M8.5 account allowlist.
+- [x] M8.6 live exchange connectivity.
+- [x] M8.7 optional REST proxy decision.
+- [x] M8.8 production errors.
+- [x] M8.9 build.
+- [x] M8.10 preview.
+- [x] M8.11 production.
+- [x] M8.12 production smoke test.
+- [x] M8.13 mobile check.
+- [x] M8.14 secret audit.
+- [x] M8.15 regional connectivity diagnostics.
+- [x] M8.16 authenticated API route protection.
+- [x] M8.17 production CSP and worker verification.
+- [x] M8.18 primary and market-data endpoint checks.
+- [x] M8.19 production diagnostics bundle.
 
-Progress: 0 / 14
+Progress: 19 / 19
 
 ---
 
 ## M9 Trading-Readiness Validation
 
-Status: NOT STARTED
+Status: IN PROGRESS - 5 AUTOMATED/LIVE GATES COMPLETE; SESSION CERTIFICATION PENDING
 
-- [ ] M9.1 multi-expiry live comparisons.
-- [ ] M9.2 daily audit snapshots.
-- [ ] M9.3 independent reference comparisons.
-- [ ] M9.4 raw-chain wall checks.
-- [ ] M9.5 discrepancy investigation.
+- [x] M9.1 multi-expiry live comparisons.
+- [x] M9.2 daily audit snapshots.
+- [x] M9.3 independent reference comparisons.
+- [x] M9.4 raw-chain wall checks.
+- [x] M9.5 discrepancy investigation.
 - [ ] M9.6 expiry rollover.
 - [ ] M9.7 high-volatility session.
 - [ ] M9.8 quiet session.
@@ -520,7 +525,16 @@ Status: NOT STARTED
 - [ ] M9.11 freeze v1 formulas.
 - [ ] M9.12 tag v1.0.0.
 
-Progress: 0 / 12
+Progress: 5 / 12
+
+Validation evidence (2026-08-27):
+
+- Fresh Deribit public REST capture contains 1,066 active BTC options across 13 expiries; the nearest three expiries reconcile with zero unexplained critical discrepancies.
+- Dated raw-chain and versioned audit JSON are stored under `docs/audits/M9/2026-08-27/` with source SHA-256 and formula provenance.
+- TypeScript/Python independent parity passes at least 100,000 vectors within `1e-7`; non-equivalent vendor methodology is restricted to observational use.
+- Call and Put Walls match independently ranked qualifying raw strike concentrations for every audited expiry.
+- The observed Binance session classified `NORMAL` (3.679% range, 0.852% maximum hourly return), so it does not satisfy M9.7 or M9.8.
+- M9.6-M9.10 require actual rollover, high-volatility, quiet, near-expiry, and 24-hour elapsed evidence. Formula freeze and `v1.0.0` remain gated.
 
 ---
 
@@ -535,14 +549,14 @@ Do not change a status to PASS without test evidence.
 | No duplicate candle timestamps | NOT RUN | |
 | Binance reconnect repairs gaps | NOT RUN | |
 | Deribit instrument normalization | NOT RUN | |
-| Deribit OI snapshot completeness | NOT RUN | |
+| Deribit OI snapshot completeness | PASS | 2026-08-27 M9 live audit: 1,066 contracts, 13 expiries, zero OI reconciliation discrepancies. |
 | Deribit heartbeat recovery | NOT RUN | |
-| TS gamma vs Python gamma | NOT RUN | |
+| TS gamma vs Python gamma | PASS | `tests/parity/dual-engine-parity.test.ts`: >=100,000 vectors within 1e-7. |
 | TS gamma vs Deribit gamma | NOT RUN | |
-| Gamma Flip regression | NOT RUN | |
-| Call Wall regression | NOT RUN | |
-| Put Wall regression | NOT RUN | |
-| Max Pain regression | NOT RUN | |
+| Gamma Flip regression | PASS | Golden snapshots, sensitivity tests, and Python parity suite. |
+| Call Wall regression | PASS | M9 per-expiry raw-wall reconciliation and options-engine tests. |
+| Put Wall regression | PASS | M9 per-expiry raw-wall reconciliation and options-engine tests. |
+| Max Pain regression | PASS | TypeScript and independent Python reference tests. |
 | Worker stale-result protection | NOT RUN | |
 | Chart 8-hour soak | NOT RUN | |
 | KLineChart fallback parity | NOT RUN | |
@@ -551,8 +565,8 @@ Do not change a status to PASS without test evidence.
 | Repair-triggered setData preserves viewport | NOT RUN | |
 | Clock skew measurement and resume resync | NOT RUN | |
 | Regional endpoint reachability diagnostics | NOT RUN | |
-| TypeScript/Python comparison in CI | NOT RUN | |
-| excludedCountByReason present | NOT RUN | |
+| TypeScript/Python comparison in CI | PASS | `tests/parity/dual-engine-parity.test.ts`. |
+| excludedCountByReason present | PASS | Calculation metadata unit and golden snapshot tests. |
 | 2,000-bar bootstrap paginates <=1,000/request | NOT RUN | |
 | bootstrap partial failure is explicit | NOT RUN | |
 | Gamma Flip multiple-crossing selection | NOT RUN | |
@@ -585,7 +599,8 @@ Do not change a status to PASS without test evidence.
 Current planned versions:
 
 ```text
-ENGINE_VERSION = 0.1.0-dev
+ENGINE_VERSION = 0.1.0
+CALCULATION_ENGINE_VERSION = 1.0.0
 GEX_MODEL_VERSION = gex-heuristic-v1
 GAMMA_PROFILE_VERSION = sticky-iv-v1
 MAX_PAIN_VERSION = max-pain-expiry-v1
@@ -594,7 +609,7 @@ MAX_PAIN_VERSION = max-pain-expiry-v1
 Status:
 
 ```text
-NOT FROZEN
+NOT FROZEN - awaiting M9.6 through M9.10 observation evidence
 ```
 
 Any change to formula semantics must be recorded here.

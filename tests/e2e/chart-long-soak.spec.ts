@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
 import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
@@ -71,6 +73,16 @@ test("runs the continuous chart soak with bounded resources", async ({
     body: Buffer.from(JSON.stringify({ durationMs, samples }, null, 2)),
     contentType: "application/json",
   });
+  const outputPath = process.env.CHART_SOAK_OUTPUT;
+  if (outputPath) {
+    const resolvedOutput = resolve(outputPath);
+    await mkdir(dirname(resolvedOutput), { recursive: true });
+    await writeFile(
+      resolvedOutput,
+      `${JSON.stringify({ durationMs, samples }, null, 2)}\n`,
+      "utf8",
+    );
+  }
 
   expect(samples.every((entry) => entry.chart.chartCreateCount === 1)).toBe(
     true,

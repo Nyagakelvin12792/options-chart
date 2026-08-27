@@ -1,0 +1,160 @@
+{
+  "audit": {
+    "schemaVersion": "trading-readiness-audit-v1",
+    "capturedAt": 1787833633842,
+    "capturedAtIso": "2026-08-27T12:27:13.842Z",
+    "sourceTimestamp": 1787833633842,
+    "sourceTimestampIso": "2026-08-27T12:27:13.842Z",
+    "sourceSha256": "44e8221883c33f1a3b41420218f5709293cebd6ab40951a6319928d92fa01775",
+    "underlyingPriceUsd": 79554.57,
+    "contractCount": 1066,
+    "expiryCount": 13,
+    "expiriesCompared": 3,
+    "formulaVersions": {
+      "engineVersion": "0.1.0",
+      "calculationEngineVersion": "1.0.0",
+      "gexModelVersion": "gex-heuristic-v1",
+      "gammaProfileVersion": "sticky-iv-v1",
+      "maxPainVersion": "max-pain-expiry-v1",
+      "calculationAuditSchemaVersion": "1.0.0"
+    },
+    "expiryAudits": [
+      {
+        "expiry": 1787904000000,
+        "expiryIso": "2026-08-28T08:00:00.000Z",
+        "daysToExpiry": 0.814423125,
+        "contractCount": 114,
+        "totalOpenInterestBtc": 78133.1,
+        "totalCallOpenInterestBtc": 40185.7,
+        "totalPutOpenInterestBtc": 37947.4,
+        "putCallOpenInterestRatio": 0.944301082225767,
+        "averageMarkIvDecimal": 0.9983950325790215,
+        "modeledGexOnePercentUsd": 78091098.72177987,
+        "gammaFlipPrice": 66707.56615052119,
+        "callWallPrice": 80000,
+        "putWallPrice": 79500,
+        "maxPainPrice": 69000,
+        "secondaryGexPrices": [79000, 78000, 81000],
+        "rawWallChecks": [
+          {
+            "optionType": "call",
+            "selectedStrike": 80000,
+            "expectedStrike": 80000,
+            "selectedGrossGammaOnePercentUsd": 24326021.207453147,
+            "expectedGrossGammaOnePercentUsd": 24326021.207453147,
+            "qualifyingStrikeCount": 12,
+            "passed": true
+          },
+          {
+            "optionType": "put",
+            "selectedStrike": 79500,
+            "expectedStrike": 79500,
+            "selectedGrossGammaOnePercentUsd": 4161606.038039325,
+            "expectedGrossGammaOnePercentUsd": 4161606.038039325,
+            "qualifyingStrikeCount": 12,
+            "passed": true
+          }
+        ],
+        "discrepancies": []
+      },
+      {
+        "expiry": 1787990400000,
+        "expiryIso": "2026-08-29T08:00:00.000Z",
+        "daysToExpiry": 1.814423125,
+        "contractCount": 54,
+        "totalOpenInterestBtc": 2155.9,
+        "totalCallOpenInterestBtc": 1209.3,
+        "totalPutOpenInterestBtc": 946.6,
+        "putCallOpenInterestRatio": 0.7827668899363268,
+        "averageMarkIvDecimal": 0.5310149125655178,
+        "modeledGexOnePercentUsd": 605364.1640395575,
+        "gammaFlipPrice": 79302.72261108617,
+        "callWallPrice": 81000,
+        "putWallPrice": 77000,
+        "maxPainPrice": 80000,
+        "secondaryGexPrices": [80000, 79500, 81500],
+        "rawWallChecks": [
+          {
+            "optionType": "call",
+            "selectedStrike": 81000,
+            "expectedStrike": 81000,
+            "selectedGrossGammaOnePercentUsd": 1003149.9692389052,
+            "expectedGrossGammaOnePercentUsd": 1003149.9692389052,
+            "qualifyingStrikeCount": 14,
+            "passed": true
+          },
+          {
+            "optionType": "put",
+            "selectedStrike": 77000,
+            "expectedStrike": 77000,
+            "selectedGrossGammaOnePercentUsd": 1220694.3187949276,
+            "expectedGrossGammaOnePercentUsd": 1220694.3187949276,
+            "qualifyingStrikeCount": 10,
+            "passed": true
+          }
+        ],
+        "discrepancies": []
+      },
+      {
+        "expiry": 1788076800000,
+        "expiryIso": "2026-08-30T08:00:00.000Z",
+        "daysToExpiry": 2.814423125,
+        "contractCount": 54,
+        "totalOpenInterestBtc": 1047.1,
+        "totalCallOpenInterestBtc": 836.8,
+        "totalPutOpenInterestBtc": 210.3,
+        "putCallOpenInterestRatio": 0.2513145315487572,
+        "averageMarkIvDecimal": 0.4228488683029319,
+        "modeledGexOnePercentUsd": 4496760.023308318,
+        "gammaFlipPrice": 75637.73526393941,
+        "callWallPrice": 81000,
+        "putWallPrice": 78500,
+        "maxPainPrice": 78500,
+        "secondaryGexPrices": [84000, 80000, 79500],
+        "rawWallChecks": [
+          {
+            "optionType": "call",
+            "selectedStrike": 81000,
+            "expectedStrike": 81000,
+            "selectedGrossGammaOnePercentUsd": 3093789.17983306,
+            "expectedGrossGammaOnePercentUsd": 3093789.17983306,
+            "qualifyingStrikeCount": 8,
+            "passed": true
+          },
+          {
+            "optionType": "put",
+            "selectedStrike": 78500,
+            "expectedStrike": 78500,
+            "selectedGrossGammaOnePercentUsd": 356463.9895797213,
+            "expectedGrossGammaOnePercentUsd": 356463.9895797213,
+            "qualifyingStrikeCount": 12,
+            "passed": true
+          }
+        ],
+        "discrepancies": []
+      }
+    ],
+    "discrepancies": [],
+    "criticalDiscrepancyCount": 0,
+    "unexplainedCriticalDiscrepancyCount": 0,
+    "passed": true
+  },
+  "source": {
+    "label": "Deribit public REST",
+    "rawSnapshotPath": "docs/audits/M9/2026-08-27/2026-08-27T12-27-13.842Z-deribit-chain.json"
+  },
+  "independentReference": {
+    "engine": "tools/reference-python",
+    "status": "VERIFIED_SEPARATELY",
+    "command": "npm run verify:parity",
+    "tolerance": 1e-7
+  },
+  "sessionObservation": {
+    "source": "Binance BTCUSDT Spot 1h closed candles",
+    "regime": "NORMAL",
+    "candleCount": 24,
+    "durationMs": 82800000,
+    "rangePercent": 3.6788390880252395,
+    "maximumAbsoluteReturnPercent": 0.8520504685190189
+  }
+}
