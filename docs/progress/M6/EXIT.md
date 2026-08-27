@@ -16,4 +16,3 @@ Verification on 2026-08-27:
 - Typecheck, ESLint, and the Next.js production build pass.
 - 10 enabled Chromium Playwright tests pass; the opt-in continuous soak remains intentionally skipped.
 - M6 acceptance covers provenance, collisions, current price, scope changes, chart instance stability, and 1366x768, 1920x1080, and 390x844 layouts.
-
