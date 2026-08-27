@@ -91,8 +91,9 @@ test("preserves viewport and drawings across repair, history growth, and timefra
   await horizontalLineButton.click();
   await chart.click({ position: plotClick(0.45, 0.3) });
   await expect
-    .poll(async () =>
-      (await evaluateChart<readonly unknown[]>(page, "getDrawings")).length,
+    .poll(
+      async () =>
+        (await evaluateChart<readonly unknown[]>(page, "getDrawings")).length,
     )
     .toBe(1);
 
@@ -102,8 +103,9 @@ test("preserves viewport and drawings across repair, history growth, and timefra
   await verticalLineButton.click();
   await chart.click({ position: plotClick(0.6, 0.35) });
   await expect
-    .poll(async () =>
-      (await evaluateChart<readonly unknown[]>(page, "getDrawings")).length,
+    .poll(
+      async () =>
+        (await evaluateChart<readonly unknown[]>(page, "getDrawings")).length,
     )
     .toBe(2);
 
