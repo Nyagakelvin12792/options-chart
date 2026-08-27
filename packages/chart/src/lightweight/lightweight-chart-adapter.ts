@@ -217,8 +217,8 @@ export class LightweightChartsAdapter implements ChartAdapter {
         lineWidth: level.importance === "primary" ? 2 : 1,
         lineStyle:
           level.importance === "primary" ? LineStyle.Solid : LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: level.label,
+        axisLabelVisible: false,
+        title: "",
       });
       this.levelLines.set(level.id, line);
     }
@@ -253,6 +253,11 @@ export class LightweightChartsAdapter implements ChartAdapter {
       fromTimestamp: range.from * 1_000,
       toTimestamp: range.to * 1_000,
     };
+  }
+
+  priceToCoordinate(price: number): number | null {
+    if (!Number.isFinite(price)) return null;
+    return this.requireSeries().priceToCoordinate(price);
   }
 
   subscribeViewportChange(

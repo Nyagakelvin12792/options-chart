@@ -12,32 +12,58 @@ import type {
   Candle,
   CandleInterval,
   FeedHealthState,
+  GammaLevelKind,
+  OptionsChainSnapshot,
 } from "@options-chart/domain";
 import {
   BinanceKlineSocket,
   BinanceRestClient,
   bootstrapHistory,
   CandleStore,
+  DeribitOptionsDataEngine,
+  DeribitRestClient,
   fetchOlderHistory,
-  parseDeribitSnapshot,
   TIMEFRAME_DEBOUNCE_MS,
 } from "@options-chart/market-data";
+import type {
+  ExpiryScope,
+  OptionsCalculationResult,
+} from "@options-chart/options-engine";
 import {
   isOptionsMetricResponse,
   OPTIONS_WORKER_PROTOCOL_VERSION,
-  type TotalOpenInterestRequest,
+  type OptionsCalculationRequest,
 } from "@options-chart/worker-protocol";
 import {
+  Eye,
+  EyeOff,
   Eraser,
   MousePointer2,
+  PanelLeftClose,
+  PanelLeftOpen,
   SeparatorHorizontal,
   SeparatorVertical,
   Settings2,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { DERIBIT_WALKING_SKELETON_FIXTURE } from "@/fixtures/deribit-walking-skeleton";
+import {
+  GammaChartOverlay,
+  LevelRail,
+  OptionsSummaryBar,
+  type LevelDisplayState,
+  type PositionedLevel,
+  type PositionedProfileBar,
+} from "@/components/gamma-overlay";
+import {
+  buildFallbackOptionsChain,
+  createExpiryScope,
+  EXPIRY_SCOPE_OPTIONS,
+  type ExpiryScopeKind,
+  listActiveExpiries,
+  selectMaxPainExpiry,
+} from "@/lib/options-overlay";
 
 interface DashboardClientProps {
   readonly accessLabel: string;
@@ -103,26 +129,14 @@ const SUPPORTED_INTERVALS: readonly CandleInterval[] = [
   "1d",
   "1w",
 ];
-const EXPIRY_SCOPES = [
-  "0DTE",
-  "Next Expiry",
-  "This Friday",
-  "Next Friday",
-  "<= 7 DTE",
-  "<= 30 DTE",
-  "All Expiries",
-] as const;
 const HISTORY_TARGET_BARS = 2_000;
 const LAZY_HISTORY_PAGE_BARS = 1_000;
 const LAZY_HISTORY_THRESHOLD_BARS = 80;
 const INITIAL_VISIBLE_BARS = 180;
 const DRAWING_STORAGE_KEY = "options-chart:user-drawings:v1";
 const DAY_MS = 86_400_000;
+const OPTIONS_STALE_AFTER_MS = 90_000;
 
-const btcFormatter = new Intl.NumberFormat("en-US", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 const usdFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
@@ -196,6 +210,8 @@ export function DashboardClient({
   const restClientRef = useRef<BinanceRestClient | null>(null);
   const latestCandleRef = useRef<Candle | null>(null);
   const latestInputVersionRef = useRef(0);
+  const optionsWorkerRef = useRef<Worker | null>(null);
+  const deribitEngineRef = useRef<DeribitOptionsDataEngine | null>(null);
   const activeWorkerCountRef = useRef(0);
   const activeIntervalRef = useRef<CandleInterval>("1h");
   const feedGenerationRef = useRef(0);
@@ -206,13 +222,16 @@ export function DashboardClient({
   const diagnosticsTimerRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
+  const overlayGeometrySignatureRef = useRef("");
 
   const [requestedInterval, setRequestedInterval] =
     useState<CandleInterval>("1h");
   const [selectedInterval, setSelectedInterval] =
     useState<CandleInterval>("1h");
-  const [expiryScope, setExpiryScope] =
-    useState<(typeof EXPIRY_SCOPES)[number]>("<= 30 DTE");
+  const [expiryScopeKind, setExpiryScopeKind] = useState<ExpiryScopeKind>(
+    "less-than-or-equal-30-dte",
+  );
+  const [customExpiry, setCustomExpiry] = useState<number | null>(null);
   const [feedState, setFeedState] = useState<FeedHealthState>("CONNECTING");
   const [candleStatus, setCandleStatus] = useState("Initializing");
   const [candleCount, setCandleCount] = useState(0);
@@ -224,17 +243,148 @@ export function DashboardClient({
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnostics, setDiagnostics] =
     useState<ChartAdapterDiagnostics | null>(null);
-  const [metricStatus, setMetricStatus] = useState("Worker queued");
-  const [totalOpenInterest, setTotalOpenInterest] = useState<number | null>(
-    null,
+  const [optionsChain, setOptionsChain] = useState<OptionsChainSnapshot>(() =>
+    buildFallbackOptionsChain(80_000, Date.now()),
+  );
+  const [optionsState, setOptionsState] =
+    useState<LevelDisplayState>("FALLBACK");
+  const [optionsResult, setOptionsResult] =
+    useState<OptionsCalculationResult | null>(null);
+  const [metricStatus, setMetricStatus] = useState(
+    "Fallback calculation queued",
   );
   const [workerDuration, setWorkerDuration] = useState<number | null>(null);
+  const [overlaysVisible, setOverlaysVisible] = useState(true);
+  const [secondaryVisible, setSecondaryVisible] = useState(true);
+  const [shadingEnabled, setShadingEnabled] = useState(true);
+  const [profileExpanded, setProfileExpanded] = useState(true);
+  const [chartHeight, setChartHeight] = useState(1);
+  const [auditNow, setAuditNow] = useState(() => Date.now());
+  const [positionedLevels, setPositionedLevels] = useState<
+    readonly PositionedLevel[]
+  >([]);
+  const [positionedProfileBars, setPositionedProfileBars] = useState<
+    readonly PositionedProfileBar[]
+  >([]);
+  const [currentPriceY, setCurrentPriceY] = useState<number | null>(null);
+  const [gammaFlipY, setGammaFlipY] = useState<number | null>(null);
 
   if (!restClientRef.current) {
     restClientRef.current = new BinanceRestClient({
       endpoints: ["/api/binance"],
     });
   }
+
+  const activeExpiries = useMemo(
+    () => listActiveExpiries(optionsChain, auditNow),
+    [optionsChain, auditNow],
+  );
+  const expiryScope = useMemo<ExpiryScope>(
+    () => createExpiryScope(expiryScopeKind, customExpiry),
+    [expiryScopeKind, customExpiry],
+  );
+  const effectiveOptionsState = useMemo<LevelDisplayState>(() => {
+    if (
+      optionsState === "LIVE" &&
+      auditNow - optionsChain.metadata.sourceTimestamp > OPTIONS_STALE_AFTER_MS
+    ) {
+      return "STALE";
+    }
+    return optionsState;
+  }, [auditNow, optionsChain.metadata.sourceTimestamp, optionsState]);
+  const displayedLevels = useMemo(
+    () =>
+      (optionsResult?.summary.keyLevels ?? []).filter(
+        (level) => secondaryVisible || level.importance === "primary",
+      ),
+    [optionsResult, secondaryVisible],
+  );
+  const invalidLevelKinds = useMemo<readonly GammaLevelKind[]>(() => {
+    const present = new Set(displayedLevels.map(({ kind }) => kind));
+    return (
+      ["call-wall", "put-wall", "gamma-flip", "max-pain"] as const
+    ).filter((kind) => !present.has(kind));
+  }, [displayedLevels]);
+
+  const refreshOverlayCoordinates = useCallback(() => {
+    const adapter = chartAdapterRef.current;
+    if (!adapter || !optionsResult || !overlaysVisible) {
+      setPositionedLevels([]);
+      setPositionedProfileBars([]);
+      setCurrentPriceY(null);
+      setGammaFlipY(null);
+      return;
+    }
+
+    const exposureByStrike = new Map<number, number>();
+    for (const exposure of optionsResult.strikeExposures) {
+      exposureByStrike.set(
+        exposure.strike,
+        (exposureByStrike.get(exposure.strike) ?? 0) +
+          exposure.modeledGexOnePercentUsd,
+      );
+    }
+    const largestExposure = Math.max(
+      1,
+      ...[...exposureByStrike.values()].map((value) => Math.abs(value)),
+    );
+    const levels = displayedLevels.flatMap((level) => {
+      const trueY = adapter.priceToCoordinate(level.price);
+      if (trueY === null) return [];
+      return [
+        {
+          level,
+          trueY,
+          state: effectiveOptionsState,
+          displayStrength:
+            level.importance === "primary"
+              ? 1
+              : Math.abs(exposureByStrike.get(level.price) ?? 0) /
+                largestExposure,
+        },
+      ];
+    });
+    const profileBars = [...exposureByStrike.entries()].flatMap(
+      ([strike, modeledGexOnePercentUsd]) => {
+        const y = adapter.priceToCoordinate(strike);
+        if (y === null) return [];
+        return [
+          {
+            strike,
+            modeledGexOnePercentUsd,
+            y,
+            strength: Math.abs(modeledGexOnePercentUsd) / largestExposure,
+          },
+        ];
+      },
+    );
+    const nextCurrentPriceY =
+      lastPrice === null ? null : adapter.priceToCoordinate(lastPrice);
+    const nextGammaFlipY =
+      optionsResult.gammaFlipPrice === null
+        ? null
+        : adapter.priceToCoordinate(optionsResult.gammaFlipPrice);
+    const signature = JSON.stringify({
+      levels: levels.map(({ level, trueY }) => [level.id, Math.round(trueY)]),
+      profile: profileBars.map(({ strike, y }) => [strike, Math.round(y)]),
+      current:
+        nextCurrentPriceY === null ? null : Math.round(nextCurrentPriceY),
+      flip: nextGammaFlipY === null ? null : Math.round(nextGammaFlipY),
+      state: effectiveOptionsState,
+    });
+    if (signature === overlayGeometrySignatureRef.current) return;
+    overlayGeometrySignatureRef.current = signature;
+    setPositionedLevels(levels);
+    setPositionedProfileBars(profileBars);
+    setCurrentPriceY(nextCurrentPriceY);
+    setGammaFlipY(nextGammaFlipY);
+  }, [
+    displayedLevels,
+    effectiveOptionsState,
+    lastPrice,
+    optionsResult,
+    overlaysVisible,
+  ]);
 
   const refreshDiagnostics = useCallback(() => {
     const adapter = chartAdapterRef.current;
@@ -356,6 +506,7 @@ export function DashboardClient({
     });
     const observer = new ResizeObserver(([entry]) => {
       if (!entry) return;
+      setChartHeight(Math.max(Math.floor(entry.contentRect.height), 1));
       adapter.resize(
         Math.max(Math.floor(entry.contentRect.width), 1),
         Math.max(Math.floor(entry.contentRect.height), 1),
@@ -410,9 +561,13 @@ export function DashboardClient({
         store.setHistory(bootstrap.candles);
         const adapter = chartAdapterRef.current;
         adapter?.setHistory(bootstrap.candles, { fitContent: false });
+        const visibleBarCount =
+          (chartContainerRef.current?.clientWidth ?? 1_000) < 600
+            ? 64
+            : INITIAL_VISIBLE_BARS;
         const visibleFrom =
           bootstrap.candles[
-            Math.max(bootstrap.candles.length - INITIAL_VISIBLE_BARS, 0)
+            Math.max(bootstrap.candles.length - visibleBarCount, 0)
           ];
         const visibleTo = bootstrap.candles.at(-1);
         if (adapter && visibleFrom && visibleTo) {
@@ -485,55 +640,140 @@ export function DashboardClient({
   }, [handleReconcile]);
 
   useEffect(() => {
+    const timer = setInterval(() => setAuditNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (customExpiry === null || !activeExpiries.includes(customExpiry)) {
+      setCustomExpiry(activeExpiries[0] ?? null);
+    }
+  }, [activeExpiries, customExpiry]);
+
+  useEffect(() => {
+    if (optionsState !== "FALLBACK" || lastPrice === null) return;
+    const fallbackSpot =
+      optionsChain.instruments[0]?.quote.underlyingPriceUsd ?? lastPrice;
+    if (Math.abs(fallbackSpot / lastPrice - 1) < 0.02) return;
+    setOptionsChain(buildFallbackOptionsChain(lastPrice, Date.now()));
+  }, [lastPrice, optionsChain, optionsState]);
+
+  useEffect(() => {
+    const engine = new DeribitOptionsDataEngine({
+      restClient: new DeribitRestClient(),
+      visibilityDocument: document,
+      onSnapshot: (snapshot) => {
+        setOptionsChain(snapshot);
+        setOptionsState("LIVE");
+        setMetricStatus("Live Deribit chain calculated in worker");
+      },
+      onHealthChange: (feed, state) => {
+        if (feed !== "options") return;
+        if (state === "LIVE") setOptionsState("LIVE");
+        else if (state === "STALE" || state === "RECONNECTING") {
+          setOptionsState("STALE");
+        } else if (
+          state === "FALLBACK" ||
+          state === "OFFLINE" ||
+          state === "ERROR"
+        ) {
+          setOptionsState((current) =>
+            current === "LIVE" || current === "STALE" ? "STALE" : "FALLBACK",
+          );
+        }
+      },
+      onError: () => {
+        setMetricStatus("Deribit unavailable · audited fallback chain");
+      },
+    });
+    deribitEngineRef.current = engine;
+    void engine.start().catch(() => {
+      setOptionsState("FALLBACK");
+      setMetricStatus("Deribit unavailable · audited fallback chain");
+    });
+    return () => {
+      engine.stop();
+      if (deribitEngineRef.current === engine) deribitEngineRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     const worker = new Worker(
       new URL("../workers/options-metric.worker.ts", import.meta.url),
       { type: "module", name: "options-metric" },
     );
+    optionsWorkerRef.current = worker;
     activeWorkerCountRef.current = 1;
-    const inputVersion = latestInputVersionRef.current + 1;
-    latestInputVersionRef.current = inputVersion;
-
-    try {
-      const snapshot = parseDeribitSnapshot(
-        DERIBIT_WALKING_SKELETON_FIXTURE,
-        Date.now(),
-      );
-      const request: TotalOpenInterestRequest = {
-        protocolVersion: OPTIONS_WORKER_PROTOCOL_VERSION,
-        type: "calculate-total-open-interest",
-        inputVersion,
-        openInterestBtc: snapshot.instruments.map(
-          ({ quote }) => quote.openInterestBtc,
-        ),
-      };
-
-      worker.addEventListener("message", (event: MessageEvent<unknown>) => {
-        if (
-          !isOptionsMetricResponse(event.data) ||
-          event.data.inputVersion !== latestInputVersionRef.current
-        ) {
-          return;
-        }
-        if (event.data.type === "options-metric-error") {
-          setMetricStatus(event.data.message);
-          return;
-        }
-        if (event.data.type !== "total-open-interest-result") return;
-        setTotalOpenInterest(event.data.totalOpenInterestBtc);
-        setWorkerDuration(event.data.durationMs);
-        setMetricStatus("Validated fixture via worker");
-      });
-      worker.postMessage(request);
-    } catch (error) {
-      setMetricStatus(
-        error instanceof Error ? error.message : "Fixture validation failed",
-      );
-    }
+    worker.addEventListener("message", (event: MessageEvent<unknown>) => {
+      if (
+        !isOptionsMetricResponse(event.data) ||
+        event.data.inputVersion !== latestInputVersionRef.current
+      ) {
+        return;
+      }
+      if (event.data.type === "options-metric-error") {
+        setMetricStatus(event.data.message);
+        return;
+      }
+      if (event.data.type !== "options-metrics-result") return;
+      setOptionsResult(event.data.result);
+      setWorkerDuration(event.data.durationMs);
+      setMetricStatus("Options chain calculated in worker");
+    });
     return () => {
       worker.terminate();
+      if (optionsWorkerRef.current === worker) optionsWorkerRef.current = null;
       activeWorkerCountRef.current = 0;
     };
   }, []);
+
+  useEffect(() => {
+    if (lastPrice === null || !optionsWorkerRef.current) return;
+    const timer = setTimeout(() => {
+      const calculatedAt = Date.now();
+      const inputVersion = latestInputVersionRef.current + 1;
+      latestInputVersionRef.current = inputVersion;
+      const request: OptionsCalculationRequest = {
+        protocolVersion: OPTIONS_WORKER_PROTOCOL_VERSION,
+        type: "calculate-options-metrics",
+        inputVersion,
+        input: {
+          chain: optionsChain,
+          underlyingPriceUsd: lastPrice,
+          calculatedAt,
+          expiryScope,
+          interestRateFallbackDecimal: 0.01,
+          maxPainExpiry: selectMaxPainExpiry(
+            optionsChain,
+            expiryScope,
+            calculatedAt,
+          ),
+          secondaryLevelCount: 3,
+        },
+      };
+      optionsWorkerRef.current?.postMessage(request);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [expiryScope, lastPrice, optionsChain]);
+
+  useEffect(() => {
+    const adapter = chartAdapterRef.current;
+    if (!adapter) return;
+    adapter.setLevels(overlaysVisible ? displayedLevels : []);
+    refreshOverlayCoordinates();
+    refreshDiagnostics();
+  }, [
+    displayedLevels,
+    overlaysVisible,
+    refreshDiagnostics,
+    refreshOverlayCoordinates,
+  ]);
+
+  useEffect(() => {
+    refreshOverlayCoordinates();
+    const timer = setInterval(refreshOverlayCoordinates, 250);
+    return () => clearInterval(timer);
+  }, [refreshOverlayCoordinates]);
 
   useEffect(() => {
     if (!diagnosticsOpen) {
@@ -760,18 +1000,88 @@ export function DashboardClient({
           <span>Expiry</span>
           <select
             aria-label="Expiry scope"
-            value={expiryScope}
+            value={expiryScopeKind}
             onChange={(event) =>
-              setExpiryScope(
-                event.target.value as (typeof EXPIRY_SCOPES)[number],
-              )
+              setExpiryScopeKind(event.target.value as ExpiryScopeKind)
             }
           >
-            {EXPIRY_SCOPES.map((scope) => (
-              <option key={scope}>{scope}</option>
+            {EXPIRY_SCOPE_OPTIONS.map((scope) => (
+              <option key={scope.kind} value={scope.kind}>
+                {scope.label}
+              </option>
             ))}
           </select>
         </label>
+
+        {expiryScopeKind === "custom" ? (
+          <label className="custom-expiry-control">
+            <span className="sr-only">Custom expiry</span>
+            <select
+              aria-label="Custom expiry"
+              value={customExpiry ?? ""}
+              onChange={(event) => setCustomExpiry(Number(event.target.value))}
+            >
+              {activeExpiries.map((expiry) => (
+                <option key={expiry} value={expiry}>
+                  {new Date(expiry).toISOString().slice(0, 10)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
+        <div className="overlay-controls" aria-label="Gamma overlay controls">
+          <button
+            type="button"
+            className={overlaysVisible ? "active" : ""}
+            aria-label={
+              overlaysVisible
+                ? "Hide options overlays"
+                : "Show options overlays"
+            }
+            title={
+              overlaysVisible
+                ? "Hide options overlays"
+                : "Show options overlays"
+            }
+            aria-pressed={overlaysVisible}
+            onClick={() => setOverlaysVisible((visible) => !visible)}
+          >
+            {overlaysVisible ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
+          <button
+            type="button"
+            className={shadingEnabled ? "active" : ""}
+            aria-label="Toggle Gamma regime shading"
+            title="Toggle Gamma regime shading"
+            aria-pressed={shadingEnabled}
+            onClick={() => setShadingEnabled((enabled) => !enabled)}
+          >
+            <span className="regime-swatch" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={profileExpanded ? "active" : ""}
+            aria-label={
+              profileExpanded
+                ? "Collapse Gamma profile"
+                : "Expand Gamma profile"
+            }
+            title={
+              profileExpanded
+                ? "Collapse Gamma profile"
+                : "Expand Gamma profile"
+            }
+            aria-pressed={profileExpanded}
+            onClick={() => setProfileExpanded((expanded) => !expanded)}
+          >
+            {profileExpanded ? (
+              <PanelLeftClose size={16} />
+            ) : (
+              <PanelLeftOpen size={16} />
+            )}
+          </button>
+        </div>
 
         <div className="session-cluster">
           <span className="access-status" title={accessLabel}>
@@ -855,6 +1165,13 @@ export function DashboardClient({
         </div>
       </section>
 
+      <OptionsSummaryBar
+        summary={optionsResult?.summary ?? null}
+        state={effectiveOptionsState}
+        workerDurationMs={workerDuration}
+        now={auditNow}
+      />
+
       <div className="workspace-grid">
         <section
           className="chart-workspace"
@@ -865,9 +1182,26 @@ export function DashboardClient({
               <span>BINANCE SPOT</span>
               <strong>BTC / USDT · {selectedInterval}</strong>
             </div>
-            <span className="chart-adapter-label">
-              Lightweight Charts 5.2.1 · Volume
-            </span>
+            <div className="chart-heading-actions">
+              <span
+                className={`options-source state-${effectiveOptionsState.toLowerCase()}`}
+              >
+                {effectiveOptionsState} · {optionsChain.instruments.length}{" "}
+                {optionsChain.metadata.source === "system"
+                  ? "AUDITED FALLBACK CONTRACTS"
+                  : "DERIBIT CONTRACTS"}
+              </span>
+              <button
+                type="button"
+                className={secondaryVisible ? "active" : ""}
+                aria-label="Toggle secondary GEX levels"
+                title="Toggle secondary GEX levels"
+                aria-pressed={secondaryVisible}
+                onClick={() => setSecondaryVisible((visible) => !visible)}
+              >
+                GEX 1–3
+              </button>
+            </div>
           </div>
           <div className="chart-surface-shell">
             <aside className="drawing-toolbar" aria-label="Drawing tools">
@@ -920,51 +1254,38 @@ export function DashboardClient({
                 <Eraser size={17} />
               </button>
             </aside>
-            <div
-              ref={chartContainerRef}
-              className="chart-stage"
-              data-testid="candlestick-chart"
-            />
+            <div className="chart-stack">
+              <div
+                ref={chartContainerRef}
+                className="chart-stage"
+                data-testid="candlestick-chart"
+              />
+              {overlaysVisible ? (
+                <GammaChartOverlay
+                  flipY={gammaFlipY}
+                  shadingEnabled={shadingEnabled}
+                  profileExpanded={profileExpanded}
+                  profileBars={positionedProfileBars}
+                />
+              ) : null}
+            </div>
+            {overlaysVisible ? (
+              <LevelRail
+                levels={positionedLevels}
+                currentPrice={lastPrice}
+                currentPriceY={currentPriceY}
+                chartHeight={chartHeight}
+                now={auditNow}
+                invalidKinds={invalidLevelKinds}
+              />
+            ) : null}
           </div>
         </section>
-
-        <aside className="metric-rail" aria-label="Options metrics">
-          <div className="rail-heading">
-            <span>DERIBIT FIXTURE</span>
-            <strong>Worker output</strong>
-          </div>
-          <dl className="metric-list">
-            <div>
-              <dt>Total open interest</dt>
-              <dd data-testid="total-open-interest">
-                {totalOpenInterest === null
-                  ? "--"
-                  : `${btcFormatter.format(totalOpenInterest)} BTC`}
-              </dd>
-            </div>
-            <div>
-              <dt>Input contracts</dt>
-              <dd>{DERIBIT_WALKING_SKELETON_FIXTURE.instruments.length}</dd>
-            </div>
-            <div>
-              <dt>Worker duration</dt>
-              <dd>
-                {workerDuration === null
-                  ? "--"
-                  : `${workerDuration.toFixed(3)} ms`}
-              </dd>
-            </div>
-          </dl>
-          <p className="rail-status">{metricStatus}</p>
-          <p className="fixture-note">
-            Fixture data is labeled and never presented as live market data.
-          </p>
-        </aside>
       </div>
 
       <footer className="status-bar">
         <span>
-          Read-only market analytics · {drawingCount} drawing
+          Read-only market analytics · {metricStatus} · {drawingCount} drawing
           {drawingCount === 1 ? "" : "s"}
         </span>
         <span>

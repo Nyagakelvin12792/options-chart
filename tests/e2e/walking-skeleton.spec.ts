@@ -1,11 +1,20 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
+import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
+
+const expectPositiveBtcMetric = async (page: Page) => {
+  const metric = page.getByTestId("total-open-interest");
+  await expect(metric).not.toHaveText("--");
+  const value = Number((await metric.textContent())?.replace(/[^0-9.]/g, ""));
+  expect(value).toBeGreaterThan(0);
+};
 
 test("renders validated candles and a versioned worker metric", async ({
   page,
 }) => {
   await installBinanceKlineMock(page);
+  await installDeribitFallbackMock(page);
 
   await page.goto("/");
 
@@ -14,9 +23,10 @@ test("renders validated candles and a versioned worker metric", async ({
   ).toBeVisible();
   await expect(page.getByText(/Binance REST/)).toBeVisible();
   await expect(page.getByTestId("candle-count")).toHaveText("2000");
-  await expect(page.getByTestId("total-open-interest")).toHaveText(
-    "251.00 BTC",
-  );
+  await expectPositiveBtcMetric(page);
+  await expect(
+    page.getByText("FALLBACK", { exact: true }).first(),
+  ).toBeVisible();
 
   const chartHasPixels = await page
     .getByTestId("candlestick-chart")
@@ -70,6 +80,7 @@ test("keeps the chart surface aligned on desktop and mobile", async ({
   page,
 }, testInfo) => {
   await installBinanceKlineMock(page);
+  await installDeribitFallbackMock(page);
 
   for (const viewport of [
     { name: "desktop", width: 1440, height: 900 },
@@ -78,9 +89,7 @@ test("keeps the chart surface aligned on desktop and mobile", async ({
     await page.setViewportSize(viewport);
     await page.goto("/");
     await expect(page.getByText(/Binance REST/)).toBeVisible();
-    await expect(page.getByTestId("total-open-interest")).toHaveText(
-      "251.00 BTC",
-    );
+    await expectPositiveBtcMetric(page);
 
     const layout = await page.evaluate(() => ({
       viewportWidth: document.documentElement.clientWidth,

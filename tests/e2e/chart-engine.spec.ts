@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
+import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
 
 interface BrowserChartDiagnostics {
   readonly chartCreateCount: number;
@@ -66,8 +67,10 @@ test("preserves viewport and drawings across repair, history growth, and timefra
 }) => {
   test.setTimeout(60_000);
   const mock = await installBinanceKlineMock(page);
+  await installDeribitFallbackMock(page);
   await page.goto("/");
   await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("level-tag-call-wall")).toBeVisible();
 
   const zoomedRange = await evaluateChart<{
     fromTimestamp: number;
@@ -168,7 +171,7 @@ test("keeps the chart-first layout stable at required desktop viewports", async 
         "[data-testid='candlestick-chart']",
       );
       const toolbar = document.querySelector<HTMLElement>(".drawing-toolbar");
-      const rail = document.querySelector<HTMLElement>(".metric-rail");
+      const rail = document.querySelector<HTMLElement>(".level-rail");
       return {
         viewportWidth: document.documentElement.clientWidth,
         documentWidth: document.documentElement.scrollWidth,

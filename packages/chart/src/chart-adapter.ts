@@ -70,6 +70,7 @@ export interface ChartAdapter {
   removeLevel(id: string): void;
   setVisibleRange(range: ChartVisibleRange): void;
   getVisibleRange(): ChartVisibleRange | null;
+  priceToCoordinate(price: number): number | null;
   subscribeViewportChange(
     listener: (state: ChartViewportState) => void,
   ): () => void;

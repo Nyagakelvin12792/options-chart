@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => {
     createPriceLine: vi.fn((options: unknown) => ({ options })),
     removePriceLine: vi.fn(),
     coordinateToPrice: vi.fn(() => 61_000),
+    priceToCoordinate: vi.fn(() => 240),
     barsInLogicalRange: vi.fn(() => ({ barsBefore: 25, barsAfter: 12 })),
     attachPrimitive: vi.fn(),
     detachPrimitive: vi.fn(),
@@ -181,6 +182,14 @@ describe("LightweightChartsAdapter", () => {
       to: (before?.toTimestamp ?? 0) / 1_000,
     });
     expect(mocks.timeScale.fitContent).not.toHaveBeenCalled();
+  });
+
+  it("maps an options level price onto the chart y-coordinate", () => {
+    const adapter = initialize();
+
+    expect(adapter.priceToCoordinate(61_000)).toBe(240);
+    expect(mocks.candleSeries.priceToCoordinate).toHaveBeenCalledWith(61_000);
+    expect(adapter.priceToCoordinate(Number.NaN)).toBeNull();
   });
 
   it("keeps drawings separate from history replacements", () => {

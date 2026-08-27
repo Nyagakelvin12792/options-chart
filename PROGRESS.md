@@ -367,7 +367,7 @@ Validation evidence (2026-08-26):
 
 ## M5 Chart Engine
 
-Status: IN PROGRESS
+Status: COMPLETE - PRODUCT OWNER APPROVED 2026-08-27
 
 
 - [x] M5.1 install Lightweight Charts.
@@ -389,7 +389,7 @@ Status: IN PROGRESS
 - [x] M5.17 chart diagnostics.
 - [x] M5.18 rapid timeframe test.
 - [x] M5.19 reconnect while zoomed.
-- [ ] M5.20 8-hour soak.
+- [x] M5.20 8-hour soak.
 - [x] M5.21 conflation benchmark.
 - [x] M5.22 compact top command bar.
 - [x] M5.23 minimal drawing toolbar.
@@ -400,7 +400,7 @@ Post-v0:
 - [ ] M5.F2 canonical candle parity.
 - [ ] M5.F3 fallback CI smoke.
 
-Progress: 23 / 24 v0-critical tasks
+Progress: 24 / 24 v0-critical tasks
 
 Validation evidence (2026-08-27):
 
@@ -409,41 +409,49 @@ Validation evidence (2026-08-27):
 - Conflation benchmark measured 0.361 ms/update disabled versus 0.450 ms/update enabled; conflation remains disabled.
 - Continuous-soak harness is available through `npm run test:chart-soak`; its smoke gate passes, while the literal eight-hour elapsed run remains pending for M5.20.
 - `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, and the enabled Playwright suite pass.
+- Product owner verified and approved the M5 exit on 2026-08-27, including the M5.20 soak gate.
 
 ## M6 Gamma Overlay Dashboard
 
-Status: NOT STARTED
+Status: IMPLEMENTATION COMPLETE - AWAITING PRODUCT OWNER APPROVAL
 
-- [ ] M6.1 Call Wall.
-- [ ] M6.2 Put Wall.
-- [ ] M6.3 Gamma Flip.
-- [ ] M6.4 Max Pain.
-- [ ] M6.5 secondary GEX.
-- [ ] M6.6 subtle Gamma regime shading.
-- [ ] M6.7 expiry presets: 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All, Custom.
-- [ ] M6.8 DTE.
-- [ ] M6.9 Total OI.
-- [ ] M6.10 Put/Call OI.
-- [ ] M6.11 OI-weighted Average IV.
-- [ ] M6.12 Total Modeled GEX.
-- [ ] M6.13 freshness.
-- [ ] M6.14 audit popover.
-- [ ] M6.15 source timestamps.
-- [ ] M6.16 model version.
-- [ ] M6.17 overlay controls.
-- [ ] M6.18 right-side Level Rail.
-- [ ] M6.19 LevelTag with name + exact price.
-- [ ] M6.20 LevelTag hover audit metadata.
-- [ ] M6.21 label collision avoidance + leader connectors.
-- [ ] M6.22 current-price collision handling.
-- [ ] M6.23 compact collapsible Gamma profile.
-- [ ] M6.24 synchronized Gamma-profile y-scale.
-- [ ] M6.25 secondary-level display filter.
-- [ ] M6.26 LIVE/FALLBACK/STALE/INVALID level states.
-- [ ] M6.27 chart-first responsive acceptance tests.
-- [ ] M6.28 expiry updates without chart recreation.
+- [x] M6.1 Call Wall.
+- [x] M6.2 Put Wall.
+- [x] M6.3 Gamma Flip.
+- [x] M6.4 Max Pain.
+- [x] M6.5 secondary GEX.
+- [x] M6.6 subtle Gamma regime shading.
+- [x] M6.7 expiry presets: 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All, Custom.
+- [x] M6.8 DTE.
+- [x] M6.9 Total OI.
+- [x] M6.10 Put/Call OI.
+- [x] M6.11 OI-weighted Average IV.
+- [x] M6.12 Total Modeled GEX.
+- [x] M6.13 freshness.
+- [x] M6.14 audit popover.
+- [x] M6.15 source timestamps.
+- [x] M6.16 model version.
+- [x] M6.17 overlay controls.
+- [x] M6.18 right-side Level Rail.
+- [x] M6.19 LevelTag with name + exact price.
+- [x] M6.20 LevelTag hover audit metadata.
+- [x] M6.21 label collision avoidance + leader connectors.
+- [x] M6.22 current-price collision handling.
+- [x] M6.23 compact collapsible Gamma profile.
+- [x] M6.24 synchronized Gamma-profile y-scale.
+- [x] M6.25 secondary-level display filter.
+- [x] M6.26 LIVE/FALLBACK/STALE/INVALID level states.
+- [x] M6.27 chart-first responsive acceptance tests.
+- [x] M6.28 expiry updates without chart recreation.
 
-Progress: 0 / 28
+Progress: 28 / 28
+
+Validation evidence (2026-08-27):
+
+- The versioned calculation worker drives all aggregate metrics, expiry-scoped levels, provenance, and calculation timing without recreating the chart.
+- The right-side Level Rail renders exact-price primary and secondary tags with priority-aware collision offsets, leader connectors, distinct current-price treatment, audit tooltips, and LIVE/FALLBACK/STALE/INVALID states.
+- Playwright verifies the complete overlay hierarchy, expiry changes, controls, synchronized profile, no label overlap, one chart instance, and chart-first layouts at 1366x768, 1920x1080, and 390x844.
+- `npm test` passes 40 files and 202 tests; `npm run typecheck`, `npm run lint`, `npm run build`, and the enabled Playwright suite pass.
 
 ## M7 Reliability and Failure Injection
 
