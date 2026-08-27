@@ -186,14 +186,18 @@ export class DeribitOptionsDataEngine {
       "browser resumed",
     );
     this.stream.enterRecovery("browser resumed", true);
-    await this.synchronizeClock();
-    if (this.catalog.isStale(this.now())) {
-      await this.refreshCatalog();
+    try {
+      await this.synchronizeClock();
+      if (this.catalog.isStale(this.now())) {
+        await this.refreshCatalog();
+      }
+      this.stream.ensureConnected();
+      await this.refreshOptionsSnapshot();
+      this.stream.markReconciled();
+      this.onResumeReconciled(this.snapshot);
+    } catch {
+      // Network recovery will retry via poll and reconnect timers
     }
-    this.stream.ensureConnected();
-    await this.refreshOptionsSnapshot();
-    this.stream.markReconciled();
-    this.onResumeReconciled(this.snapshot);
   }
 
   async refreshCatalog(): Promise<void> {

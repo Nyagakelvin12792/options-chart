@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
+import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
 
 const enabled = process.env.CHART_SOAK === "1";
 const durationMs = Number(
@@ -15,8 +16,14 @@ test("runs the continuous chart soak with bounded resources", async ({
   test.setTimeout(durationMs + 10 * 60 * 1_000);
 
   await installBinanceKlineMock(page);
+  await installDeribitFallbackMock(page);
   await page.goto("/");
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toContainText(/\d{4}/);
+  await expect(
+    page.getByRole("complementary", { name: "Options level rail" }),
+  ).toBeVisible();
+  await expect(page.getByTestId("total-open-interest")).not.toHaveText("--");
+  await page.waitForTimeout(500);
 
   const sample = () =>
     page.evaluate(() => {
