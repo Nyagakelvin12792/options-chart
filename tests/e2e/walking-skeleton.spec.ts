@@ -1,31 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-const binanceKlines = Array.from({ length: 120 }, (_, index) => {
-  const openTime = 1_725_000_000_000 + index * 3_600_000;
-  const open = 59_000 + index * 18;
-  const close = open + (index % 2 === 0 ? 120 : -75);
-  return [
-    openTime,
-    open.toFixed(2),
-    (Math.max(open, close) + 180).toFixed(2),
-    (Math.min(open, close) - 140).toFixed(2),
-    close.toFixed(2),
-    "123.45",
-    openTime + 3_599_999,
-    "7350000.12",
-    2_480 + index,
-    "64.2",
-    "3810000.50",
-    "0",
-  ];
-});
+import { installBinanceKlineMock } from "./support/binance-kline-mock";
 
 test("renders validated candles and a versioned worker metric", async ({
   page,
 }) => {
-  await page.route("**/api/binance/klines", async (route) => {
-    await route.fulfill({ json: binanceKlines });
-  });
+  await installBinanceKlineMock(page);
 
   await page.goto("/");
 
@@ -33,6 +13,7 @@ test("renders validated candles and a versioned worker metric", async ({
     page.getByRole("heading", { name: "Options Chart" }),
   ).toBeVisible();
   await expect(page.getByText(/Binance REST/)).toBeVisible();
+  await expect(page.getByTestId("candle-count")).toHaveText("2000");
   await expect(page.getByTestId("total-open-interest")).toHaveText(
     "251.00 BTC",
   );
@@ -88,9 +69,7 @@ test("renders validated candles and a versioned worker metric", async ({
 test("keeps the chart surface aligned on desktop and mobile", async ({
   page,
 }, testInfo) => {
-  await page.route("**/api/binance/klines", async (route) => {
-    await route.fulfill({ json: binanceKlines });
-  });
+  await installBinanceKlineMock(page);
 
   for (const viewport of [
     { name: "desktop", width: 1440, height: 900 },

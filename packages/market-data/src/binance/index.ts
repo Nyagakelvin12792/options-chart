@@ -37,11 +37,13 @@ export {
   parseBinanceKlines,
 } from "./normalizers";
 
-export { bootstrapHistory } from "./pagination";
+export { bootstrapHistory, fetchOlderHistory } from "./pagination";
 export type {
   BootstrapOptions,
   BootstrapResult,
   HistoryCompleteness,
+  OlderHistoryOptions,
+  OlderHistoryResult,
 } from "./pagination";
 
 export { CandleStore } from "./reconciliation";

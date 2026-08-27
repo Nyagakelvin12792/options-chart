@@ -70,6 +70,12 @@ export class CandleStore {
     return sorted.length > 0 ? sorted[sorted.length - 1]! : null;
   }
 
+  /** Oldest candle in the store by openTime. */
+  getEarliest(): Candle | null {
+    const sorted = this.getSorted();
+    return sorted.length > 0 ? sorted[0]! : null;
+  }
+
   /**
    * Initialize the store from a bootstrap result.
    * Replaces all existing data.
@@ -80,6 +86,26 @@ export class CandleStore {
     for (const candle of candles) {
       this.candles.set(candle.openTime, candle);
     }
+  }
+
+  /** Merge older history without disturbing newer live candles. */
+  mergeHistory(candles: readonly Candle[]): number {
+    let added = 0;
+    for (const candle of candles) {
+      if (candle.interval !== this.interval) {
+        throw new Error(
+          `Cannot merge ${candle.interval} candle into ${this.interval} store`,
+        );
+      }
+      if (!this.candles.has(candle.openTime)) {
+        added += 1;
+      }
+      this.candles.set(candle.openTime, candle);
+    }
+    if (candles.length > 0) {
+      this.sortedCache = null;
+    }
+    return added;
   }
 
   /**

@@ -20,6 +20,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:chart-soak": "node scripts/run-chart-soak.mjs",
+    "test:chart-soak:smoke": "node scripts/run-chart-soak.mjs --duration-ms=5000",
     "test:e2e:list": "playwright test --list",
     "benchmark:deribit": "node scripts/benchmark-deribit.mts",
     "benchmark:engine": "tsx scripts/benchmark-options-engine.mts",

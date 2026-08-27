@@ -43,6 +43,18 @@ export interface BootstrapOptions {
   readonly maxPageRetries?: number;
 }
 
+export interface OlderHistoryOptions {
+  readonly symbol?: string;
+  readonly interval: CandleInterval;
+  readonly beforeOpenTime: number;
+  readonly limit?: number;
+}
+
+export interface OlderHistoryResult {
+  readonly candles: readonly Candle[];
+  readonly reachedBeginning: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Implementation
 // ---------------------------------------------------------------------------
@@ -149,6 +161,40 @@ export async function bootstrapHistory(
     pagesFetched,
     completeness,
   );
+}
+
+/**
+ * Fetch one exchange-native page immediately before the earliest loaded bar.
+ * This is intentionally a direct interval request, including for `1w`; no
+ * local daily-to-weekly aggregation is used.
+ */
+export async function fetchOlderHistory(
+  client: BinanceRestClient,
+  options: OlderHistoryOptions,
+): Promise<OlderHistoryResult> {
+  const limit = Math.min(
+    Math.max(Math.floor(options.limit ?? BINANCE_MAX_KLINES_PER_REQUEST), 1),
+    BINANCE_MAX_KLINES_PER_REQUEST,
+  );
+  const payload = await client.fetchKlines({
+    symbol: options.symbol ?? "BTCUSDT",
+    interval: options.interval,
+    endTime: options.beforeOpenTime - 1,
+    limit,
+  });
+  const parsed = parseBinanceKlines(payload, Date.now(), options.interval);
+  const candles = Array.from(
+    new Map(
+      parsed
+        .filter((candle) => candle.openTime < options.beforeOpenTime)
+        .map((candle) => [candle.openTime, candle]),
+    ).values(),
+  ).sort((left, right) => left.openTime - right.openTime);
+
+  return {
+    candles,
+    reachedBeginning: candles.length < limit,
+  };
 }
 
 // ---------------------------------------------------------------------------

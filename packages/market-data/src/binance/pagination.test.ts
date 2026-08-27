@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { bootstrapHistory } from "./pagination";
+import { bootstrapHistory, fetchOlderHistory } from "./pagination";
 import type { BinanceRestClient } from "./client";
 import { INTERVAL_MS } from "./constants";
 
@@ -157,5 +157,48 @@ describe("bootstrapHistory", () => {
 
     expect(result.candles.length).toBe(0);
     expect(result.completeness).toBe("DEGRADED");
+  });
+});
+
+describe("fetchOlderHistory", () => {
+  it("loads a bounded page before the earliest candle", async () => {
+    const mockClient: Pick<BinanceRestClient, "fetchKlines"> = {
+      fetchKlines: vi.fn(async () => makeKlinePage(T0, 250)),
+    };
+
+    const result = await fetchOlderHistory(mockClient as BinanceRestClient, {
+      interval: "1h",
+      beforeOpenTime: T0 + 300 * HOUR,
+      limit: 250,
+    });
+
+    expect(result.candles).toHaveLength(250);
+    expect(result.reachedBeginning).toBe(false);
+    expect(mockClient.fetchKlines).toHaveBeenCalledWith({
+      symbol: "BTCUSDT",
+      interval: "1h",
+      endTime: T0 + 300 * HOUR - 1,
+      limit: 250,
+    });
+  });
+
+  it("requests Binance weekly klines directly", async () => {
+    const week = INTERVAL_MS["1w"];
+    const mockClient: Pick<BinanceRestClient, "fetchKlines"> = {
+      fetchKlines: vi.fn(async () => makeKlinePage(T0, 2, week)),
+    };
+
+    const result = await fetchOlderHistory(mockClient as BinanceRestClient, {
+      interval: "1w",
+      beforeOpenTime: T0 + 3 * week,
+      limit: 2,
+    });
+
+    expect(mockClient.fetchKlines).toHaveBeenCalledWith(
+      expect.objectContaining({ interval: "1w" }),
+    );
+    expect(result.candles.every((candle) => candle.interval === "1w")).toBe(
+      true,
+    );
   });
 });

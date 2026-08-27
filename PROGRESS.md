@@ -367,40 +367,48 @@ Validation evidence (2026-08-26):
 
 ## M5 Chart Engine
 
-Status: NOT STARTED
+Status: IN PROGRESS
 
 
-- [ ] M5.1 install Lightweight Charts.
-- [ ] M5.2 ChartAdapter.
-- [ ] M5.3 LightweightChartsAdapter.
-- [ ] M5.4 2,000 historical bars with lazy older-history loading.
-- [ ] M5.5 realtime update().
-- [ ] M5.6 preserve zoom.
-- [ ] M5.7 viewport-safe repair setData().
-- [ ] M5.8 Playwright zoomed-gap-repair test.
-- [ ] M5.9 resize.
-- [ ] M5.10 crosshair.
-- [ ] M5.11 timeframes: 1m, 5m, 15m, 1h, 4h, 1d, 1w.
-- [ ] M5.12 Binance Spot volume pane.
-- [ ] M5.13 horizontal-line drawing tool.
-- [ ] M5.14 vertical-line drawing tool.
-- [ ] M5.15 drawings persist across normal updates/reconnect.
-- [ ] M5.16 direct Binance weekly-kline validation.
-- [ ] M5.17 chart diagnostics.
-- [ ] M5.18 rapid timeframe test.
-- [ ] M5.19 reconnect while zoomed.
+- [x] M5.1 install Lightweight Charts.
+- [x] M5.2 ChartAdapter.
+- [x] M5.3 LightweightChartsAdapter.
+- [x] M5.4 2,000 historical bars with lazy older-history loading.
+- [x] M5.5 realtime update().
+- [x] M5.6 preserve zoom.
+- [x] M5.7 viewport-safe repair setData().
+- [x] M5.8 Playwright zoomed-gap-repair test.
+- [x] M5.9 resize.
+- [x] M5.10 crosshair.
+- [x] M5.11 timeframes: 1m, 5m, 15m, 1h, 4h, 1d, 1w.
+- [x] M5.12 Binance Spot volume pane.
+- [x] M5.13 horizontal-line drawing tool.
+- [x] M5.14 vertical-line drawing tool.
+- [x] M5.15 drawings persist across normal updates/reconnect.
+- [x] M5.16 direct Binance weekly-kline validation.
+- [x] M5.17 chart diagnostics.
+- [x] M5.18 rapid timeframe test.
+- [x] M5.19 reconnect while zoomed.
 - [ ] M5.20 8-hour soak.
-- [ ] M5.21 conflation benchmark.
-- [ ] M5.22 compact top command bar.
-- [ ] M5.23 minimal drawing toolbar.
-- [ ] M5.24 desktop layout checks at 1366x768 and 1920x1080.
+- [x] M5.21 conflation benchmark.
+- [x] M5.22 compact top command bar.
+- [x] M5.23 minimal drawing toolbar.
+- [x] M5.24 desktop layout checks at 1366x768 and 1920x1080.
 
 Post-v0:
 - [ ] M5.F1 KLineChart proof.
 - [ ] M5.F2 canonical candle parity.
 - [ ] M5.F3 fallback CI smoke.
 
-Progress: 0 / 24 v0-critical tasks
+Progress: 23 / 24 v0-critical tasks
+
+Validation evidence (2026-08-27):
+
+- ChartAdapter unit coverage verifies persistent chart lifecycle, viewport-safe history replacement, incremental updates, drawings, and diagnostics.
+- Playwright verifies repair and lazy-history viewport preservation, drawing persistence, debounced timeframe switching, native weekly requests, required desktop layouts, and a 28,800-update accelerated soak.
+- Conflation benchmark measured 0.361 ms/update disabled versus 0.450 ms/update enabled; conflation remains disabled.
+- Continuous-soak harness is available through `npm run test:chart-soak`; its smoke gate passes, while the literal eight-hour elapsed run remains pending for M5.20.
+- `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, and the enabled Playwright suite pass.
 
 ## M6 Gamma Overlay Dashboard
 

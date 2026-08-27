@@ -52,6 +52,22 @@ describe("CandleStore", () => {
       expect(sorted[1]!.openTime).toBe(T0 + HOUR);
       expect(sorted[2]!.openTime).toBe(T0 + 2 * HOUR);
     });
+
+    it("merges lazy history without overwriting the live end", () => {
+      const store = new CandleStore("1h");
+      store.setHistory([makeCandle(T0), makeCandle(T0 + HOUR)]);
+
+      const added = store.mergeHistory([
+        makeCandle(T0 - 2 * HOUR),
+        makeCandle(T0 - HOUR),
+        makeCandle(T0),
+      ]);
+
+      expect(added).toBe(2);
+      expect(store.getEarliest()?.openTime).toBe(T0 - 2 * HOUR);
+      expect(store.getLatest()?.openTime).toBe(T0 + HOUR);
+      expect(store.size).toBe(4);
+    });
   });
 
   describe("applyLiveCandle", () => {
