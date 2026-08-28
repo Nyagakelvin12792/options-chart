@@ -232,30 +232,13 @@ Drawing objects should be stored separately from exchange data so chart reconnec
 
 ## Gamma default scope
 
-Default:
-
-```text
-<= 30 DTE
-```
+Default to the nearest currently active Deribit BTC expiry date.
 
 ## Expiry controls
 
-Required launch presets:
-
-```text
-0DTE
-Next Expiry
-This Friday
-Next Friday
-<= 7 DTE
-<= 30 DTE
-All Expiries
-Custom Expiry
-```
-
-`Custom Expiry` must list actual currently active Deribit BTC expiries rather than accepting arbitrary nonexistent dates.
-
-If a preset resolves to no active Deribit expiry, disable it or show `No matching expiry`.
+Use one selector populated from actual currently active Deribit BTC expiry
+dates, formatted in Deribit contract style such as `28 AUG 26`. Do not expose
+relative DTE buckets or synthetic calendar presets in the chart control.
 
 Every displayed options metric must carry the selected expiry scope.
 
@@ -2174,7 +2157,7 @@ Underlying: Deribit BTC Index
 Options snapshot age: 18s
 IV stream age: 1.2s
 Contracts included: 2,847
-Expiry scope: <= 30 DTE
+Expiry: 28 AUG 26
 Engine: 1.0.0
 GEX model: gex-heuristic-v1
 Profile: sticky-iv-v1
@@ -2540,7 +2523,7 @@ Optional expanded hover/focus state:
 CALL WALL
 118,000
 Strength: 27.4%
-Scope: <=30 DTE
+Expiry: 28 AUG 26
 OI: 8,240 BTC
 Updated: 1.4s ago
 ```
@@ -3747,7 +3730,7 @@ Tasks:
 - [ ] M6.4 Add selected-expiry Max Pain.
 - [ ] M6.5 Add top secondary GEX levels.
 - [ ] M6.6 Add positive/negative modeled gamma zone visualization.
-- [ ] M6.7 Add expiry presets: 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All Expiries, Custom Expiry.
+- [ ] M6.7 List actual active Deribit expiry dates and calculate one selected expiry at a time.
 - [ ] M6.8 Add DTE.
 - [ ] M6.9 Add Total OI.
 - [ ] M6.10 Add Put/Call OI.
@@ -4165,8 +4148,8 @@ Binance BTCUSDT Spot master candles
 1m, 5m, 15m, 1h, 4h, 1d, 1w
 volume pane
 horizontal/vertical drawing tools
-<=30 DTE default
-custom expiry presets
+nearest eligible Deribit expiry by default
+exact active Deribit expiry-date selector
 no historical Gamma storage
 desktop first
 new repository
@@ -4202,8 +4185,8 @@ Drawing tools: horizontal line + vertical line
 Chart engine: Lightweight Charts
 Fallback chart interface: retained
 Fallback implementation: post-v0 unless required
-Default gamma scope: <= 30 DTE
-Expiry presets: 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All Expiries, Custom Expiry
+Default gamma scope: nearest eligible Deribit BTC expiry
+Expiry control: exact active Deribit dates, one selected expiry at a time
 Secondary GEX levels: 3
 Max Pain: specific expiry only
 Gamma refresh: no more than one full profile calculation every 2 seconds while dirty

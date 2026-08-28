@@ -6,6 +6,7 @@ import type {
 import {
   filterOptionsByExpiryScope,
   millisecondsPerDay,
+  minimumProfileTimeToExpiryMs,
   type ExpiryScope,
 } from "@options-chart/options-engine";
 
@@ -39,8 +40,32 @@ export const listActiveExpiries = (
   now: number,
 ): readonly number[] =>
   [...new Set(chain.instruments.map(({ instrument }) => instrument.expiry))]
-    .filter((expiry) => expiry > now)
+    .filter((expiry) => expiry - now >= minimumProfileTimeToExpiryMs)
     .sort((left, right) => left - right);
+
+const DERIBIT_MONTHS = [
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
+  "DEC",
+] as const;
+
+export const formatDeribitExpiryDate = (expiry: number): string => {
+  const date = new Date(expiry);
+  const month = DERIBIT_MONTHS[date.getUTCMonth()];
+  if (!Number.isFinite(expiry) || !month) return "INVALID EXPIRY";
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const year = String(date.getUTCFullYear()).slice(-2);
+  return `${day} ${month} ${year}`;
+};
 
 export const createExpiryScope = (
   kind: ExpiryScopeKind,

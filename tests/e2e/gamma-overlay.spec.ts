@@ -70,25 +70,30 @@ test("renders the audited Gamma hierarchy, profile, and collision-safe Level Rai
   await expect(page.getByTestId("current-price-level")).toBeVisible();
 });
 
-test("updates expiry scopes and overlays without recreating the chart", async ({
+test("updates Deribit expiry dates and overlays without recreating the chart", async ({
   page,
 }) => {
   test.setTimeout(90_000);
   await openFallbackDashboard(page);
   expect(await getChartCreateCount(page)).toBe(1);
 
-  await page.getByLabel("Expiry scope").selectOption("next-expiry");
+  const expirySelect = page.getByLabel("Expiry date");
+  expect(await expirySelect.locator("option").count()).toBeGreaterThanOrEqual(
+    2,
+  );
+  await expect(expirySelect.locator("option").first()).toHaveText(
+    /^\d{2} [A-Z]{3} \d{2}$/,
+  );
+  const expiryValues = await expirySelect
+    .locator("option")
+    .evaluateAll((options) =>
+      options.map((option) => (option as HTMLOptionElement).value),
+    );
+  const selectedExpiry = expiryValues[1]!;
+  await expirySelect.selectOption(selectedExpiry);
   await expect(
     page.getByRole("region", { name: "Options summary metrics" }),
-  ).toHaveAttribute("data-expiry-scope", "next-expiry");
-  expect(await getChartCreateCount(page)).toBe(1);
-
-  await page.getByLabel("Expiry scope").selectOption("custom");
-  await expect(page.getByLabel("Custom expiry")).toBeVisible();
-  const customValue = await page.getByLabel("Custom expiry").inputValue();
-  await expect(
-    page.getByRole("region", { name: "Options summary metrics" }),
-  ).toHaveAttribute("data-expiry-scope", `custom:${customValue}`);
+  ).toHaveAttribute("data-expiry-scope", `custom:${selectedExpiry}`);
   expect(await getChartCreateCount(page)).toBe(1);
 
   await page

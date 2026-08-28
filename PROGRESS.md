@@ -72,8 +72,8 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-022 | required chart timeframes are 1m, 5m, 15m, 1h, 4h, 1d, 1w | ACCEPTED |
 | ADR-023 | Binance Spot volume pane is required | ACCEPTED |
 | ADR-024 | v1 drawing tools are horizontal and vertical lines only | ACCEPTED |
-| ADR-025 | default Gamma expiry scope is <=30 DTE | ACCEPTED |
-| ADR-026 | expiry presets include 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All, Custom | ACCEPTED |
+| ADR-025 | default Gamma expiry scope is <=30 DTE | SUPERSEDED BY ADR-040 |
+| ADR-026 | expiry presets include 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All, Custom | SUPERSEDED BY ADR-040 |
 | ADR-027 | user-facing historical Gamma storage is out of scope for v1 | ACCEPTED |
 | ADR-028 | desktop is the primary launch target | ACCEPTED |
 | ADR-029 | project uses a new dedicated repository | ACCEPTED |
@@ -87,6 +87,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-037 | calculated options levels use a right-side Level Rail with name + exact price | ACCEPTED |
 | ADR-038 | level-label collisions are resolved visually without moving the underlying price level | ACCEPTED |
 | ADR-039 | primary screen remains chart-first; secondary analytics use progressive disclosure | ACCEPTED |
+| ADR-040 | chart expiry control lists active Deribit dates and calculates one exact expiry at a time | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -421,7 +422,7 @@ Status: IMPLEMENTATION COMPLETE - AWAITING PRODUCT OWNER APPROVAL
 - [x] M6.4 Max Pain.
 - [x] M6.5 secondary GEX.
 - [x] M6.6 subtle Gamma regime shading.
-- [x] M6.7 expiry presets: 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All, Custom.
+- [x] M6.7 active Deribit expiry-date selector.
 - [x] M6.8 DTE.
 - [x] M6.9 Total OI.
 - [x] M6.10 Put/Call OI.
@@ -1047,8 +1048,8 @@ Locked:
 - Required timeframes: 1m, 5m, 15m, 1h, 4h, 1d, 1w.
 - Binance Spot volume pane required.
 - Horizontal and vertical drawing lines required.
-- Default Gamma scope <=30 DTE.
-- Expiry presets: 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All Expiries, Custom Expiry.
+- Default Gamma scope is the nearest eligible Deribit BTC expiry date.
+- Expiry control lists exact active Deribit dates; dates inside the 15-minute calculation floor are omitted.
 - No user-facing historical Gamma storage in v1.
 - Desktop-first launch.
 - New dedicated repository, recommended name `options-chart`.

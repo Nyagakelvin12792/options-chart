@@ -58,9 +58,7 @@ import {
 } from "@/components/gamma-overlay";
 import {
   buildFallbackOptionsChain,
-  createExpiryScope,
-  EXPIRY_SCOPE_OPTIONS,
-  type ExpiryScopeKind,
+  formatDeribitExpiryDate,
   listActiveExpiries,
   selectMaxPainExpiry,
 } from "@/lib/options-overlay";
@@ -228,9 +226,6 @@ export function DashboardClient({
     useState<CandleInterval>("1h");
   const [selectedInterval, setSelectedInterval] =
     useState<CandleInterval>("1h");
-  const [expiryScopeKind, setExpiryScopeKind] = useState<ExpiryScopeKind>(
-    "less-than-or-equal-30-dte",
-  );
   const [customExpiry, setCustomExpiry] = useState<number | null>(null);
   const [feedState, setFeedState] = useState<FeedHealthState>("CONNECTING");
   const [candleStatus, setCandleStatus] = useState("Initializing");
@@ -280,8 +275,11 @@ export function DashboardClient({
     [optionsChain, auditNow],
   );
   const expiryScope = useMemo<ExpiryScope>(
-    () => createExpiryScope(expiryScopeKind, customExpiry),
-    [expiryScopeKind, customExpiry],
+    () => ({
+      kind: "custom",
+      expiry: customExpiry ?? activeExpiries[0] ?? 0,
+    }),
+    [activeExpiries, customExpiry],
   );
   const effectiveOptionsState = useMemo<LevelDisplayState>(() => {
     if (
@@ -999,36 +997,21 @@ export function DashboardClient({
         <label className="expiry-control">
           <span>Expiry</span>
           <select
-            aria-label="Expiry scope"
-            value={expiryScopeKind}
-            onChange={(event) =>
-              setExpiryScopeKind(event.target.value as ExpiryScopeKind)
-            }
+            aria-label="Expiry date"
+            value={customExpiry ?? activeExpiries[0] ?? ""}
+            disabled={activeExpiries.length === 0}
+            onChange={(event) => setCustomExpiry(Number(event.target.value))}
           >
-            {EXPIRY_SCOPE_OPTIONS.map((scope) => (
-              <option key={scope.kind} value={scope.kind}>
-                {scope.label}
+            {activeExpiries.length === 0 ? (
+              <option value="">No active expiries</option>
+            ) : null}
+            {activeExpiries.map((expiry) => (
+              <option key={expiry} value={expiry}>
+                {formatDeribitExpiryDate(expiry)}
               </option>
             ))}
           </select>
         </label>
-
-        {expiryScopeKind === "custom" ? (
-          <label className="custom-expiry-control">
-            <span className="sr-only">Custom expiry</span>
-            <select
-              aria-label="Custom expiry"
-              value={customExpiry ?? ""}
-              onChange={(event) => setCustomExpiry(Number(event.target.value))}
-            >
-              {activeExpiries.map((expiry) => (
-                <option key={expiry} value={expiry}>
-                  {new Date(expiry).toISOString().slice(0, 10)}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
 
         <div className="overlay-controls" aria-label="Gamma overlay controls">
           <button

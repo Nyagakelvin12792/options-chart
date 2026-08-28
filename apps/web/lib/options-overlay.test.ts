@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { calculateOptionsMetrics } from "@options-chart/options-engine";
+import {
+  calculateOptionsMetrics,
+  minimumProfileTimeToExpiryMs,
+} from "@options-chart/options-engine";
 
 import {
   buildFallbackOptionsChain,
   createExpiryScope,
+  formatDeribitExpiryDate,
   listActiveExpiries,
   selectMaxPainExpiry,
 } from "./options-overlay";
@@ -41,9 +45,26 @@ describe("options overlay utilities", () => {
     ).toBe(listActiveExpiries(chain, NOW)[0]);
   });
 
+  it("formats active expiries like Deribit contract dates", () => {
+    expect(formatDeribitExpiryDate(Date.UTC(2026, 7, 28, 8))).toBe("28 AUG 26");
+  });
+
+  it("omits expiries inside the 15-minute calculation floor", () => {
+    const chain = buildFallbackOptionsChain(80_000, NOW);
+    const expiry = listActiveExpiries(chain, NOW)[0]!;
+
+    expect(
+      listActiveExpiries(chain, expiry - minimumProfileTimeToExpiryMs),
+    ).toContain(expiry);
+    expect(
+      listActiveExpiries(chain, expiry - minimumProfileTimeToExpiryMs + 1),
+    ).not.toContain(expiry);
+  });
+
   it("produces auditable primary and ranked fallback levels", () => {
     const chain = buildFallbackOptionsChain(80_000, NOW);
-    const scope = createExpiryScope("less-than-or-equal-30-dte", null);
+    const expiry = listActiveExpiries(chain, NOW)[0] ?? 0;
+    const scope = createExpiryScope("custom", expiry);
     const result = calculateOptionsMetrics({
       chain,
       underlyingPriceUsd: 80_000,
@@ -60,8 +81,6 @@ describe("options overlay utilities", () => {
     expect(kinds).toContain("gamma-flip");
     expect(kinds).toContain("max-pain");
     expect(kinds.filter((kind) => kind === "secondary-gex")).toHaveLength(3);
-    expect(result.summary.metadata.expiryScope).toBe(
-      "less-than-or-equal-30-dte",
-    );
+    expect(result.summary.metadata.expiryScope).toBe(`custom:${expiry}`);
   });
 });
