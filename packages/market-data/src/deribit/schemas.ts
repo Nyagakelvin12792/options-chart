@@ -9,6 +9,8 @@ export const DeribitConsolidatedInstrumentSchema = z
     option_type: z.enum(["call", "put"]),
     underlying_price: z.number().positive(),
     open_interest: z.number().nonnegative(),
+    volume: z.number().nonnegative().optional(),
+    volume_usd: z.number().nonnegative().optional(),
     mark_price: z.number().nonnegative().nullable(),
     mark_iv: z.number().nonnegative().nullable(),
     interest_rate: z.number().finite().nullable(),

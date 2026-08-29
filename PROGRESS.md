@@ -438,7 +438,7 @@ Status: IMPLEMENTATION COMPLETE - AWAITING PRODUCT OWNER APPROVAL
 - [x] M6.20 LevelTag hover audit metadata.
 - [x] M6.21 label collision avoidance + leader connectors.
 - [x] M6.22 current-price collision handling.
-- [x] M6.23 compact collapsible Gamma profile.
+- [x] M6.23 compact collapsible GEX/OI/24h-volume concentration profile.
 - [x] M6.24 synchronized Gamma-profile y-scale.
 - [x] M6.25 secondary-level display filter.
 - [x] M6.26 LIVE/FALLBACK/STALE/INVALID level states.

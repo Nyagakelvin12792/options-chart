@@ -2667,7 +2667,8 @@ Choose the side during the walking-skeleton UI test based on readability.
 
 The profile must:
 
-- aggregate modeled GEX by strike/price.
+- offer distinct side-specific views for gross GEX, Open Interest, and Deribit 24-hour options volume by strike/price.
+- preserve the validated Gamma wall methodology; volume is a separate display metric and never silently changes wall selection.
 - use the same active expiry scope.
 - show the zero line.
 - visually distinguish positive and negative modeled exposure.

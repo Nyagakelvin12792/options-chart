@@ -4,6 +4,7 @@ import type {
   CalculationMetadata,
   GammaLevel,
   GammaLevelKind,
+  OptionType,
   OptionsSummaryMetrics,
 } from "@options-chart/domain";
 import { Info } from "lucide-react";
@@ -14,17 +15,29 @@ import {
 } from "./gamma-overlay-layout";
 
 export type LevelDisplayState = "LIVE" | "FALLBACK" | "STALE" | "INVALID";
+export type ProfileMetric = "gex" | "open-interest" | "volume";
+
+export interface LevelConcentrationDetails {
+  readonly openInterestBtc: number;
+  readonly volumeBtc: number;
+  readonly volumeUsd: number;
+  readonly grossGammaOnePercentUsd: number;
+  readonly sameSideGrossShare: number | null;
+}
 
 export interface PositionedLevel {
   readonly level: GammaLevel;
   readonly trueY: number;
   readonly state: LevelDisplayState;
   readonly displayStrength: number;
+  readonly concentration: LevelConcentrationDetails | null;
 }
 
 export interface PositionedProfileBar {
+  readonly id: string;
   readonly strike: number;
-  readonly modeledGexOnePercentUsd: number;
+  readonly optionType: OptionType;
+  readonly value: number;
   readonly y: number;
   readonly strength: number;
 }
@@ -37,6 +50,10 @@ const levelPriority = (kind: GammaLevelKind): number => {
 };
 
 const compactUsd = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
+const compactBtc = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 2,
 });
@@ -62,14 +79,19 @@ const formatAge = (sourceTimestamp: number, now: number): string => {
   return minutes < 60 ? `${minutes}m` : `${Math.round(minutes / 60)}h`;
 };
 
+const profileVisualStrength = (strength: number): number =>
+  Math.sqrt(Math.max(0, Math.min(1, strength)));
+
 function AuditTooltip({
   metadata,
   state,
   now,
+  concentration,
 }: {
   readonly metadata: CalculationMetadata;
   readonly state: LevelDisplayState;
   readonly now: number;
+  readonly concentration?: LevelConcentrationDetails | null;
 }) {
   const exclusions = Object.entries(metadata.excludedCountByReason)
     .map(([reason, count]) => `${reason}: ${count}`)
@@ -89,6 +111,30 @@ function AuditTooltip({
       <span>Engine: {metadata.calculationEngineVersion}</span>
       <span>GEX: {metadata.gexModelVersion}</span>
       <span>Profile: {metadata.gammaProfileVersion}</span>
+      {concentration ? (
+        <>
+          <span>
+            Open interest: {compactBtc.format(concentration.openInterestBtc)}{" "}
+            BTC
+          </span>
+          <span>
+            24h volume: {compactBtc.format(concentration.volumeBtc)} BTC
+            {concentration.volumeUsd > 0
+              ? ` ($${compactUsd.format(concentration.volumeUsd)})`
+              : ""}
+          </span>
+          <span>
+            Gross gamma / 1%: $
+            {compactUsd.format(concentration.grossGammaOnePercentUsd)}
+          </span>
+          {concentration.sameSideGrossShare === null ? null : (
+            <span>
+              Same-side gamma share:{" "}
+              {(concentration.sameSideGrossShare * 100).toFixed(1)}%
+            </span>
+          )}
+        </>
+      ) : null}
       {exclusions ? <span>Excluded: {exclusions}</span> : null}
     </span>
   );
@@ -135,7 +181,7 @@ export function LevelRail({
           <strong>{priceFormatter.format(currentPrice)}</strong>
         </div>
       ) : null}
-      {levels.map(({ level, trueY, state, displayStrength }) => {
+      {levels.map(({ level, trueY, state, displayStrength, concentration }) => {
         const placement = byId.get(level.id);
         if (!placement) return null;
         return (
@@ -169,7 +215,17 @@ export function LevelRail({
               ).toUpperCase()}
             </span>
             <strong>{priceFormatter.format(level.price)}</strong>
-            <AuditTooltip metadata={level.metadata} state={state} now={now} />
+            <span className="level-concentration" aria-hidden="true">
+              <span
+                style={{ width: `${Math.max(8, displayStrength * 100)}%` }}
+              />
+            </span>
+            <AuditTooltip
+              metadata={level.metadata}
+              state={state}
+              now={now}
+              concentration={concentration}
+            />
           </div>
         );
       })}
@@ -191,12 +247,20 @@ export function GammaChartOverlay({
   shadingEnabled,
   profileExpanded,
   profileBars,
+  profileMetric,
 }: {
   readonly flipY: number | null;
   readonly shadingEnabled: boolean;
   readonly profileExpanded: boolean;
   readonly profileBars: readonly PositionedProfileBar[];
+  readonly profileMetric: ProfileMetric;
 }) {
+  const profileLabel =
+    profileMetric === "gex"
+      ? "GEX CONCENTRATION"
+      : profileMetric === "open-interest"
+        ? "OPEN INTEREST"
+        : "24H VOLUME";
   return (
     <div className="gamma-chart-overlay" aria-hidden="true">
       {shadingEnabled && flipY !== null ? (
@@ -207,19 +271,27 @@ export function GammaChartOverlay({
         </div>
       ) : null}
       {profileExpanded ? (
-        <div className="gamma-profile" data-testid="gamma-profile">
+        <div
+          className="gamma-profile"
+          data-testid="gamma-profile"
+          data-profile-metric={profileMetric}
+        >
+          <span className="gamma-profile-title">{profileLabel}</span>
           <span className="gamma-profile-zero" />
+          {profileBars.length === 0 ? (
+            <span className="gamma-profile-empty">NO DATA</span>
+          ) : null}
           {profileBars.map((bar) => (
             <span
-              key={bar.strike}
-              className={
-                bar.modeledGexOnePercentUsd >= 0 ? "positive" : "negative"
-              }
+              key={bar.id}
+              className={`gamma-profile-bar ${bar.optionType === "call" ? "positive" : "negative"}`}
+              data-option-type={bar.optionType}
+              title={`${bar.optionType.toUpperCase()} ${priceFormatter.format(bar.strike)}: ${compactBtc.format(bar.value)}`}
               style={
                 {
                   top: bar.y,
-                  width: `${Math.max(2, bar.strength * 46)}%`,
-                  opacity: 0.35 + bar.strength * 0.55,
+                  width: `${Math.max(3, profileVisualStrength(bar.strength) * 46)}%`,
+                  opacity: 0.4 + profileVisualStrength(bar.strength) * 0.55,
                 } as React.CSSProperties
               }
             />

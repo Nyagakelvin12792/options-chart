@@ -204,6 +204,20 @@ h1 {
   gap: 2px;
 }
 
+.profile-metric-control {
+  display: flex;
+  gap: 1px;
+  padding-left: 3px;
+  border-left: 1px solid #2c3943;
+}
+
+.overlay-controls .profile-metric-control button {
+  width: 30px;
+  padding: 0;
+  font-size: 8px;
+  font-weight: 800;
+}
+
 .overlay-controls button,
 .chart-heading-actions button,
 .summary-audit {
@@ -604,20 +618,30 @@ h1 {
   bottom: 26%;
   left: 0;
   z-index: 2;
-  width: 140px;
+  width: 176px;
   border-right: 1px solid rgb(112 130 144 / 38%);
   background: rgb(9 15 20 / 76%);
 }
 
-.gamma-profile::before {
+.gamma-profile-title {
   position: absolute;
   z-index: 2;
   top: 7px;
   left: 8px;
-  content: "GEX PROFILE";
   color: #738591;
   font-size: 7px;
   font-weight: 800;
+  pointer-events: none;
+}
+
+.gamma-profile-empty {
+  position: absolute;
+  z-index: 2;
+  top: 28px;
+  left: 8px;
+  color: #647682;
+  font-size: 7px;
+  font-weight: 700;
 }
 
 .gamma-profile-zero {
@@ -628,9 +652,9 @@ h1 {
   border-left: 1px solid rgb(153 169 181 / 46%);
 }
 
-.gamma-profile > span:not(.gamma-profile-zero) {
+.gamma-profile-bar {
   position: absolute;
-  height: 7px;
+  height: 8px;
   transform: translateY(-50%);
 }
 
@@ -685,6 +709,23 @@ h1 {
   font-size: 8px;
   font-variant-numeric: tabular-nums;
   outline: none;
+}
+
+.level-concentration {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  left: 3px;
+  height: 2px;
+  overflow: hidden;
+  background: rgb(116 134 147 / 18%);
+}
+
+.level-concentration > span {
+  display: block;
+  height: 100%;
+  background: currentcolor;
+  opacity: 0.65;
 }
 
 .level-tag.primary {

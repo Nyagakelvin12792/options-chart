@@ -25,9 +25,10 @@ import {
   fetchOlderHistory,
   TIMEFRAME_DEBOUNCE_MS,
 } from "@options-chart/market-data";
-import type {
-  ExpiryScope,
-  OptionsCalculationResult,
+import {
+  filterOptionsByExpiryScope,
+  type ExpiryScope,
+  type OptionsCalculationResult,
 } from "@options-chart/options-engine";
 import {
   isOptionsMetricResponse,
@@ -55,6 +56,7 @@ import {
   type LevelDisplayState,
   type PositionedLevel,
   type PositionedProfileBar,
+  type ProfileMetric,
 } from "@/components/gamma-overlay";
 import {
   buildFallbackOptionsChain,
@@ -134,6 +136,15 @@ const INITIAL_VISIBLE_BARS = 180;
 const DRAWING_STORAGE_KEY = "options-chart:user-drawings:v1";
 const DAY_MS = 86_400_000;
 const OPTIONS_STALE_AFTER_MS = 90_000;
+const PROFILE_METRICS: readonly {
+  readonly value: ProfileMetric;
+  readonly label: string;
+  readonly title: string;
+}[] = [
+  { value: "gex", label: "GEX", title: "Gross Gamma concentration" },
+  { value: "open-interest", label: "OI", title: "Open Interest concentration" },
+  { value: "volume", label: "VOL", title: "24-hour options volume" },
+];
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -253,6 +264,7 @@ export function DashboardClient({
   const [secondaryVisible, setSecondaryVisible] = useState(true);
   const [shadingEnabled, setShadingEnabled] = useState(true);
   const [profileExpanded, setProfileExpanded] = useState(true);
+  const [profileMetric, setProfileMetric] = useState<ProfileMetric>("gex");
   const [chartHeight, setChartHeight] = useState(1);
   const [auditNow, setAuditNow] = useState(() => Date.now());
   const [positionedLevels, setPositionedLevels] = useState<
@@ -314,48 +326,161 @@ export function DashboardClient({
       return;
     }
 
-    const exposureByStrike = new Map<number, number>();
+    type Concentration = {
+      strike: number;
+      optionType: "call" | "put";
+      openInterestBtc: number;
+      volumeBtc: number;
+      volumeUsd: number;
+      grossGammaOnePercentUsd: number;
+    };
+    const concentrationBySide = new Map<string, Concentration>();
+    const scopedContracts = filterOptionsByExpiryScope(
+      optionsChain.instruments,
+      expiryScope,
+      auditNow,
+    );
+    for (const { instrument, quote } of scopedContracts) {
+      const key = `${instrument.strike}:${instrument.optionType}`;
+      const current = concentrationBySide.get(key);
+      const volumeBtc =
+        quote.volumeBtc !== null &&
+        quote.volumeBtc !== undefined &&
+        Number.isFinite(quote.volumeBtc) &&
+        quote.volumeBtc >= 0
+          ? quote.volumeBtc
+          : 0;
+      const volumeUsd =
+        quote.volumeUsd !== null &&
+        quote.volumeUsd !== undefined &&
+        Number.isFinite(quote.volumeUsd) &&
+        quote.volumeUsd >= 0
+          ? quote.volumeUsd
+          : 0;
+      concentrationBySide.set(key, {
+        strike: instrument.strike,
+        optionType: instrument.optionType,
+        openInterestBtc:
+          (current?.openInterestBtc ?? 0) + quote.openInterestBtc,
+        volumeBtc: (current?.volumeBtc ?? 0) + volumeBtc,
+        volumeUsd: (current?.volumeUsd ?? 0) + volumeUsd,
+        grossGammaOnePercentUsd: current?.grossGammaOnePercentUsd ?? 0,
+      });
+    }
     for (const exposure of optionsResult.strikeExposures) {
-      exposureByStrike.set(
-        exposure.strike,
-        (exposureByStrike.get(exposure.strike) ?? 0) +
-          exposure.modeledGexOnePercentUsd,
+      const key = `${exposure.strike}:${exposure.optionType}`;
+      const current = concentrationBySide.get(key);
+      concentrationBySide.set(key, {
+        strike: exposure.strike,
+        optionType: exposure.optionType,
+        openInterestBtc: current?.openInterestBtc ?? exposure.openInterestBtc,
+        volumeBtc: current?.volumeBtc ?? 0,
+        volumeUsd: current?.volumeUsd ?? 0,
+        grossGammaOnePercentUsd: exposure.grossGammaOnePercentUsd,
+      });
+    }
+    const concentrations = [...concentrationBySide.values()];
+    const largestGrossGamma = Math.max(
+      1,
+      ...concentrations.map(({ grossGammaOnePercentUsd }) =>
+        Math.abs(grossGammaOnePercentUsd),
+      ),
+    );
+    const totalGrossBySide = new Map<"call" | "put", number>([
+      ["call", 0],
+      ["put", 0],
+    ]);
+    for (const concentration of concentrations) {
+      totalGrossBySide.set(
+        concentration.optionType,
+        (totalGrossBySide.get(concentration.optionType) ?? 0) +
+          concentration.grossGammaOnePercentUsd,
       );
     }
-    const largestExposure = Math.max(
-      1,
-      ...[...exposureByStrike.values()].map((value) => Math.abs(value)),
-    );
     const levels = displayedLevels.flatMap((level) => {
       const trueY = adapter.priceToCoordinate(level.price);
       if (trueY === null) return [];
+      const wallSide =
+        level.kind === "call-wall"
+          ? "call"
+          : level.kind === "put-wall"
+            ? "put"
+            : null;
+      const matchingConcentrations = concentrations.filter(
+        (concentration) =>
+          concentration.strike === level.price &&
+          (wallSide === null || concentration.optionType === wallSide),
+      );
+      const concentration =
+        level.kind === "gamma-flip" ||
+        level.kind === "max-pain" ||
+        matchingConcentrations.length === 0
+          ? null
+          : {
+              openInterestBtc: matchingConcentrations.reduce(
+                (total, item) => total + item.openInterestBtc,
+                0,
+              ),
+              volumeBtc: matchingConcentrations.reduce(
+                (total, item) => total + item.volumeBtc,
+                0,
+              ),
+              volumeUsd: matchingConcentrations.reduce(
+                (total, item) => total + item.volumeUsd,
+                0,
+              ),
+              grossGammaOnePercentUsd: matchingConcentrations.reduce(
+                (total, item) => total + item.grossGammaOnePercentUsd,
+                0,
+              ),
+              sameSideGrossShare:
+                wallSide === null
+                  ? null
+                  : matchingConcentrations[0]!.grossGammaOnePercentUsd /
+                    Math.max(1, totalGrossBySide.get(wallSide) ?? 0),
+            };
       return [
         {
           level,
           trueY,
           state: effectiveOptionsState,
-          displayStrength:
-            level.importance === "primary"
-              ? 1
-              : Math.abs(exposureByStrike.get(level.price) ?? 0) /
-                largestExposure,
+          displayStrength: Math.min(
+            1,
+            (concentration?.grossGammaOnePercentUsd ?? largestGrossGamma) /
+              largestGrossGamma,
+          ),
+          concentration,
         },
       ];
     });
-    const profileBars = [...exposureByStrike.entries()].flatMap(
-      ([strike, modeledGexOnePercentUsd]) => {
-        const y = adapter.priceToCoordinate(strike);
-        if (y === null) return [];
-        return [
-          {
-            strike,
-            modeledGexOnePercentUsd,
-            y,
-            strength: Math.abs(modeledGexOnePercentUsd) / largestExposure,
-          },
-        ];
-      },
+    const profileValues = concentrations.map((concentration) => ({
+      ...concentration,
+      value:
+        profileMetric === "gex"
+          ? concentration.grossGammaOnePercentUsd
+          : profileMetric === "open-interest"
+            ? concentration.openInterestBtc
+            : concentration.volumeBtc,
+    }));
+    const largestProfileValue = Math.max(
+      1,
+      ...profileValues.map(({ value }) => Math.abs(value)),
     );
+    const profileBars = profileValues.flatMap((concentration) => {
+      const y = adapter.priceToCoordinate(concentration.strike);
+      if (y === null) return [];
+      if (concentration.value <= 0) return [];
+      return [
+        {
+          id: `${profileMetric}:${concentration.strike}:${concentration.optionType}`,
+          strike: concentration.strike,
+          optionType: concentration.optionType,
+          value: concentration.value,
+          y,
+          strength: concentration.value / largestProfileValue,
+        },
+      ];
+    });
     const nextCurrentPriceY =
       lastPrice === null ? null : adapter.priceToCoordinate(lastPrice);
     const nextGammaFlipY =
@@ -363,8 +488,18 @@ export function DashboardClient({
         ? null
         : adapter.priceToCoordinate(optionsResult.gammaFlipPrice);
     const signature = JSON.stringify({
-      levels: levels.map(({ level, trueY }) => [level.id, Math.round(trueY)]),
-      profile: profileBars.map(({ strike, y }) => [strike, Math.round(y)]),
+      levels: levels.map(({ level, trueY, displayStrength, concentration }) => [
+        level.id,
+        Math.round(trueY),
+        displayStrength.toFixed(4),
+        concentration?.volumeBtc ?? null,
+      ]),
+      profileMetric,
+      profile: profileBars.map(({ id, y, strength }) => [
+        id,
+        Math.round(y),
+        strength.toFixed(4),
+      ]),
       current:
         nextCurrentPriceY === null ? null : Math.round(nextCurrentPriceY),
       flip: nextGammaFlipY === null ? null : Math.round(nextGammaFlipY),
@@ -377,11 +512,15 @@ export function DashboardClient({
     setCurrentPriceY(nextCurrentPriceY);
     setGammaFlipY(nextGammaFlipY);
   }, [
+    auditNow,
     displayedLevels,
     effectiveOptionsState,
+    expiryScope,
     lastPrice,
+    optionsChain,
     optionsResult,
     overlaysVisible,
+    profileMetric,
   ]);
 
   const refreshDiagnostics = useCallback(() => {
@@ -1064,6 +1203,27 @@ export function DashboardClient({
               <PanelLeftOpen size={16} />
             )}
           </button>
+          {profileExpanded ? (
+            <div
+              className="profile-metric-control"
+              role="group"
+              aria-label="Options concentration profile"
+            >
+              {PROFILE_METRICS.map((metric) => (
+                <button
+                  key={metric.value}
+                  type="button"
+                  className={profileMetric === metric.value ? "active" : ""}
+                  aria-label={metric.title}
+                  title={metric.title}
+                  aria-pressed={profileMetric === metric.value}
+                  onClick={() => setProfileMetric(metric.value)}
+                >
+                  {metric.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="session-cluster">
@@ -1249,6 +1409,7 @@ export function DashboardClient({
                   shadingEnabled={shadingEnabled}
                   profileExpanded={profileExpanded}
                   profileBars={positionedProfileBars}
+                  profileMetric={profileMetric}
                 />
               ) : null}
             </div>

@@ -28,7 +28,8 @@ describe("options overlay utilities", () => {
           instrument.expiry > NOW &&
           instrument.strike > 0 &&
           quote.markIvDecimal !== null &&
-          quote.openInterestBtc > 0,
+          quote.openInterestBtc > 0 &&
+          (quote.volumeBtc ?? 0) > 0,
       ),
     ).toBe(true);
   });

@@ -146,6 +146,8 @@ export const buildDeribitOptionsSnapshot = (
         optionType: instrument.optionType,
         underlyingPriceUsd: summary.underlying_price,
         openInterestBtc: summary.open_interest,
+        volumeBtc: summary.volume ?? null,
+        volumeUsd: summary.volume_usd ?? null,
         markPriceBtc: summary.mark_price,
         markIvDecimal: summary.mark_iv === null ? null : summary.mark_iv / 100,
         interestRateDecimal: summary.interest_rate,

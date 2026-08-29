@@ -51,6 +51,8 @@ test("renders the audited Gamma hierarchy, profile, and collision-safe Level Rai
   await expect(callWall.getByRole("tooltip")).toContainText("Engine:");
   await expect(callWall.getByRole("tooltip")).toContainText("Scope:");
   await expect(callWall.getByRole("tooltip")).toContainText("Contracts:");
+  await expect(callWall.getByRole("tooltip")).toContainText("Open interest:");
+  await expect(callWall.getByRole("tooltip")).toContainText("24h volume:");
 
   const boxes = await page.locator(".level-tag").evaluateAll((nodes) =>
     nodes.map((node) => {
@@ -94,6 +96,20 @@ test("updates Deribit expiry dates and overlays without recreating the chart", a
   await expect(
     page.getByRole("region", { name: "Options summary metrics" }),
   ).toHaveAttribute("data-expiry-scope", `custom:${selectedExpiry}`);
+  expect(await getChartCreateCount(page)).toBe(1);
+
+  const profile = page.getByTestId("gamma-profile");
+  await expect(profile).toHaveAttribute("data-profile-metric", "gex");
+  await page
+    .getByRole("button", { name: "Open Interest concentration" })
+    .click();
+  await expect(profile).toHaveAttribute("data-profile-metric", "open-interest");
+  await expect(profile.locator('[data-option-type="call"]')).not.toHaveCount(0);
+  await expect(profile.locator('[data-option-type="put"]')).not.toHaveCount(0);
+  await page.getByRole("button", { name: "24-hour options volume" }).click();
+  await expect(profile).toHaveAttribute("data-profile-metric", "volume");
+  await expect(profile.locator('[data-option-type="call"]')).not.toHaveCount(0);
+  await expect(profile.locator('[data-option-type="put"]')).not.toHaveCount(0);
   expect(await getChartCreateCount(page)).toBe(1);
 
   await page

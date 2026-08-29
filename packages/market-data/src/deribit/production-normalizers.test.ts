@@ -39,6 +39,7 @@ describe("Deribit production normalizers", () => {
     expect(result.unknownSummaryInstrumentNames).toEqual([]);
     expect(result.snapshot.instruments).toHaveLength(2);
     expect(result.snapshot.instruments[0]?.quote.openInterestBtc).toBe(125.5);
+    expect(result.snapshot.instruments[0]?.quote.volumeBtc).toBe(20);
     expect(result.snapshot.instruments[1]?.quote.markIvDecimal).toBe(0.8);
   });
 

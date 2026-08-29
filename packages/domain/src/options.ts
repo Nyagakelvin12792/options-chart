@@ -24,6 +24,8 @@ export interface OptionQuote {
   readonly optionType: OptionType;
   readonly underlyingPriceUsd: number;
   readonly openInterestBtc: number;
+  readonly volumeBtc?: number | null;
+  readonly volumeUsd?: number | null;
   readonly markPriceBtc: number | null;
   readonly markIvDecimal: number | null;
   readonly interestRateDecimal: number | null;

@@ -14,6 +14,8 @@ const snapshotFixture = {
       option_type: "call",
       underlying_price: 91_000,
       open_interest: 42.5,
+      volume: 12.25,
+      volume_usd: 1_114_750,
       mark_price: 0.08,
       mark_iv: 52.4,
       interest_rate: 0.01,
@@ -27,6 +29,8 @@ describe("parseDeribitSnapshot", () => {
 
     expect(snapshot.instruments[0]?.quote).toMatchObject({
       openInterestBtc: 42.5,
+      volumeBtc: 12.25,
+      volumeUsd: 1_114_750,
       markIvDecimal: 0.524,
       markPriceBtc: 0.08,
     });

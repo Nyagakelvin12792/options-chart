@@ -43,6 +43,8 @@ export const parseDeribitSnapshot = (
         optionType: item.option_type,
         underlyingPriceUsd: item.underlying_price,
         openInterestBtc: item.open_interest,
+        volumeBtc: item.volume ?? null,
+        volumeUsd: item.volume_usd ?? null,
         markPriceBtc: item.mark_price,
         markIvDecimal: item.mark_iv === null ? null : item.mark_iv / 100,
         interestRateDecimal: item.interest_rate,

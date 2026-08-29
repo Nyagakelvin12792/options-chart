@@ -102,6 +102,11 @@ const createFallbackContract = (
     (6 - Math.abs(3 - strikeIndex)) * 4 +
     callConcentration +
     putConcentration;
+  const volumeBtc =
+    2 +
+    expiryIndex * 0.75 +
+    Math.max(0, 4 - Math.abs(3 - strikeIndex)) * 1.5 +
+    (callConcentration + putConcentration) * 0.18;
   const instrumentName = `BTC-FALLBACK-${expiry}-${strike}-${optionType === "call" ? "C" : "P"}`;
   const metadata = {
     source: "system" as const,
@@ -133,6 +138,8 @@ const createFallbackContract = (
       optionType,
       underlyingPriceUsd: spot,
       openInterestBtc,
+      volumeBtc,
+      volumeUsd: volumeBtc * spot,
       markPriceBtc: Math.max(0.002, 0.045 - distance * 0.18),
       markIvDecimal: 0.48 + distance * 0.55 + expiryIndex * 0.015,
       interestRateDecimal: 0.01,
