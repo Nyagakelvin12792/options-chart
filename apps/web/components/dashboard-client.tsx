@@ -58,6 +58,7 @@ import {
   type PositionedProfileBar,
   type ProfileMetric,
 } from "@/components/gamma-overlay";
+import { RiskTerminal } from "@/components/risk-terminal";
 import {
   buildFallbackOptionsChain,
   formatDeribitExpiryDate,
@@ -246,6 +247,7 @@ export function DashboardClient({
   const [drawingMode, setDrawingModeState] =
     useState<ChartDrawingMode>("pointer");
   const [drawingCount, setDrawingCount] = useState(0);
+  const [drawings, setDrawings] = useState<readonly ChartDrawing[]>([]);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnostics, setDiagnostics] =
     useState<ChartAdapterDiagnostics | null>(null);
@@ -627,10 +629,12 @@ export function DashboardClient({
 
     for (const drawing of readStoredDrawings()) adapter.addDrawing(drawing);
     setDrawingCount(adapter.getDrawings().length);
+    setDrawings(adapter.getDrawings());
 
     const unsubscribeDrawings = adapter.subscribeDrawingsChange((drawings) => {
       localStorage.setItem(DRAWING_STORAGE_KEY, JSON.stringify(drawings));
       setDrawingCount(drawings.length);
+      setDrawings(drawings);
       setDiagnostics(adapter.getDiagnostics());
     });
     const unsubscribeViewport = adapter.subscribeViewportChange((viewport) => {
@@ -1425,6 +1429,7 @@ export function DashboardClient({
             ) : null}
           </div>
         </section>
+        <RiskTerminal lastPrice={lastPrice} drawings={drawings} />
       </div>
 
       <footer className="status-bar">
