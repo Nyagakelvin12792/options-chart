@@ -531,7 +531,7 @@ h1 {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-columns: 42px minmax(0, 1fr) 186px;
+  grid-template-columns: 42px minmax(0, 1fr);
 }
 
 .risk-terminal {
@@ -944,46 +944,44 @@ h1 {
 }
 
 .level-rail {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  border-left: 1px solid #2a3741;
-  background: #0d141a;
+  position: absolute;
+  z-index: 8;
+  top: 0;
+  bottom: 0;
+  left: 184px;
+  width: 104px;
+  overflow: visible;
+  pointer-events: none;
 }
 
-.level-rail-title {
-  position: absolute;
-  z-index: 2;
-  top: 7px;
-  left: 9px;
-  color: #647682;
-  font-size: 8px;
-  font-weight: 800;
+.chart-stack.profile-collapsed .level-rail {
+  left: 7px;
 }
 
 .level-tag {
   --level-strength: 1;
   position: absolute;
   z-index: 4;
-  right: 7px;
-  left: 7px;
+  left: 5px;
   display: grid;
-  height: 26px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  width: 94px;
+  height: 22px;
+  grid-template-columns: 5px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 5px;
-  padding: 0 6px;
+  gap: 4px;
+  padding: 0 5px;
   transform: translateY(-50%);
   border: 1px solid
     color-mix(in srgb, currentcolor calc(var(--level-strength) * 70%), #384650);
   border-left-width: 3px;
-  border-radius: 3px;
-  background: #111a21;
+  border-radius: 2px;
+  background: rgb(13 20 26 / 94%);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 32%);
   color: #aebac4;
   font-size: 8px;
   font-variant-numeric: tabular-nums;
   outline: none;
+  pointer-events: auto;
 }
 
 .level-concentration {
@@ -1008,7 +1006,7 @@ h1 {
 }
 
 .level-tag strong {
-  font-size: 9px;
+  font-size: 8px;
   white-space: nowrap;
 }
 
@@ -1020,29 +1018,34 @@ h1 {
 }
 
 .level-state-mark {
-  color: currentcolor;
-  font-size: 6px;
-  opacity: 0.75;
+  width: 4px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: currentcolor;
+  color: transparent;
+  font-size: 0;
+  opacity: 0.9;
 }
 
-.level-call_wall {
-  color: #5fc79a;
+.level-tag.level-call_wall {
+  color: #46d68c;
 }
 
-.level-put_wall {
-  color: #ef7885;
+.level-tag.level-put_wall {
+  color: #f05d73;
 }
 
-.level-gamma_flip {
-  color: #efb64e;
+.level-tag.level-gamma_flip {
+  color: #43c7d4;
 }
 
-.level-max_pain {
-  color: #67a8ef;
+.level-tag.level-max_pain {
+  color: #d7a84a;
 }
 
-.level-secondary_gex {
-  color: #a3b0ba;
+.level-tag.level-secondary_gex {
+  color: #8fa0ad;
 }
 
 .current-price-tag {
@@ -1056,9 +1059,9 @@ h1 {
 .level-leader {
   position: absolute;
   z-index: 0;
-  right: 13px;
+  left: 13px;
   width: 12px;
-  border-right: 1px solid currentcolor;
+  border-left: 1px solid currentcolor;
   border-bottom: 1px solid currentcolor;
   opacity: 0.55;
 }
@@ -1072,12 +1075,13 @@ h1 {
   color: #dc7b86;
   font-size: 7px;
   font-weight: 800;
+  pointer-events: auto;
 }
 
 .level-audit-tooltip {
   position: absolute;
   z-index: 40;
-  right: calc(100% + 8px);
+  left: calc(100% + 8px);
   top: 50%;
   display: none;
   width: 230px;
@@ -1112,6 +1116,7 @@ h1 {
 
 .summary-audit .level-audit-tooltip {
   right: 4px;
+  left: auto;
   top: calc(100% + 8px);
   transform: none;
 }
@@ -1272,7 +1277,7 @@ h1 {
   }
 
   .chart-surface-shell {
-    grid-template-columns: 42px minmax(600px, 1fr) 166px;
+    grid-template-columns: 42px minmax(600px, 1fr);
   }
 
   .risk-terminal {
@@ -1354,15 +1359,29 @@ h1 {
   }
 
   .chart-surface-shell {
-    grid-template-columns: 38px minmax(0, 1fr) 148px;
+    grid-template-columns: 38px minmax(0, 1fr);
   }
 
   .gamma-profile {
     width: 92px;
   }
 
+  .level-rail {
+    left: 100px;
+  }
+
   .level-state-mark {
     display: none;
+  }
+
+  .level-tag .level-audit-tooltip {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    bottom: 32px;
+    left: 44px;
+    width: auto;
+    transform: none;
   }
 
   .level-tag {
@@ -1415,7 +1434,7 @@ h1 {
   }
 
   .chart-surface-shell {
-    grid-template-columns: 36px minmax(0, 1fr) 122px;
+    grid-template-columns: 36px minmax(0, 1fr);
   }
 
   .risk-field-grid {
@@ -1423,7 +1442,6 @@ h1 {
   }
 
   .level-tag {
-    right: 4px;
     left: 4px;
     padding: 0 4px;
   }

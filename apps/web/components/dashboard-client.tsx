@@ -1822,7 +1822,9 @@ export function DashboardClient({
                 <Eraser size={17} />
               </button>
             </aside>
-            <div className="chart-stack">
+            <div
+              className={`chart-stack ${profileExpanded ? "profile-expanded" : "profile-collapsed"}`}
+            >
               <div
                 ref={chartContainerRef}
                 className="chart-stage"
@@ -1840,17 +1842,17 @@ export function DashboardClient({
                   profileMetric={profileMetric}
                 />
               ) : null}
+              {overlaysVisible ? (
+                <LevelRail
+                  levels={positionedLevels}
+                  currentPrice={lastPrice}
+                  currentPriceY={currentPriceY}
+                  chartHeight={chartHeight}
+                  now={auditNow}
+                  invalidKinds={invalidLevelKinds}
+                />
+              ) : null}
             </div>
-            {overlaysVisible ? (
-              <LevelRail
-                levels={positionedLevels}
-                currentPrice={lastPrice}
-                currentPriceY={currentPriceY}
-                chartHeight={chartHeight}
-                now={auditNow}
-                invalidKinds={invalidLevelKinds}
-              />
-            ) : null}
           </div>
         </section>
         <RiskTerminal lastPrice={lastPrice} drawings={drawings} />

@@ -25,14 +25,14 @@ const getChartCreateCount = (page: import("@playwright/test").Page) =>
     return api.getDiagnostics().chartCreateCount;
   });
 
-test("renders the audited Gamma hierarchy, profile, and collision-safe Level Rail", async ({
+test("renders the audited Gamma hierarchy, profile, and compact chart levels", async ({
   page,
 }) => {
   test.setTimeout(90_000);
   await openFixtureDashboard(page);
 
   await expect(
-    page.getByRole("complementary", { name: "Options level rail" }),
+    page.getByRole("complementary", { name: "Options chart levels" }),
   ).toBeVisible();
   for (const kind of ["call-wall", "put-wall", "gamma-flip", "max-pain"]) {
     const tag = page.getByTestId(`level-tag-${kind}`);
@@ -143,7 +143,7 @@ test("updates Deribit expiry dates and overlays without recreating the chart", a
   await expect(page.getByTestId("level-tag-secondary-gex")).toHaveCount(0);
   await page.getByRole("button", { name: "Hide options overlays" }).click();
   await expect(
-    page.getByRole("complementary", { name: "Options level rail" }),
+    page.getByRole("complementary", { name: "Options chart levels" }),
   ).toHaveCount(0);
   expect(await getChartCreateCount(page)).toBe(1);
 });
@@ -171,18 +171,33 @@ test("keeps the chart-first Gamma layout stable across target viewports", async 
       const summary = document.querySelector<HTMLElement>(
         ".options-summary-bar",
       );
+      const riskTerminal = document.querySelector<HTMLElement>(".risk-terminal");
       return {
         viewportWidth: document.documentElement.clientWidth,
         documentWidth: document.documentElement.scrollWidth,
         chartWidth: chart?.clientWidth ?? 0,
+        chartLeft: chart?.getBoundingClientRect().left ?? 0,
         chartRight: chart?.getBoundingClientRect().right ?? 0,
+        chartBottom: chart?.getBoundingClientRect().bottom ?? 0,
         railLeft: rail?.getBoundingClientRect().left ?? 0,
+        railRight: rail?.getBoundingClientRect().right ?? 0,
+        railWidth: rail?.clientWidth ?? 0,
+        riskLeft: riskTerminal?.getBoundingClientRect().left ?? 0,
+        riskTop: riskTerminal?.getBoundingClientRect().top ?? 0,
         summaryHeight: summary?.clientHeight ?? 0,
       };
     });
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
     expect(layout.chartWidth).toBeGreaterThan(viewport.width < 500 ? 180 : 750);
-    expect(layout.chartRight).toBeLessThanOrEqual(layout.railLeft);
+    expect(layout.railLeft).toBeGreaterThanOrEqual(layout.chartLeft);
+    expect(layout.railRight).toBeLessThanOrEqual(layout.chartRight);
+    expect(layout.chartRight - layout.railRight).toBeGreaterThanOrEqual(72);
+    expect(layout.railWidth).toBeLessThanOrEqual(104);
+    if (viewport.width > 1_100) {
+      expect(layout.riskLeft).toBeGreaterThanOrEqual(layout.chartRight);
+    } else {
+      expect(layout.riskTop).toBeGreaterThanOrEqual(layout.chartBottom);
+    }
     expect(layout.summaryHeight).toBeGreaterThanOrEqual(28);
     await page.screenshot({
       path: testInfo.outputPath(`${viewport.width}x${viewport.height}.png`),

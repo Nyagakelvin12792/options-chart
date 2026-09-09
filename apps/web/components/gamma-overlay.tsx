@@ -72,6 +72,14 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 const kindClass = (kind: GammaLevelKind): string =>
   `level-${kind.replaceAll("-", "_")}`;
 
+const compactLevelName = (level: GammaLevel): string => {
+  if (level.kind === "call-wall") return "C1";
+  if (level.kind === "put-wall") return "P1";
+  if (level.kind === "gamma-flip") return "HVL";
+  if (level.kind === "max-pain") return "MP";
+  return level.label.replace(/^GEX\s*/i, "G").toUpperCase();
+};
+
 const formatAge = (sourceTimestamp: number, now: number): string => {
   const seconds = Math.max(0, Math.round((now - sourceTimestamp) / 1_000));
   if (seconds < 60) return `${seconds}s`;
@@ -169,8 +177,7 @@ export function LevelRail({
   );
 
   return (
-    <aside className="level-rail" aria-label="Options level rail">
-      <span className="level-rail-title">LEVEL RAIL</span>
+    <aside className="level-rail" aria-label="Options chart levels">
       {currentPrice !== null && currentPriceY !== null ? (
         <div
           className="level-tag current-price-tag"
@@ -189,6 +196,7 @@ export function LevelRail({
             key={level.id}
             className={`level-tag ${kindClass(level.kind)} state-${state.toLowerCase()} ${level.importance}`}
             data-testid={`level-tag-${level.kind}`}
+            aria-label={`${state} ${level.label} at ${priceFormatter.format(level.price)}`}
             style={
               {
                 top: placement.displayY,
@@ -208,12 +216,7 @@ export function LevelRail({
               />
             ) : null}
             <span className="level-state-mark">{state}</span>
-            <span className="level-name">
-              {(level.kind === "gamma-flip"
-                ? "Gamma Flip"
-                : level.label
-              ).toUpperCase()}
-            </span>
+            <span className="level-name">{compactLevelName(level)}</span>
             <strong>{priceFormatter.format(level.price)}</strong>
             <span className="level-concentration" aria-hidden="true">
               <span
