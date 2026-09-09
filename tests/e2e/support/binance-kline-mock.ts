@@ -77,8 +77,13 @@ export async function installBinanceKlineMock(
       return;
     }
 
-    const pageStart = startTime ?? endTime - limit * duration;
-    const available = Math.max(0, Math.ceil((endTime - pageStart) / duration));
+    const latestOpenTime = Math.floor((endTime - 1) / duration) * duration;
+    const pageStart =
+      startTime ?? latestOpenTime - Math.max(0, limit - 1) * duration;
+    const available =
+      startTime === null
+        ? limit
+        : Math.max(0, Math.ceil((endTime - pageStart) / duration));
     await route.fulfill({
       json: makeKlines(pageStart, Math.min(limit, available), interval),
     });

@@ -315,7 +315,7 @@ export function OptionsSummaryBar({
 }) {
   const metrics = [
     {
-      label: "Total OI",
+      label: "Deribit OI",
       value: summary ? `${summary.totalOpenInterestBtc.toFixed(2)} BTC` : "--",
       testId: "total-open-interest",
     },
@@ -333,7 +333,7 @@ export function OptionsSummaryBar({
       testId: "average-iv",
     },
     {
-      label: "Modeled GEX / 1%",
+      label: "Deribit GEX / 1%",
       value: summary
         ? `${summary.modeledGexOnePercentUsd >= 0 ? "+" : "-"}$${compactUsd.format(Math.abs(summary.modeledGexOnePercentUsd))}`
         : "--",

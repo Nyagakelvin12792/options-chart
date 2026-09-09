@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
-import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
+import { installDeribitFixtureMock } from "./support/deribit-fixture-mock";
 
 test.describe("Milestone 8: Vercel Production Deployment & Security Suite", () => {
   test("M8.16 validates input parameters on Binance proxy route", async ({
@@ -45,7 +45,7 @@ test.describe("Milestone 8: Vercel Production Deployment & Security Suite", () =
   }) => {
     test.setTimeout(60_000);
     await installBinanceKlineMock(page);
-    await installDeribitFallbackMock(page);
+    await installDeribitFixtureMock(page);
     await page.goto("/");
 
     // Wait for worker metrics to calculate under CSP
@@ -77,7 +77,7 @@ test.describe("Milestone 8: Vercel Production Deployment & Security Suite", () =
   }) => {
     test.setTimeout(60_000);
     await installBinanceKlineMock(page);
-    await installDeribitFallbackMock(page);
+    await installDeribitFixtureMock(page);
     await page.goto("/");
 
     await expect(page.getByTestId("candle-count")).toContainText(/\d{4}/);

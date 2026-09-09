@@ -78,9 +78,18 @@ export async function bootstrapHistory(
     symbol = "BTCUSDT",
     interval,
     targetBars = BOOTSTRAP_TARGET_BARS,
-    endTime = Date.now(),
+    endTime,
     maxPageRetries = 2,
   } = options;
+
+  if (endTime === undefined) {
+    return bootstrapLatestHistory(client, {
+      symbol,
+      interval,
+      targetBars,
+      maxPageRetries,
+    });
+  }
 
   const intervalMs = INTERVAL_MS[interval];
   const pageSize = BINANCE_MAX_KLINES_PER_REQUEST;
@@ -154,6 +163,77 @@ export async function bootstrapHistory(
   }
 
   // Assemble: sort, deduplicate, verify contiguity.
+  return assembleCandles(
+    allCandles,
+    interval,
+    targetBars,
+    pagesFetched,
+    completeness,
+  );
+}
+
+async function bootstrapLatestHistory(
+  client: BinanceRestClient,
+  options: Required<
+    Pick<
+      BootstrapOptions,
+      "symbol" | "interval" | "targetBars" | "maxPageRetries"
+    >
+  >,
+): Promise<BootstrapResult> {
+  const { symbol, interval, targetBars, maxPageRetries } = options;
+  const pageSize = BINANCE_MAX_KLINES_PER_REQUEST;
+  const allCandles: Candle[] = [];
+  let pagesFetched = 0;
+  let completeness: HistoryCompleteness = "COMPLETE";
+
+  while (allCandles.length < targetBars) {
+    const earliestOpenTime = allCandles.reduce<number | null>(
+      (earliest, candle) =>
+        earliest === null
+          ? candle.openTime
+          : Math.min(earliest, candle.openTime),
+      null,
+    );
+    const remaining = targetBars - allCandles.length;
+    const limit = Math.min(pageSize, remaining);
+    let pageCandles: readonly Candle[] | null = null;
+
+    for (let attempt = 0; attempt <= maxPageRetries; attempt++) {
+      try {
+        const payload = await client.fetchKlines({
+          symbol,
+          interval,
+          ...(earliestOpenTime === null
+            ? {}
+            : { endTime: earliestOpenTime - 1 }),
+          limit,
+        });
+
+        pageCandles = parseBinanceKlines(payload, Date.now(), interval);
+        pagesFetched++;
+        break;
+      } catch (error) {
+        if (attempt === maxPageRetries) {
+          completeness = "DEGRADED";
+          pageCandles = null;
+        }
+        if (
+          error instanceof TransportError &&
+          !error.retryable &&
+          attempt < maxPageRetries
+        ) {
+          completeness = "DEGRADED";
+          break;
+        }
+      }
+    }
+
+    if (!pageCandles || pageCandles.length === 0) break;
+    allCandles.push(...pageCandles);
+    if (pageCandles.length < limit) break;
+  }
+
   return assembleCandles(
     allCandles,
     interval,

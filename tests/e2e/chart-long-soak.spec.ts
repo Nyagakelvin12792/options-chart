@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
-import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
+import { installDeribitFixtureMock } from "./support/deribit-fixture-mock";
 
 const enabled = process.env.CHART_SOAK === "1";
 const durationMs = Number(
@@ -18,7 +18,7 @@ test("runs the continuous chart soak with bounded resources", async ({
   test.setTimeout(durationMs + 10 * 60 * 1_000);
 
   await installBinanceKlineMock(page);
-  await installDeribitFallbackMock(page);
+  await installDeribitFixtureMock(page);
   await page.goto("/");
   await expect(page.getByTestId("candle-count")).toContainText(/\d{4}/);
   await expect(

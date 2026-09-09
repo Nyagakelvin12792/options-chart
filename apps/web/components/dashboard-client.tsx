@@ -23,6 +23,7 @@ import {
   DeribitOptionsDataEngine,
   DeribitRestClient,
   fetchOlderHistory,
+  syncBinanceClock,
   TIMEFRAME_DEBOUNCE_MS,
 } from "@options-chart/market-data";
 import {
@@ -60,7 +61,7 @@ import {
 } from "@/components/gamma-overlay";
 import { RiskTerminal } from "@/components/risk-terminal";
 import {
-  buildFallbackOptionsChain,
+  buildUnavailableOptionsChain,
   formatDeribitExpiryDate,
   listActiveExpiries,
   selectMaxPainExpiry,
@@ -130,13 +131,15 @@ const SUPPORTED_INTERVALS: readonly CandleInterval[] = [
   "1d",
   "1w",
 ];
-const HISTORY_TARGET_BARS = 2_000;
+const HISTORY_TARGET_BARS = 10_000;
+const HISTORY_TARGET_LABEL = HISTORY_TARGET_BARS.toLocaleString("en-US");
 const LAZY_HISTORY_PAGE_BARS = 1_000;
 const LAZY_HISTORY_THRESHOLD_BARS = 80;
 const INITIAL_VISIBLE_BARS = 180;
 const DRAWING_STORAGE_KEY = "options-chart:user-drawings:v1";
 const DAY_MS = 86_400_000;
 const OPTIONS_STALE_AFTER_MS = 90_000;
+const BINANCE_CLOCK_SYNC_STALE_MS = 5 * 60_000;
 const PROFILE_METRICS: readonly {
   readonly value: ProfileMetric;
   readonly label: string;
@@ -224,6 +227,10 @@ export function DashboardClient({
   const deribitEngineRef = useRef<DeribitOptionsDataEngine | null>(null);
   const activeWorkerCountRef = useRef(0);
   const activeIntervalRef = useRef<CandleInterval>("1h");
+  const binanceClockRef = useRef<{
+    readonly offsetMs: number;
+    readonly syncedAt: number;
+  } | null>(null);
   const feedGenerationRef = useRef(0);
   const olderHistoryLoadingRef = useRef(false);
   const reachedHistoryBeginningRef = useRef(false);
@@ -252,14 +259,14 @@ export function DashboardClient({
   const [diagnostics, setDiagnostics] =
     useState<ChartAdapterDiagnostics | null>(null);
   const [optionsChain, setOptionsChain] = useState<OptionsChainSnapshot>(() =>
-    buildFallbackOptionsChain(80_000, Date.now()),
+    buildUnavailableOptionsChain(Date.now()),
   );
   const [optionsState, setOptionsState] =
     useState<LevelDisplayState>("FALLBACK");
   const [optionsResult, setOptionsResult] =
     useState<OptionsCalculationResult | null>(null);
   const [metricStatus, setMetricStatus] = useState(
-    "Fallback calculation queued",
+    "Waiting for live Deribit data",
   );
   const [workerDuration, setWorkerDuration] = useState<number | null>(null);
   const [overlaysVisible, setOverlaysVisible] = useState(true);
@@ -278,11 +285,29 @@ export function DashboardClient({
   const [currentPriceY, setCurrentPriceY] = useState<number | null>(null);
   const [gammaFlipY, setGammaFlipY] = useState<number | null>(null);
 
-  if (!restClientRef.current) {
+  if (restClientRef.current == null) {
     restClientRef.current = new BinanceRestClient({
       endpoints: ["/api/binance"],
     });
   }
+
+  const getBinanceNow = useCallback(async (client: BinanceRestClient) => {
+    const cached = binanceClockRef.current;
+    if (cached && Date.now() - cached.syncedAt < BINANCE_CLOCK_SYNC_STALE_MS) {
+      return Math.round(Date.now() + cached.offsetMs);
+    }
+
+    try {
+      const clock = await syncBinanceClock(client);
+      binanceClockRef.current = {
+        offsetMs: clock.offsetMs,
+        syncedAt: clock.syncedAt,
+      };
+      return Math.round(Date.now() + clock.offsetMs);
+    } catch {
+      return null;
+    }
+  }, []);
 
   const activeExpiries = useMemo(
     () => listActiveExpiries(optionsChain, auditNow),
@@ -536,7 +561,10 @@ export function DashboardClient({
     const adapter = chartAdapterRef.current;
     if (!store || !client || !adapter) return;
 
-    const result = await store.reconcile(client);
+    const now = await getBinanceNow(client);
+    if (now === null) return;
+
+    const result = await store.reconcile(client, now);
     if (!result.action) return;
 
     if (result.action.type === "update") {
@@ -557,7 +585,7 @@ export function DashboardClient({
       `Reconciled ${result.barsRepaired} bar${result.barsRepaired === 1 ? "" : "s"}`,
     );
     refreshDiagnostics();
-  }, [refreshDiagnostics]);
+  }, [getBinanceNow, refreshDiagnostics]);
 
   const loadOlderHistory = useCallback(async () => {
     const store = candleStoreRef.current;
@@ -608,9 +636,11 @@ export function DashboardClient({
       olderHistoryLoadingRef.current = false;
     }
   }, [refreshDiagnostics]);
-  loadOlderHistoryRef.current = () => {
-    void loadOlderHistory();
-  };
+  useEffect(() => {
+    loadOlderHistoryRef.current = () => {
+      void loadOlderHistory();
+    };
+  }, [loadOlderHistory]);
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -689,7 +719,41 @@ export function DashboardClient({
 
     let socket: BinanceKlineSocket | null = null;
     setFeedState("CONNECTING");
-    setCandleStatus(`Loading 2,000 ${selectedInterval} bars`);
+    setCandleStatus(`Loading ${HISTORY_TARGET_LABEL} ${selectedInterval} bars`);
+
+    const applyHistory = (
+      historyCandles: readonly Candle[],
+      status: string,
+    ) => {
+      store.setHistory(historyCandles);
+      const adapter = chartAdapterRef.current;
+      adapter?.setHistory(historyCandles, { fitContent: false });
+      const visibleBarCount =
+        (chartContainerRef.current?.clientWidth ?? 1_000) < 600
+          ? 64
+          : INITIAL_VISIBLE_BARS;
+      const visibleFrom =
+        historyCandles[Math.max(historyCandles.length - visibleBarCount, 0)];
+      const visibleTo = historyCandles.at(-1);
+      if (adapter && visibleFrom && visibleTo) {
+        adapter.setVisibleRange({
+          fromTimestamp: visibleFrom.openTime,
+          toTimestamp: visibleTo.openTime,
+        });
+      }
+      const latest = visibleTo ?? null;
+      latestCandleRef.current = latest;
+      setCandleCount(historyCandles.length);
+      setLastPrice(latest?.close ?? null);
+      setDayChange(calculateDayChange(historyCandles));
+      setCandleStatus(status);
+      requestAnimationFrame(() => {
+        if (feedGenerationRef.current === generation) {
+          viewportReadyRef.current = true;
+        }
+      });
+      refreshDiagnostics();
+    };
 
     void (async () => {
       try {
@@ -699,40 +763,17 @@ export function DashboardClient({
         });
         if (feedGenerationRef.current !== generation) return;
 
-        store.setHistory(bootstrap.candles);
-        const adapter = chartAdapterRef.current;
-        adapter?.setHistory(bootstrap.candles, { fitContent: false });
-        const visibleBarCount =
-          (chartContainerRef.current?.clientWidth ?? 1_000) < 600
-            ? 64
-            : INITIAL_VISIBLE_BARS;
-        const visibleFrom =
-          bootstrap.candles[
-            Math.max(bootstrap.candles.length - visibleBarCount, 0)
-          ];
-        const visibleTo = bootstrap.candles.at(-1);
-        if (adapter && visibleFrom && visibleTo) {
-          adapter.setVisibleRange({
-            fromTimestamp: visibleFrom.openTime,
-            toTimestamp: visibleTo.openTime,
-          });
-        }
-        const latest = visibleTo ?? null;
-        latestCandleRef.current = latest;
-        setCandleCount(bootstrap.candles.length);
-        setLastPrice(latest?.close ?? null);
-        setDayChange(calculateDayChange(bootstrap.candles));
-        setCandleStatus(
+        applyHistory(
+          bootstrap.candles,
           bootstrap.completeness === "COMPLETE"
             ? `Binance REST + live ${selectedInterval}`
             : `Binance REST degraded ${selectedInterval}`,
         );
-        requestAnimationFrame(() => {
-          if (feedGenerationRef.current === generation) {
-            viewportReadyRef.current = true;
-          }
-        });
-        refreshDiagnostics();
+
+        if (bootstrap.candles.length === 0) {
+          setFeedState("DEGRADED");
+          return;
+        }
 
         socket = new BinanceKlineSocket({
           interval: selectedInterval,
@@ -757,6 +798,7 @@ export function DashboardClient({
         socket.connect();
       } catch (error) {
         if (feedGenerationRef.current !== generation) return;
+        applyHistory([], "Binance candle data unavailable");
         setFeedState("DEGRADED");
         setCandleStatus(
           error instanceof Error ? error.message : "History load failed",
@@ -769,7 +811,7 @@ export function DashboardClient({
       if (binanceSocketRef.current === socket) binanceSocketRef.current = null;
       if (candleStoreRef.current === store) candleStoreRef.current = null;
     };
-  }, [selectedInterval, handleReconcile, refreshDiagnostics]);
+  }, [selectedInterval, getBinanceNow, handleReconcile, refreshDiagnostics]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -787,17 +829,13 @@ export function DashboardClient({
 
   useEffect(() => {
     if (customExpiry === null || !activeExpiries.includes(customExpiry)) {
-      setCustomExpiry(activeExpiries[0] ?? null);
+      const timer = setTimeout(() => {
+        setCustomExpiry(activeExpiries[0] ?? null);
+      }, 0);
+      return () => clearTimeout(timer);
     }
+    return undefined;
   }, [activeExpiries, customExpiry]);
-
-  useEffect(() => {
-    if (optionsState !== "FALLBACK" || lastPrice === null) return;
-    const fallbackSpot =
-      optionsChain.instruments[0]?.quote.underlyingPriceUsd ?? lastPrice;
-    if (Math.abs(fallbackSpot / lastPrice - 1) < 0.02) return;
-    setOptionsChain(buildFallbackOptionsChain(lastPrice, Date.now()));
-  }, [lastPrice, optionsChain, optionsState]);
 
   useEffect(() => {
     const engine = new DeribitOptionsDataEngine({
@@ -824,13 +862,13 @@ export function DashboardClient({
         }
       },
       onError: () => {
-        setMetricStatus("Deribit unavailable · audited fallback chain");
+        setMetricStatus("Deribit options data unavailable");
       },
     });
     deribitEngineRef.current = engine;
     void engine.start().catch(() => {
       setOptionsState("FALLBACK");
-      setMetricStatus("Deribit unavailable · audited fallback chain");
+      setMetricStatus("Deribit options data unavailable");
     });
     return () => {
       engine.stop();
@@ -870,6 +908,13 @@ export function DashboardClient({
 
   useEffect(() => {
     if (lastPrice === null || !optionsWorkerRef.current) return;
+    if (optionsState === "FALLBACK" || optionsChain.instruments.length === 0) {
+      const timer = setTimeout(() => {
+        setOptionsResult(null);
+        setWorkerDuration(null);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
     const timer = setTimeout(() => {
       const calculatedAt = Date.now();
       const inputVersion = latestInputVersionRef.current + 1;
@@ -895,7 +940,7 @@ export function DashboardClient({
       optionsWorkerRef.current?.postMessage(request);
     }, 100);
     return () => clearTimeout(timer);
-  }, [expiryScope, lastPrice, optionsChain]);
+  }, [expiryScope, lastPrice, optionsChain, optionsState]);
 
   useEffect(() => {
     const adapter = chartAdapterRef.current;
@@ -1333,10 +1378,9 @@ export function DashboardClient({
               <span
                 className={`options-source state-${effectiveOptionsState.toLowerCase()}`}
               >
-                {effectiveOptionsState} · {optionsChain.instruments.length}{" "}
-                {optionsChain.metadata.source === "system"
-                  ? "AUDITED FALLBACK CONTRACTS"
-                  : "DERIBIT CONTRACTS"}
+                {effectiveOptionsState === "FALLBACK"
+                  ? "OPTIONS DATA UNAVAILABLE"
+                  : `${effectiveOptionsState} · ${optionsResult?.summary.metadata.contractsIncluded ?? 0} OF ${optionsChain.instruments.length} DERIBIT CONTRACTS`}
               </span>
               <button
                 type="button"

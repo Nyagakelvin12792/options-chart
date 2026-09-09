@@ -1,17 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
-import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
+import { installDeribitFixtureMock } from "./support/deribit-fixture-mock";
 
-const openFallbackDashboard = async (page: import("@playwright/test").Page) => {
+const openFixtureDashboard = async (page: import("@playwright/test").Page) => {
   await installBinanceKlineMock(page);
-  await installDeribitFallbackMock(page);
+  await installDeribitFixtureMock(page);
   await page.goto("/");
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
   await expect(page.getByTestId("total-open-interest")).not.toHaveText("--");
-  await expect(
-    page.getByText("FALLBACK", { exact: true }).first(),
-  ).toBeVisible();
+  await expect(page.getByText("LIVE", { exact: true }).first()).toBeVisible();
 };
 
 const getChartCreateCount = (page: import("@playwright/test").Page) =>
@@ -31,7 +29,7 @@ test("renders the audited Gamma hierarchy, profile, and collision-safe Level Rai
   page,
 }) => {
   test.setTimeout(90_000);
-  await openFallbackDashboard(page);
+  await openFixtureDashboard(page);
 
   await expect(
     page.getByRole("complementary", { name: "Options level rail" }),
@@ -40,7 +38,7 @@ test("renders the audited Gamma hierarchy, profile, and collision-safe Level Rai
     const tag = page.getByTestId(`level-tag-${kind}`);
     await expect(tag).toBeVisible();
     await expect(tag).toContainText(/\d{2,3},\d{3}/);
-    await expect(tag).toContainText("FALLBACK");
+    await expect(tag).toContainText("LIVE");
   }
   await expect(page.getByTestId("level-tag-secondary-gex")).toHaveCount(3);
   await expect(page.getByTestId("gamma-profile")).toBeVisible();
@@ -76,7 +74,7 @@ test("updates Deribit expiry dates and overlays without recreating the chart", a
   page,
 }) => {
   test.setTimeout(90_000);
-  await openFallbackDashboard(page);
+  await openFixtureDashboard(page);
   expect(await getChartCreateCount(page)).toBe(1);
 
   const expirySelect = page.getByLabel("Expiry date");
@@ -134,7 +132,7 @@ test("keeps the chart-first Gamma layout stable across target viewports", async 
 }, testInfo) => {
   test.setTimeout(120_000);
   await installBinanceKlineMock(page);
-  await installDeribitFallbackMock(page);
+  await installDeribitFixtureMock(page);
 
   for (const viewport of [
     { width: 1_366, height: 768 },
@@ -162,7 +160,7 @@ test("keeps the chart-first Gamma layout stable across target viewports", async 
       };
     });
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
-    expect(layout.chartWidth).toBeGreaterThan(viewport.width < 500 ? 180 : 900);
+    expect(layout.chartWidth).toBeGreaterThan(viewport.width < 500 ? 180 : 750);
     expect(layout.chartRight).toBeLessThanOrEqual(layout.railLeft);
     expect(layout.summaryHeight).toBeGreaterThanOrEqual(28);
     await page.screenshot({

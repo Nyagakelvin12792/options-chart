@@ -1,17 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
-import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
+import { installDeribitFixtureMock } from "./support/deribit-fixture-mock";
 
-const openFallbackDashboard = async (page: import("@playwright/test").Page) => {
+const openFixtureDashboard = async (page: import("@playwright/test").Page) => {
   await installBinanceKlineMock(page);
-  await installDeribitFallbackMock(page);
+  await installDeribitFixtureMock(page);
   await page.goto("/");
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
   await expect(page.getByTestId("total-open-interest")).not.toHaveText("--");
-  await expect(
-    page.getByText("FALLBACK", { exact: true }).first(),
-  ).toBeVisible();
+  await expect(page.getByText("LIVE", { exact: true }).first()).toBeVisible();
 };
 
 const getChartCreateCount = (page: import("@playwright/test").Page) =>
@@ -32,7 +30,7 @@ test.describe("Milestone 7: Reliability & Failure Injection E2E Suite", () => {
     page,
   }) => {
     test.setTimeout(90_000);
-    await openFallbackDashboard(page);
+    await openFixtureDashboard(page);
 
     const initialCreateCount = await getChartCreateCount(page);
     expect(initialCreateCount).toBe(1);
@@ -74,7 +72,7 @@ test.describe("Milestone 7: Reliability & Failure Injection E2E Suite", () => {
     page,
   }) => {
     test.setTimeout(90_000);
-    await openFallbackDashboard(page);
+    await openFixtureDashboard(page);
 
     // Simulate browser offline event
     await page.evaluate(() => {
@@ -105,14 +103,13 @@ test.describe("Milestone 7: Reliability & Failure Injection E2E Suite", () => {
     page,
   }) => {
     test.setTimeout(90_000);
-    await openFallbackDashboard(page);
+    await openFixtureDashboard(page);
 
-    // In fallback mode, tags must explicitly show FALLBACK (never falsely labeled LIVE)
+    // Fixture-backed Deribit values must preserve live provenance.
     const callWall = page.getByTestId("level-tag-call-wall");
-    await expect(callWall).toContainText("FALLBACK");
-    await expect(callWall).not.toContainText("LIVE");
+    await expect(callWall).toContainText("LIVE");
+    await expect(callWall).not.toContainText("FALLBACK");
 
-    // Summary bar must show FALLBACK status
-    await expect(page.locator(".summary-state")).toHaveText("FALLBACK");
+    await expect(page.locator(".summary-state")).toHaveText("LIVE");
   });
 });

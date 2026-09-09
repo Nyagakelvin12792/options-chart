@@ -1,7 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
-import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
+import {
+  installDeribitFixtureMock,
+  installDeribitUnavailableMock,
+} from "./support/deribit-fixture-mock";
 
 const expectPositiveBtcMetric = async (page: Page) => {
   const metric = page.getByTestId("total-open-interest");
@@ -14,7 +17,7 @@ test("renders validated candles and a versioned worker metric", async ({
   page,
 }) => {
   await installBinanceKlineMock(page);
-  await installDeribitFallbackMock(page);
+  await installDeribitFixtureMock(page);
 
   await page.goto("/");
 
@@ -22,11 +25,9 @@ test("renders validated candles and a versioned worker metric", async ({
     page.getByRole("heading", { name: "Options Chart" }),
   ).toBeVisible();
   await expect(page.getByText(/Binance REST/)).toBeVisible();
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
   await expectPositiveBtcMetric(page);
-  await expect(
-    page.getByText("FALLBACK", { exact: true }).first(),
-  ).toBeVisible();
+  await expect(page.getByText("LIVE", { exact: true }).first()).toBeVisible();
 
   const chartHasPixels = await page
     .getByTestId("candlestick-chart")
@@ -80,7 +81,7 @@ test("keeps the chart surface aligned on desktop and mobile", async ({
   page,
 }, testInfo) => {
   await installBinanceKlineMock(page);
-  await installDeribitFallbackMock(page);
+  await installDeribitFixtureMock(page);
 
   for (const viewport of [
     { name: "desktop", width: 1440, height: 900 },
@@ -106,4 +107,19 @@ test("keeps the chart surface aligned on desktop and mobile", async ({
       fullPage: true,
     });
   }
+});
+
+test("does not invent options metrics when Deribit is unavailable", async ({
+  page,
+}) => {
+  await installBinanceKlineMock(page);
+  await installDeribitUnavailableMock(page);
+  await page.goto("/");
+
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
+  await expect(page.getByTestId("total-open-interest")).toHaveText("--");
+  await expect(
+    page.getByText("OPTIONS DATA UNAVAILABLE", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("[data-testid^='level-tag-']")).toHaveCount(0);
 });

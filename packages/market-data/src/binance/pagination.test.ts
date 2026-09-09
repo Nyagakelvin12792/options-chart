@@ -39,6 +39,37 @@ function makeKlinePage(
 }
 
 describe("bootstrapHistory", () => {
+  it("bootstraps recent candles without requiring a local endTime", async () => {
+    const mockClient: Pick<BinanceRestClient, "fetchKlines"> = {
+      fetchKlines: vi.fn(async (params) => {
+        if (params.endTime === undefined) {
+          return makeKlinePage(T0 + 1000 * HOUR, 1000);
+        }
+        return makeKlinePage(T0, 1000);
+      }),
+    };
+
+    const result = await bootstrapHistory(mockClient as BinanceRestClient, {
+      interval: "1h",
+      targetBars: 2000,
+    });
+
+    expect(result.pagesFetched).toBe(2);
+    expect(result.candles).toHaveLength(2000);
+    expect(result.completeness).toBe("COMPLETE");
+    expect(mockClient.fetchKlines).toHaveBeenNthCalledWith(1, {
+      symbol: "BTCUSDT",
+      interval: "1h",
+      limit: 1000,
+    });
+    expect(mockClient.fetchKlines).toHaveBeenNthCalledWith(2, {
+      symbol: "BTCUSDT",
+      interval: "1h",
+      endTime: T0 + 1000 * HOUR - 1,
+      limit: 1000,
+    });
+  });
+
   it("paginates 2,000 bars across 2 REST requests of ≤1,000", async () => {
     const mockClient: Pick<BinanceRestClient, "fetchKlines"> = {
       fetchKlines: vi.fn(async (params) => {

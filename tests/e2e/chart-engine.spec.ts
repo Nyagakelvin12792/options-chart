@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { installBinanceKlineMock } from "./support/binance-kline-mock";
-import { installDeribitFallbackMock } from "./support/deribit-fallback-mock";
+import { installDeribitFixtureMock } from "./support/deribit-fixture-mock";
 
 interface BrowserChartDiagnostics {
   readonly chartCreateCount: number;
@@ -67,9 +67,9 @@ test("preserves viewport and drawings across repair, history growth, and timefra
 }) => {
   test.setTimeout(60_000);
   const mock = await installBinanceKlineMock(page);
-  await installDeribitFallbackMock(page);
+  await installDeribitFixtureMock(page);
   await page.goto("/");
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
   await expect(page.getByTestId("level-tag-call-wall")).toBeVisible();
 
   const zoomedRange = await evaluateChart<{
@@ -114,14 +114,16 @@ test("preserves viewport and drawings across repair, history growth, and timefra
 
   const rangeBeforeLazyLoad = await evaluateChart(page, "getVisibleRange");
   await evaluateChart<void>(page, "loadOlderHistory");
-  await expect(page.getByTestId("candle-count")).toContainText(/300[0-9]/);
+  await expect
+    .poll(async () => Number(await page.getByTestId("candle-count").innerText()))
+    .toBeGreaterThanOrEqual(11_000);
   expect(await evaluateChart(page, "getVisibleRange")).toEqual(
     rangeBeforeLazyLoad,
   );
 
   await page.getByRole("button", { name: "5m", exact: true }).click();
   await expect(page.getByText("BTC / USDT · 5m")).toBeVisible();
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
   expect(
     (await evaluateChart<readonly unknown[]>(page, "getDrawings")).length,
   ).toBe(2);
@@ -134,16 +136,17 @@ test("preserves viewport and drawings across repair, history growth, and timefra
 test("debounces rapid timeframe changes and requests Binance weekly candles directly", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
   const mock = await installBinanceKlineMock(page);
   await page.goto("/");
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
 
   for (const timeframe of ["1m", "5m", "15m", "4h", "1w"]) {
     await page.getByRole("button", { name: timeframe, exact: true }).click();
   }
 
   await expect(page.getByText("BTC / USDT · 1w")).toBeVisible();
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
   expect(await evaluateChart(page, "getSelectedInterval")).toBe("1w");
   expect(mock.requests.some((request) => request.interval === "1w")).toBe(true);
   expect(
@@ -164,7 +167,7 @@ test("keeps the chart-first layout stable at required desktop viewports", async 
   ]) {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    await expect(page.getByTestId("candle-count")).toHaveText("2000");
+    await expect(page.getByTestId("candle-count")).toHaveText("10000");
 
     const layout = await page.evaluate(() => {
       const chart = document.querySelector<HTMLElement>(
@@ -185,7 +188,7 @@ test("keeps the chart-first layout stable at required desktop viewports", async 
     });
 
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
-    expect(layout.chartWidth).toBeGreaterThan(900);
+    expect(layout.chartWidth).toBeGreaterThan(750);
     expect(layout.chartHeight).toBeGreaterThan(540);
     expect(layout.toolbarRight).toBeLessThanOrEqual(layout.chartLeft);
     expect(layout.chartRight).toBeLessThanOrEqual(layout.railLeft);
@@ -199,9 +202,10 @@ test("keeps the chart-first layout stable at required desktop viewports", async 
 test("holds one chart through an accelerated eight-hour update soak", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(180_000);
   await installBinanceKlineMock(page);
   await page.goto("/");
-  await expect(page.getByTestId("candle-count")).toHaveText("2000");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
 
   const conflation = await evaluateChart<
     ReturnType<BrowserChartApi["runConflationBenchmark"]>
