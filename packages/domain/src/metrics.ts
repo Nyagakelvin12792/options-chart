@@ -50,6 +50,29 @@ export interface GammaProfilePoint {
   readonly modeledGexOnePercentUsd: number;
 }
 
+export type WallSignalKind =
+  "gamma" | "open-interest" | "volume" | "max-pain" | "gamma-flip";
+
+export type WallSignalNormalizationGroup =
+  | "call-gamma"
+  | "put-gamma"
+  | "open-interest"
+  | "volume"
+  | "max-pain"
+  | "gamma-flip";
+
+export interface WallSignal {
+  readonly id: string;
+  readonly kind: WallSignalKind;
+  readonly label: string;
+  readonly price: number;
+  readonly optionType: OptionType | null;
+  readonly metricValue: number;
+  readonly metricTotal: number;
+  readonly concentration: number;
+  readonly normalizationGroup: WallSignalNormalizationGroup;
+}
+
 export type GammaLevelKind =
   "call-wall" | "put-wall" | "gamma-flip" | "max-pain" | "secondary-gex";
 

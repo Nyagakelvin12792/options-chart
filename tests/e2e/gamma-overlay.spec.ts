@@ -43,14 +43,35 @@ test("renders the audited Gamma hierarchy, profile, and collision-safe Level Rai
   await expect(page.getByTestId("level-tag-secondary-gex")).toHaveCount(3);
   await expect(page.getByTestId("gamma-profile")).toBeVisible();
   await expect(page.getByTestId("gamma-regime-shading")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Wall confluence/i }),
+  ).toBeVisible();
+  await expect(page.locator(".wall-confluence-zone").first()).toContainText(
+    /of 6/i,
+  );
+  for (const signal of [
+    "gamma",
+    "open-interest",
+    "volume",
+    "max-pain",
+    "gamma-flip",
+  ]) {
+    await expect(
+      page.locator(`.wall-confluence-signal.signal-${signal}`).first(),
+    ).toBeVisible();
+  }
+  await expect(page.locator(".confluence-zone-band").first()).toBeVisible();
 
   const callWall = page.getByTestId("level-tag-call-wall");
   await callWall.hover();
-  await expect(callWall.getByRole("tooltip")).toContainText("Engine:");
-  await expect(callWall.getByRole("tooltip")).toContainText("Scope:");
-  await expect(callWall.getByRole("tooltip")).toContainText("Contracts:");
-  await expect(callWall.getByRole("tooltip")).toContainText("Open interest:");
-  await expect(callWall.getByRole("tooltip")).toContainText("24h volume:");
+  const auditTooltip = callWall.locator(".level-audit-tooltip");
+  await expect(auditTooltip).toBeVisible();
+  const auditText = await auditTooltip.textContent();
+  expect(auditText).toContain("Engine:");
+  expect(auditText).toContain("Scope:");
+  expect(auditText).toContain("Contracts:");
+  expect(auditText).toContain("Open interest:");
+  expect(auditText).toContain("24h volume:");
 
   const boxes = await page.locator(".level-tag").evaluateAll((nodes) =>
     nodes.map((node) => {

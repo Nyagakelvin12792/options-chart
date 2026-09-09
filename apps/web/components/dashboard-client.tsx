@@ -25,9 +25,13 @@ import {
   fetchOlderHistory,
   syncBinanceClock,
   TIMEFRAME_DEBOUNCE_MS,
+  type DeribitRecentOptionTradePayload,
 } from "@options-chart/market-data";
 import {
+  calculateDeribitInverseGamma,
+  calculateStaticWallSignals,
   filterOptionsByExpiryScope,
+  millisecondsPerYear,
   type ExpiryScope,
   type OptionsCalculationResult,
 } from "@options-chart/options-engine";
@@ -61,11 +65,25 @@ import {
 } from "@/components/gamma-overlay";
 import { RiskTerminal } from "@/components/risk-terminal";
 import {
+  ConfluenceZoneOverlay,
+  WallConfluence,
+  type PositionedWallConfluenceZone,
+  type WallConfluenceZone as WallConfluenceDisplayZone,
+} from "@/components/wall-confluence";
+import {
   buildUnavailableOptionsChain,
   formatDeribitExpiryDate,
   listActiveExpiries,
   selectMaxPainExpiry,
 } from "@/lib/options-overlay";
+import {
+  calculateWallZoneTolerance,
+  createWallConfluenceZones,
+  estimateDealerFlowWall,
+  updateWallSignalHistory,
+  type WallSignalHistory,
+  type WallSignalInput,
+} from "@/lib/wall-confluence";
 
 interface DashboardClientProps {
   readonly accessLabel: string;
@@ -82,6 +100,12 @@ interface ConflationBenchmarkResult {
   readonly disabled: ChartBenchmarkResult;
   readonly enabled: ChartBenchmarkResult;
   readonly recommendation: "disabled" | "enabled";
+}
+
+interface GammaReconciliationState {
+  readonly state: "CONNECTING" | "PASS" | "DIVERGED" | "STALE";
+  readonly samples: number;
+  readonly maxDeviation: number | null;
 }
 
 interface ChartSoakResult extends ChartBenchmarkResult {
@@ -139,6 +163,9 @@ const INITIAL_VISIBLE_BARS = 180;
 const DRAWING_STORAGE_KEY = "options-chart:user-drawings:v1";
 const DAY_MS = 86_400_000;
 const OPTIONS_STALE_AFTER_MS = 90_000;
+const DEALER_FLOW_LOOKBACK_MS = 60 * 60_000;
+const DEALER_FLOW_REFRESH_MS = 30_000;
+const GAMMA_RECONCILIATION_REFRESH_MS = 60_000;
 const BINANCE_CLOCK_SYNC_STALE_MS = 5 * 60_000;
 const PROFILE_METRICS: readonly {
   readonly value: ProfileMetric;
@@ -225,6 +252,12 @@ export function DashboardClient({
   const latestInputVersionRef = useRef(0);
   const optionsWorkerRef = useRef<Worker | null>(null);
   const deribitEngineRef = useRef<DeribitOptionsDataEngine | null>(null);
+  const deribitFlowClientRef = useRef<DeribitRestClient | null>(null);
+  const previousOptionsChainRef = useRef<OptionsChainSnapshot | null>(null);
+  const wallHistoryRef = useRef<ReadonlyMap<string, WallSignalHistory>>(
+    new Map(),
+  );
+  const lastWallObservationRef = useRef("");
   const activeWorkerCountRef = useRef(0);
   const activeIntervalRef = useRef<CandleInterval>("1h");
   const binanceClockRef = useRef<{
@@ -240,6 +273,7 @@ export function DashboardClient({
     null,
   );
   const overlayGeometrySignatureRef = useRef("");
+  const confluenceGeometrySignatureRef = useRef("");
 
   const [requestedInterval, setRequestedInterval] =
     useState<CandleInterval>("1h");
@@ -263,6 +297,26 @@ export function DashboardClient({
   );
   const [optionsState, setOptionsState] =
     useState<LevelDisplayState>("FALLBACK");
+  const [deribitIndexPrice, setDeribitIndexPrice] = useState<number | null>(
+    null,
+  );
+  const [previousOptionsChain, setPreviousOptionsChain] =
+    useState<OptionsChainSnapshot | null>(null);
+  const [recentOptionTrades, setRecentOptionTrades] = useState<
+    readonly DeribitRecentOptionTradePayload[]
+  >([]);
+  const [dealerFlowUpdatedAt, setDealerFlowUpdatedAt] = useState(0);
+  const [dealerFlowHasMore, setDealerFlowHasMore] = useState(false);
+  const [dealerFlowState, setDealerFlowState] = useState<
+    "CONNECTING" | "LIVE" | "STALE"
+  >("CONNECTING");
+  const [gammaReconciliation, setGammaReconciliation] =
+    useState<GammaReconciliationState>({
+      state: "CONNECTING",
+      samples: 0,
+      maxDeviation: null,
+    });
+  const [wallHistoryVersion, setWallHistoryVersion] = useState(0);
   const [optionsResult, setOptionsResult] =
     useState<OptionsCalculationResult | null>(null);
   const [metricStatus, setMetricStatus] = useState(
@@ -284,10 +338,18 @@ export function DashboardClient({
   >([]);
   const [currentPriceY, setCurrentPriceY] = useState<number | null>(null);
   const [gammaFlipY, setGammaFlipY] = useState<number | null>(null);
+  const [positionedConfluenceZones, setPositionedConfluenceZones] = useState<
+    readonly PositionedWallConfluenceZone[]
+  >([]);
 
   if (restClientRef.current == null) {
     restClientRef.current = new BinanceRestClient({
       endpoints: ["/api/binance"],
+    });
+  }
+  if (deribitFlowClientRef.current == null) {
+    deribitFlowClientRef.current = new DeribitRestClient({
+      endpoint: "/api/deribit",
     });
   }
 
@@ -320,6 +382,35 @@ export function DashboardClient({
     }),
     [activeExpiries, customExpiry],
   );
+  const selectedExpiry =
+    expiryScope.kind === "custom" ? expiryScope.expiry : 0;
+  const optionsUnderlyingPrice = useMemo(() => {
+    if (deribitIndexPrice !== null) return deribitIndexPrice;
+    const expiryReference = optionsChain.instruments.find(
+      ({ instrument }) => instrument.expiry === selectedExpiry,
+    )?.quote.underlyingPriceUsd;
+    return expiryReference ?? lastPrice;
+  }, [deribitIndexPrice, lastPrice, optionsChain.instruments, selectedExpiry]);
+  const gammaReconciliationInstruments = useMemo(
+    () =>
+      optionsUnderlyingPrice === null
+        ? []
+        : optionsChain.instruments
+            .filter(({ instrument }) => instrument.expiry === selectedExpiry)
+            .sort(
+              (left, right) =>
+                Math.abs(left.instrument.strike - optionsUnderlyingPrice) -
+                  Math.abs(right.instrument.strike - optionsUnderlyingPrice) ||
+                left.instrument.instrumentName.localeCompare(
+                  right.instrument.instrumentName,
+                ),
+            )
+            .slice(0, 6)
+            .map(({ instrument }) => instrument.instrumentName),
+    [optionsChain.instruments, optionsUnderlyingPrice, selectedExpiry],
+  );
+  const gammaReconciliationInstrumentKey =
+    gammaReconciliationInstruments.join(",");
   const effectiveOptionsState = useMemo<LevelDisplayState>(() => {
     if (
       optionsState === "LIVE" &&
@@ -329,6 +420,131 @@ export function DashboardClient({
     }
     return optionsState;
   }, [auditNow, optionsChain.metadata.sourceTimestamp, optionsState]);
+  const dealerFlowWall = useMemo(() => {
+    if (
+      optionsUnderlyingPrice === null ||
+      selectedExpiry <= auditNow ||
+      recentOptionTrades.length === 0
+    ) {
+      return null;
+    }
+    const result = estimateDealerFlowWall({
+      trades: recentOptionTrades
+        .filter((trade) => trade.timestamp >= auditNow - DEALER_FLOW_LOOKBACK_MS)
+        .map((trade) => ({
+          tradeId: trade.trade_id,
+          instrumentName: trade.instrument_name,
+          direction: trade.direction,
+          amountBtc: trade.amount,
+          timestamp: trade.timestamp,
+        })),
+      chain: optionsChain,
+      previousChain: previousOptionsChain,
+      expiry: selectedExpiry,
+      spotPrice: optionsUnderlyingPrice,
+      now: auditNow,
+    });
+    if (!result.signal) return null;
+    return {
+      ...result.signal,
+      confidence: result.signal.confidence * (dealerFlowHasMore ? 0.8 : 1),
+      detail: `${result.signal.detail}; 60m inventory proxy ${result.netDealerGammaOnePercentUsd >= 0 ? "+" : "-"}$${Math.abs(result.netDealerGammaOnePercentUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}; estimated open ${result.openingPressure.toFixed(2)} BTC / close ${result.closingPressure.toFixed(2)} BTC; ${result.tradesIncluded} trades${dealerFlowHasMore ? "; capped at 1,000" : ""}`,
+    } satisfies WallSignalInput;
+  }, [
+    auditNow,
+    dealerFlowHasMore,
+    optionsChain,
+    optionsUnderlyingPrice,
+    previousOptionsChain,
+    recentOptionTrades,
+    selectedExpiry,
+  ]);
+  const staticWallSignals = useMemo(() => {
+    if (!optionsResult || optionsUnderlyingPrice === null) return [];
+    return calculateStaticWallSignals({
+      strikeExposures: optionsResult.strikeExposures,
+      contracts: filterOptionsByExpiryScope(
+        optionsChain.instruments,
+        expiryScope,
+        auditNow,
+      ),
+      currentSpotPrice: optionsUnderlyingPrice,
+      maxPainPrice: optionsResult.maxPain?.price ?? null,
+      gammaFlipPrice: optionsResult.gammaFlipPrice,
+    });
+  }, [
+    auditNow,
+    expiryScope,
+    optionsChain.instruments,
+    optionsResult,
+    optionsUnderlyingPrice,
+  ]);
+  const confluenceSignals = useMemo<readonly WallSignalInput[]>(() => {
+    const confidenceByKind = {
+      gamma: 0.95,
+      "open-interest": 0.95,
+      volume: 0.85,
+      "max-pain": 0.9,
+      "gamma-flip": 0.75,
+    } as const;
+    const staticSignals = staticWallSignals.map(
+      (signal): WallSignalInput => ({
+        id: signal.id,
+        kind: signal.kind,
+        label: signal.label,
+        price: signal.price,
+        normalizedConcentration: signal.concentration,
+        confidence: confidenceByKind[signal.kind],
+        expiry: selectedExpiry > 0 ? selectedExpiry : null,
+        direction:
+          signal.optionType === "put"
+            ? "support"
+            : signal.optionType === "call"
+              ? "resistance"
+              : "neutral",
+        detail: `${(signal.concentration * 100).toFixed(1)}% of ${signal.normalizationGroup}`,
+      }),
+    );
+    return dealerFlowWall ? [...staticSignals, dealerFlowWall] : staticSignals;
+  }, [dealerFlowWall, selectedExpiry, staticWallSignals]);
+  const confluenceZones = useMemo(() => {
+    if (lastPrice === null || confluenceSignals.length === 0) return [];
+    return createWallConfluenceZones({
+      signals: confluenceSignals,
+      spotPrice: lastPrice,
+      now: auditNow,
+      candles: candleStoreRef.current?.getSorted() ?? [],
+      history: wallHistoryRef.current,
+    });
+  }, [auditNow, confluenceSignals, lastPrice, wallHistoryVersion]);
+  const displayedConfluenceZones = useMemo<
+    readonly WallConfluenceDisplayZone[]
+  >(
+    () =>
+      confluenceZones.map((zone) => ({
+        id: zone.id,
+        priceLow: zone.lowerPrice,
+        priceHigh: zone.upperPrice,
+        score: zone.score,
+        confidence: zone.confidence * 100,
+        bias:
+          lastPrice !== null && zone.upperPrice < lastPrice
+            ? "support"
+            : lastPrice !== null && zone.lowerPrice > lastPrice
+              ? "resistance"
+              : "pivot",
+        signals: zone.signals.map((signal) => ({
+          kind:
+            signal.kind === "dealer-flow"
+              ? "flow-informed-dealer"
+              : signal.kind,
+          confidence: signal.confidence * 100,
+          detail: signal.detail ?? signal.label,
+        })),
+        contributions: zone.components,
+      })),
+    [confluenceZones, lastPrice],
+  );
   const displayedLevels = useMemo(
     () =>
       (optionsResult?.summary.keyLevels ?? []).filter(
@@ -346,8 +562,11 @@ export function DashboardClient({
   const refreshOverlayCoordinates = useCallback(() => {
     const adapter = chartAdapterRef.current;
     if (!adapter || !optionsResult || !overlaysVisible) {
+      overlayGeometrySignatureRef.current = "";
+      confluenceGeometrySignatureRef.current = "";
       setPositionedLevels([]);
       setPositionedProfileBars([]);
+      setPositionedConfluenceZones([]);
       setCurrentPriceY(null);
       setGammaFlipY(null);
       return;
@@ -508,12 +727,30 @@ export function DashboardClient({
         },
       ];
     });
+    const confluenceZoneBands = displayedConfluenceZones.flatMap((zone) => {
+      const top = adapter.priceToCoordinate(zone.priceHigh);
+      const bottom = adapter.priceToCoordinate(zone.priceLow);
+      if (top === null || bottom === null) return [];
+      return [{ ...zone, top, bottom }];
+    });
     const nextCurrentPriceY =
       lastPrice === null ? null : adapter.priceToCoordinate(lastPrice);
     const nextGammaFlipY =
       optionsResult.gammaFlipPrice === null
         ? null
         : adapter.priceToCoordinate(optionsResult.gammaFlipPrice);
+    const confluenceSignature = JSON.stringify(
+      confluenceZoneBands.map(({ id, top, bottom, score }) => [
+        id,
+        Math.round(top),
+        Math.round(bottom),
+        score,
+      ]),
+    );
+    if (confluenceSignature !== confluenceGeometrySignatureRef.current) {
+      confluenceGeometrySignatureRef.current = confluenceSignature;
+      setPositionedConfluenceZones(confluenceZoneBands);
+    }
     const signature = JSON.stringify({
       levels: levels.map(({ level, trueY, displayStrength, concentration }) => [
         level.id,
@@ -540,6 +777,7 @@ export function DashboardClient({
     setGammaFlipY(nextGammaFlipY);
   }, [
     auditNow,
+    displayedConfluenceZones,
     displayedLevels,
     effectiveOptionsState,
     expiryScope,
@@ -828,6 +1066,136 @@ export function DashboardClient({
   }, []);
 
   useEffect(() => {
+    const client = deribitFlowClientRef.current;
+    if (!client) return;
+    let disposed = false;
+    const refresh = async () => {
+      const endTimestamp = Date.now();
+      try {
+        const result = await client.getRecentOptionTrades({
+          startTimestamp: endTimestamp - DEALER_FLOW_LOOKBACK_MS,
+          endTimestamp,
+          count: 1_000,
+          sorting: "asc",
+        });
+        if (disposed) return;
+        setRecentOptionTrades(result.trades);
+        setDealerFlowHasMore(result.has_more);
+        setDealerFlowUpdatedAt(endTimestamp);
+        setDealerFlowState("LIVE");
+      } catch {
+        if (!disposed) setDealerFlowState("STALE");
+      }
+    };
+    void refresh();
+    const timer = setInterval(() => void refresh(), DEALER_FLOW_REFRESH_MS);
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    const client = deribitFlowClientRef.current;
+    const instruments = gammaReconciliationInstrumentKey
+      .split(",")
+      .filter(Boolean);
+    if (!client || instruments.length === 0) return;
+    let disposed = false;
+    const reconcile = async () => {
+      try {
+        const tickers = await Promise.all(
+          instruments.map((instrumentName) =>
+            client.getOptionTicker(instrumentName),
+          ),
+        );
+        if (disposed) return;
+        const deviations = tickers.flatMap((ticker) => {
+          const timeToExpiryYears =
+            (selectedExpiry - ticker.timestamp) / millisecondsPerYear;
+          if (timeToExpiryYears <= 0 || ticker.greeks.gamma <= 0) return [];
+          const calculated = calculateDeribitInverseGamma(
+            ticker.underlying_price,
+            Number(ticker.instrument_name.split("-").at(-2)),
+            timeToExpiryYears,
+            ticker.mark_iv / 100,
+            ticker.interest_rate,
+          );
+          const absoluteDifference = Math.abs(
+            calculated - ticker.greeks.gamma,
+          );
+          return [
+            {
+              relative: absoluteDifference / ticker.greeks.gamma,
+              divergent:
+                absoluteDifference > 0.000005 &&
+                absoluteDifference / ticker.greeks.gamma > 0.1,
+            },
+          ];
+        });
+        setGammaReconciliation({
+          state:
+            deviations.length === 0
+              ? "STALE"
+              : deviations.some(({ divergent }) => divergent)
+                ? "DIVERGED"
+                : "PASS",
+          samples: deviations.length,
+          maxDeviation:
+            deviations.length === 0
+              ? null
+              : Math.max(...deviations.map(({ relative }) => relative)),
+        });
+      } catch {
+        if (!disposed) {
+          setGammaReconciliation((current) => ({
+            ...current,
+            state: "STALE",
+          }));
+        }
+      }
+    };
+    void reconcile();
+    const timer = setInterval(
+      () => void reconcile(),
+      GAMMA_RECONCILIATION_REFRESH_MS,
+    );
+    return () => {
+      disposed = true;
+      clearInterval(timer);
+    };
+  }, [gammaReconciliationInstrumentKey, selectedExpiry]);
+
+  useEffect(() => {
+    wallHistoryRef.current = new Map();
+    lastWallObservationRef.current = "";
+    setWallHistoryVersion((version) => version + 1);
+  }, [selectedExpiry]);
+
+  useEffect(() => {
+    if (confluenceSignals.length === 0 || lastPrice === null) return;
+    const observation = `${optionsChain.metadata.sourceTimestamp}:${dealerFlowUpdatedAt}`;
+    if (lastWallObservationRef.current === observation) return;
+    lastWallObservationRef.current = observation;
+    wallHistoryRef.current = updateWallSignalHistory(
+      wallHistoryRef.current,
+      confluenceSignals,
+      auditNow,
+      calculateWallZoneTolerance(
+        lastPrice,
+        candleStoreRef.current?.getSorted() ?? [],
+      ),
+    );
+    setWallHistoryVersion((version) => version + 1);
+  }, [
+    auditNow,
+    confluenceSignals,
+    dealerFlowUpdatedAt,
+    lastPrice,
+    optionsChain.metadata.sourceTimestamp,
+  ]);
+
+  useEffect(() => {
     if (customExpiry === null || !activeExpiries.includes(customExpiry)) {
       const timer = setTimeout(() => {
         setCustomExpiry(activeExpiries[0] ?? null);
@@ -842,10 +1210,13 @@ export function DashboardClient({
       restClient: new DeribitRestClient(),
       visibilityDocument: document,
       onSnapshot: (snapshot) => {
+        setPreviousOptionsChain(previousOptionsChainRef.current);
+        previousOptionsChainRef.current = snapshot;
         setOptionsChain(snapshot);
         setOptionsState("LIVE");
         setMetricStatus("Live Deribit chain calculated in worker");
       },
+      onIndexPrice: (price) => setDeribitIndexPrice(price.price),
       onHealthChange: (feed, state) => {
         if (feed !== "options") return;
         if (state === "LIVE") setOptionsState("LIVE");
@@ -907,7 +1278,7 @@ export function DashboardClient({
   }, []);
 
   useEffect(() => {
-    if (lastPrice === null || !optionsWorkerRef.current) return;
+    if (optionsUnderlyingPrice === null || !optionsWorkerRef.current) return;
     if (optionsState === "FALLBACK" || optionsChain.instruments.length === 0) {
       const timer = setTimeout(() => {
         setOptionsResult(null);
@@ -925,7 +1296,7 @@ export function DashboardClient({
         inputVersion,
         input: {
           chain: optionsChain,
-          underlyingPriceUsd: lastPrice,
+          underlyingPriceUsd: optionsUnderlyingPrice,
           calculatedAt,
           expiryScope,
           interestRateFallbackDecimal: 0.01,
@@ -940,7 +1311,7 @@ export function DashboardClient({
       optionsWorkerRef.current?.postMessage(request);
     }, 100);
     return () => clearTimeout(timer);
-  }, [expiryScope, lastPrice, optionsChain, optionsState]);
+  }, [expiryScope, optionsChain, optionsState, optionsUnderlyingPrice]);
 
   useEffect(() => {
     const adapter = chartAdapterRef.current;
@@ -1364,6 +1735,12 @@ export function DashboardClient({
         now={auditNow}
       />
 
+      <WallConfluence
+        zones={displayedConfluenceZones}
+        maxVisible={6}
+        title={`Wall confluence · flow ${dealerFlowState.toLowerCase()} · gamma ${gammaReconciliation.state.toLowerCase()}${gammaReconciliation.samples > 0 ? ` ${gammaReconciliation.samples}/6` : ""}${gammaReconciliation.maxDeviation !== null ? ` max ${(gammaReconciliation.maxDeviation * 100).toFixed(1)}%` : ""}`}
+      />
+
       <div className="workspace-grid">
         <section
           className="chart-workspace"
@@ -1451,6 +1828,9 @@ export function DashboardClient({
                 className="chart-stage"
                 data-testid="candlestick-chart"
               />
+              {overlaysVisible ? (
+                <ConfluenceZoneOverlay zones={positionedConfluenceZones} />
+              ) : null}
               {overlaysVisible ? (
                 <GammaChartOverlay
                   flipY={gammaFlipY}

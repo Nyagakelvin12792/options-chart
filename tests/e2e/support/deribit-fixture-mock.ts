@@ -79,6 +79,23 @@ export const installDeribitFixtureMock = async (page: Page): Promise<void> => {
     };
   });
 
+  await page.route(
+    "**/api/deribit/public/get_last_trades_by_currency_and_time**",
+    async (route) => {
+      await route.fulfill({
+        json: {
+          jsonrpc: "2.0",
+          id: 1,
+          result: { trades: [], has_more: false },
+        },
+      });
+    },
+  );
+
+  await page.route("**/api/deribit/public/ticker**", async (route) => {
+    await route.fulfill({ status: 503, body: "Fixture gamma audit unavailable" });
+  });
+
   await page.route("https://www.deribit.com/api/v2/**", async (route) => {
     const method = new URL(route.request().url()).pathname.split("/").at(-1);
     const result =

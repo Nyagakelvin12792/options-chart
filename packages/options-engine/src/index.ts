@@ -46,6 +46,10 @@ export {
 export { calculateOpenInterestWeightedAverageIv } from "./iv/average-iv";
 export { rankSecondaryGexLevels } from "./levels/secondary-gex";
 export {
+  calculateStaticWallSignals,
+  type StaticWallSignalInput,
+} from "./levels/concentration-walls";
+export {
   selectRawCallWall,
   selectRawGammaWall,
   selectRawPutWall,

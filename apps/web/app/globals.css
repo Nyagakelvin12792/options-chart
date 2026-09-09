@@ -1440,3 +1440,404 @@ h1 {
     border-right: 0;
   }
 }
+
+/* Compact wall-confluence panel. Namespaced for safe reuse across dashboard rails. */
+.wall-confluence {
+  min-width: 0;
+  border-top: 1px solid #26323d;
+  border-bottom: 1px solid #26323d;
+  background: #0d141a;
+  color: #dce5ec;
+  font-variant-numeric: tabular-nums;
+}
+
+.wall-confluence-header {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  border-bottom: 1px solid #26323d;
+}
+
+.wall-confluence-header > div {
+  min-width: 0;
+}
+
+.wall-confluence-header span,
+.wall-confluence-range span,
+.wall-confluence-strength span,
+.wall-confluence-overlap span {
+  color: #788996;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.wall-confluence-header h2 {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: #e8eef3;
+  font-size: 12px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wall-confluence-header .wall-confluence-count {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 1px solid #354552;
+  border-radius: 4px;
+  color: #9eacb8;
+}
+
+.wall-confluence-list {
+  display: grid;
+}
+
+.wall-confluence-zone {
+  --wall-accent: #7e909d;
+  position: relative;
+  min-width: 0;
+  min-height: 62px;
+  border-bottom: 1px solid #202c35;
+  background: #0f161d;
+}
+
+.wall-confluence-zone:last-child {
+  border-bottom: 0;
+}
+
+.wall-confluence-zone.bias-support {
+  --wall-accent: #4ec291;
+}
+
+.wall-confluence-zone.bias-resistance {
+  --wall-accent: #eb6f7f;
+}
+
+.wall-confluence-zone.bias-pivot {
+  --wall-accent: #d9a84e;
+}
+
+.wall-confluence-zone-main {
+  display: grid;
+  min-width: 0;
+  min-height: 58px;
+  grid-template-columns:
+    minmax(118px, 1.1fr) 62px 86px 86px minmax(185px, 1.5fr)
+    94px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+}
+
+.wall-confluence-range,
+.wall-confluence-strength,
+.wall-confluence-overlap {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.wall-confluence-range strong {
+  overflow: hidden;
+  color: #eef3f7;
+  font-size: 13px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wall-confluence-range span {
+  color: var(--wall-accent);
+}
+
+.wall-confluence-score {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 2px;
+  color: var(--wall-accent);
+}
+
+.wall-confluence-score strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.wall-confluence-score span {
+  color: #667784;
+  font-size: 9px;
+}
+
+.wall-confluence-strength strong,
+.wall-confluence-overlap strong {
+  color: #dfe7ed;
+  font-size: 11px;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.wall-confluence-overlap {
+  grid-template-columns: 16px 1fr;
+  align-items: center;
+}
+
+.wall-confluence-overlap svg {
+  grid-row: 1 / 3;
+  color: var(--wall-accent);
+}
+
+.wall-confluence-signals {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.wall-confluence-signal {
+  display: inline-flex;
+  min-width: 28px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 1px solid #34434e;
+  border-radius: 3px;
+  background: #151e26;
+  color: #aab7c1;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.wall-confluence-signal.signal-gamma,
+.wall-confluence-signal.signal-flow-informed-dealer {
+  border-color: #39765f;
+  color: #70d0a6;
+}
+
+.wall-confluence-signal.signal-open-interest,
+.wall-confluence-signal.signal-volume {
+  border-color: #395d7e;
+  color: #76b5e7;
+}
+
+.wall-confluence-signal.signal-max-pain,
+.wall-confluence-signal.signal-gamma-flip {
+  border-color: #776039;
+  color: #e5bb65;
+}
+
+.wall-confluence-details {
+  position: relative;
+  justify-self: end;
+}
+
+.wall-confluence-details summary {
+  display: inline-flex;
+  width: 88px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid #34434e;
+  border-radius: 4px;
+  color: #9baab5;
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 700;
+  list-style: none;
+}
+
+.wall-confluence-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.wall-confluence-details summary:hover,
+.wall-confluence-details summary:focus-visible,
+.wall-confluence-details[open] summary {
+  border-color: var(--wall-accent);
+  color: #e8eef3;
+  outline: none;
+}
+
+.wall-confluence-breakdown {
+  position: absolute;
+  top: 34px;
+  right: 0;
+  z-index: 35;
+  display: grid;
+  width: 272px;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid #3a4a56;
+  border-radius: 5px;
+  background: #111a22;
+  box-shadow: 0 10px 24px rgb(0 0 0 / 42%);
+}
+
+.wall-confluence-factor {
+  display: grid;
+  grid-template-columns: 76px minmax(90px, 1fr) 24px;
+  align-items: center;
+  gap: 7px;
+  color: #91a0ac;
+  font-size: 9px;
+}
+
+.wall-confluence-factor-track,
+.wall-confluence-score-track {
+  display: block;
+  overflow: hidden;
+  background: #26323d;
+}
+
+.wall-confluence-factor-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.wall-confluence-factor-track > span,
+.wall-confluence-score-track > span {
+  display: block;
+  height: 100%;
+  background: var(--wall-accent);
+}
+
+.wall-confluence-factor strong {
+  color: #dce5ec;
+  font-size: 9px;
+  text-align: right;
+}
+
+.wall-confluence-score-track {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+}
+
+.wall-confluence-empty {
+  min-height: 58px;
+  padding: 20px 12px;
+  color: #788996;
+  font-size: 10px;
+  text-align: center;
+}
+
+.confluence-zone-overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confluence-zone-band {
+  --zone-edge: rgb(126 144 157 / 58%);
+  --zone-fill: rgb(126 144 157 / 7%);
+  position: absolute;
+  right: 0;
+  left: 0;
+  min-height: 2px;
+  border-top: 1px solid var(--zone-edge);
+  border-bottom: 1px solid var(--zone-edge);
+  background: var(--zone-fill);
+}
+
+.confluence-zone-band.bias-support {
+  --zone-edge: rgb(78 194 145 / 62%);
+  --zone-fill: rgb(78 194 145 / 8%);
+}
+
+.confluence-zone-band.bias-resistance {
+  --zone-edge: rgb(235 111 127 / 62%);
+  --zone-fill: rgb(235 111 127 / 8%);
+}
+
+.confluence-zone-band.bias-pivot {
+  --zone-edge: rgb(217 168 78 / 62%);
+  --zone-fill: rgb(217 168 78 / 8%);
+}
+
+.confluence-zone-band.strength-major {
+  --zone-fill: color-mix(in srgb, var(--zone-edge) 14%, transparent);
+}
+
+.confluence-zone-band > span {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  min-width: 44px;
+  height: 16px;
+  padding: 0 4px;
+  transform: translateY(-50%);
+  border: 1px solid var(--zone-edge);
+  border-radius: 3px;
+  background: rgb(11 16 21 / 86%);
+  color: #c7d2da;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .wall-confluence-zone-main {
+    grid-template-columns:
+      minmax(112px, 1fr) 58px 78px 82px minmax(150px, 1.2fr)
+      34px;
+  }
+
+  .wall-confluence-details summary {
+    width: 30px;
+    padding: 0;
+  }
+
+  .wall-confluence-details summary span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 680px) {
+  .wall-confluence-zone-main {
+    grid-template-columns: minmax(118px, 1fr) 58px 88px;
+    grid-template-rows: auto auto;
+    gap: 7px 9px;
+  }
+
+  .wall-confluence-overlap {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .wall-confluence-signals {
+    grid-column: 1 / 3;
+    grid-row: 2;
+  }
+
+  .wall-confluence-details {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .wall-confluence-breakdown {
+    position: fixed;
+    top: auto;
+    right: 10px;
+    bottom: 34px;
+    left: 10px;
+    width: auto;
+  }
+}

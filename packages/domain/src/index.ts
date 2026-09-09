@@ -12,6 +12,9 @@ export type {
   OptionsSummaryMetrics,
   QualifyingCrossing,
   StrikeExposure,
+  WallSignal,
+  WallSignalKind,
+  WallSignalNormalizationGroup,
 } from "./metrics";
 export type {
   ExpiryBucket,

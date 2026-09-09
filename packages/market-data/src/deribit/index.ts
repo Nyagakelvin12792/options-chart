@@ -8,6 +8,11 @@ export {
   DeribitMarkPriceUpdateSchema,
   DeribitOptionInstrumentsSchema,
   DeribitOptionInstrumentSchema,
+  DeribitOptionTickerSchema,
+  DeribitRecentOptionTradesQuerySchema,
+  DeribitRecentOptionTradesResultSchema,
+  DeribitRecentOptionTradesTimeQuerySchema,
+  DeribitRecentOptionTradeSchema,
   DeribitRpcErrorSchema,
   DeribitRpcResponseSchema,
   DeribitSubscriptionEnvelopeSchema,
@@ -15,15 +20,24 @@ export {
 } from "./api-schemas";
 export type {
   DeribitBookSummaryPayload,
+  DeribitIndexPriceResultPayload,
   DeribitIndexUpdatePayload,
   DeribitMarkPriceUpdatePayload,
   DeribitOptionInstrumentPayload,
+  DeribitOptionTickerPayload,
+  DeribitRecentOptionTradePayload,
+  DeribitRecentOptionTradesQuery,
+  DeribitRecentOptionTradesResult,
+  DeribitRecentOptionTradesTimeQuery,
   DeribitRpcError,
 } from "./api-schemas";
 export { DeribitInstrumentCatalog } from "./catalog";
 export type { DeribitInstrumentClient } from "./catalog";
 export { DeribitRestClient } from "./client";
-export type { DeribitRestClientOptions } from "./client";
+export type {
+  DeribitRecentOptionTradesOptions,
+  DeribitRestClientOptions,
+} from "./client";
 export { syncDeribitClock } from "./clock";
 export type { DeribitTimeClient } from "./clock";
 export {

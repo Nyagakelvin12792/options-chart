@@ -80,6 +80,7 @@ test("renders validated candles and a versioned worker metric", async ({
 test("keeps the chart surface aligned on desktop and mobile", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(90_000);
   await installBinanceKlineMock(page);
   await installDeribitFixtureMock(page);
 

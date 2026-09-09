@@ -7,6 +7,10 @@ import {
   DeribitMarkPriceUpdatesSchema,
   DeribitOptionInstrumentsSchema,
   DeribitOptionInstrumentSchema,
+  DeribitOptionTickerSchema,
+  DeribitRecentOptionTradesQuerySchema,
+  DeribitRecentOptionTradesResultSchema,
+  DeribitRecentOptionTradesTimeQuerySchema,
   DeribitSubscriptionEnvelopeSchema,
 } from "./api-schemas";
 
@@ -73,5 +77,83 @@ describe("Deribit API schemas", () => {
         },
       ]).success,
     ).toBe(false);
+  });
+
+  it("validates recent BTC option trades without inferring position intent", () => {
+    const result = DeribitRecentOptionTradesResultSchema.parse({
+      trades: [
+        {
+          trade_seq: 467,
+          trade_id: "415305279",
+          timestamp: 1_770_984_454_552,
+          tick_direction: 2,
+          price: 0.0525,
+          mark_price: 0.05253883,
+          iv: 45.91,
+          instrument_name: "BTC-24APR26-72000-C",
+          index_price: 66_930.31,
+          direction: "buy",
+          amount: 3,
+          contracts: 3,
+          source_marker: "preserved",
+        },
+      ],
+      has_more: true,
+    });
+
+    expect(result.trades[0]).toMatchObject({
+      direction: "buy",
+      amount: 3,
+      index_price: 66_930.31,
+      iv: 45.91,
+      source_marker: "preserved",
+    });
+    expect(
+      DeribitRecentOptionTradesResultSchema.safeParse({
+        ...result,
+        trades: [{ ...result.trades[0], direction: "open" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      DeribitRecentOptionTradesResultSchema.safeParse({
+        ...result,
+        trades: [{ ...result.trades[0], instrument_name: "BTC-PERPETUAL" }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("bounds and orders recent option trade query windows", () => {
+    expect(DeribitRecentOptionTradesQuerySchema.parse({})).toEqual({
+      count: 100,
+      sorting: "desc",
+    });
+    expect(
+      DeribitRecentOptionTradesQuerySchema.safeParse({ count: "1001" }).success,
+    ).toBe(false);
+    expect(
+      DeribitRecentOptionTradesTimeQuerySchema.safeParse({
+        start_timestamp: "200",
+        end_timestamp: "100",
+      }).success,
+    ).toBe(false);
+    expect(
+      DeribitRecentOptionTradesTimeQuerySchema.safeParse({
+        start_timestamp: "100",
+        end_timestamp: "200",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("validates the option ticker fields used for gamma reconciliation", () => {
+    expect(
+      DeribitOptionTickerSchema.parse({
+        instrument_name: "BTC-24APR26-72000-C",
+        timestamp: 1_770_984_454_552,
+        underlying_price: 66_930.31,
+        interest_rate: 0.01,
+        mark_iv: 45.91,
+        greeks: { gamma: 0.00012, delta: 0.51 },
+      }).greeks.gamma,
+    ).toBe(0.00012);
   });
 });

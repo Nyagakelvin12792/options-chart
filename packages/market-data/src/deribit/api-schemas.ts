@@ -91,6 +91,87 @@ export const DeribitBookSummarySchema = z
 
 export const DeribitBookSummariesSchema = z.array(DeribitBookSummarySchema);
 
+// `direction` is the taker direction. For this option-only feed, `amount` is
+// denominated in the underlying base coin (BTC); neither field identifies
+// whether market participants opened or closed inventory.
+export const DeribitRecentOptionTradeSchema = z
+  .object({
+    trade_id: z.string().min(1),
+    trade_seq: z.number().int().nonnegative(),
+    instrument_name: z.string().regex(/^BTC-[A-Z0-9]+-[0-9]+-[CP]$/),
+    timestamp: z.number().int().positive(),
+    direction: z.enum(["buy", "sell"]),
+    tick_direction: z.union([
+      z.literal(0),
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+    ]),
+    amount: z.number().finite().positive(),
+    price: z.number().finite().nonnegative(),
+    index_price: z.number().finite().positive(),
+    mark_price: z.number().finite().nonnegative(),
+    iv: z.number().finite().nonnegative().optional(),
+    contracts: z.number().finite().positive().optional(),
+    liquidation: z.enum(["M", "T", "MT"]).optional(),
+    block_trade_id: z.string().min(1).optional(),
+    block_trade_leg_count: z.number().int().positive().optional(),
+    combo_id: z.string().min(1).optional(),
+    combo_trade_id: z
+      .union([z.string().min(1), z.number().int().nonnegative()])
+      .optional(),
+    block_rfq_id: z.number().int().nonnegative().optional(),
+  })
+  .passthrough();
+
+export const DeribitRecentOptionTradesResultSchema = z
+  .object({
+    trades: z.array(DeribitRecentOptionTradeSchema),
+    has_more: z.boolean(),
+  })
+  .passthrough();
+
+export const DeribitRecentOptionTradesQuerySchema = z
+  .object({
+    count: z.coerce.number().int().min(1).max(1_000).default(100),
+    sorting: z.enum(["asc", "desc", "default"]).default("desc"),
+    start_id: z.string().min(1).optional(),
+    end_id: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const DeribitRecentOptionTradesTimeQuerySchema = z
+  .object({
+    count: z.coerce.number().int().min(1).max(1_000).default(100),
+    sorting: z.enum(["asc", "desc", "default"]).default("desc"),
+    start_timestamp: z.coerce.number().int().positive().optional(),
+    end_timestamp: z.coerce.number().int().positive().optional(),
+  })
+  .strict()
+  .superRefine((query, context) => {
+    if (
+      query.start_timestamp === undefined &&
+      query.end_timestamp === undefined
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["start_timestamp"],
+        message: "A start_timestamp or end_timestamp is required",
+      });
+    }
+    if (
+      query.start_timestamp !== undefined &&
+      query.end_timestamp !== undefined &&
+      query.start_timestamp > query.end_timestamp
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["start_timestamp"],
+        message: "start_timestamp must not exceed end_timestamp",
+      });
+    }
+  });
+
 export const DeribitMarkPriceUpdateSchema = z
   .object({
     instrument_name: z.string().min(1),
@@ -116,6 +197,21 @@ export const DeribitIndexPriceResultSchema = z
   .object({
     index_price: z.number().finite().positive(),
     estimated_delivery_price: z.number().finite().positive().optional(),
+  })
+  .passthrough();
+
+export const DeribitOptionTickerSchema = z
+  .object({
+    instrument_name: z.string().min(1),
+    timestamp: z.number().int().positive(),
+    underlying_price: z.number().finite().positive(),
+    interest_rate: z.number().finite(),
+    mark_iv: z.number().finite().positive(),
+    greeks: z
+      .object({
+        gamma: z.number().finite().nonnegative(),
+      })
+      .passthrough(),
   })
   .passthrough();
 
@@ -152,6 +248,24 @@ export type DeribitOptionInstrumentPayload = z.infer<
 >;
 export type DeribitBookSummaryPayload = z.infer<
   typeof DeribitBookSummarySchema
+>;
+export type DeribitRecentOptionTradePayload = z.infer<
+  typeof DeribitRecentOptionTradeSchema
+>;
+export type DeribitRecentOptionTradesResult = z.infer<
+  typeof DeribitRecentOptionTradesResultSchema
+>;
+export type DeribitRecentOptionTradesQuery = z.infer<
+  typeof DeribitRecentOptionTradesQuerySchema
+>;
+export type DeribitRecentOptionTradesTimeQuery = z.infer<
+  typeof DeribitRecentOptionTradesTimeQuerySchema
+>;
+export type DeribitIndexPriceResultPayload = z.infer<
+  typeof DeribitIndexPriceResultSchema
+>;
+export type DeribitOptionTickerPayload = z.infer<
+  typeof DeribitOptionTickerSchema
 >;
 export type DeribitMarkPriceUpdatePayload = z.infer<
   typeof DeribitMarkPriceUpdateSchema
