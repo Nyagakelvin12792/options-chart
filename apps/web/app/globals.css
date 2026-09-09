@@ -43,7 +43,7 @@ dd {
 .dashboard-shell {
   display: grid;
   min-height: 100vh;
-  grid-template-rows: 58px 44px 42px minmax(0, 1fr) 26px;
+  grid-template-rows: 58px 44px 42px auto minmax(0, 1fr) 26px;
   background: #0b1015;
 }
 
@@ -1283,7 +1283,7 @@ h1 {
 
 @media (max-width: 760px) {
   .dashboard-shell {
-    grid-template-rows: auto auto auto minmax(0, 1fr) 26px;
+    grid-template-rows: auto auto auto auto minmax(0, 1fr) 26px;
   }
 
   .command-bar {

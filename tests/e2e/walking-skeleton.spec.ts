@@ -96,11 +96,20 @@ test("keeps the chart surface aligned on desktop and mobile", async ({
     const layout = await page.evaluate(() => ({
       viewportWidth: document.documentElement.clientWidth,
       documentWidth: document.documentElement.scrollWidth,
+      wallBottom:
+        document.querySelector<HTMLElement>(".wall-confluence")
+          ?.getBoundingClientRect().bottom ?? 0,
+      workspaceTop:
+        document.querySelector<HTMLElement>(".workspace-grid")
+          ?.getBoundingClientRect().top ?? 0,
       chartHeight:
         document.querySelector<HTMLElement>("[data-testid='candlestick-chart']")
           ?.clientHeight ?? 0,
     }));
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+    expect(Math.abs(layout.workspaceTop - layout.wallBottom)).toBeLessThanOrEqual(
+      1,
+    );
     expect(layout.chartHeight).toBeGreaterThanOrEqual(360);
 
     await page.screenshot({
