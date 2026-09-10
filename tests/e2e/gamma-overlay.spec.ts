@@ -43,24 +43,19 @@ test("renders the audited Gamma hierarchy, profile, and compact chart levels", a
   await expect(page.getByTestId("level-tag-secondary-gex")).toHaveCount(3);
   await expect(page.getByTestId("gamma-profile")).toBeVisible();
   await expect(page.getByTestId("gamma-regime-shading")).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: /Wall confluence/i }),
-  ).toBeVisible();
-  await expect(page.locator(".wall-confluence-zone").first()).toContainText(
-    /of 6/i,
+  const structureBrief = page.getByTestId("options-structure-brief");
+  await expect(structureBrief).toBeVisible();
+  await expect(structureBrief.locator(".structure-zone").first()).toContainText(
+    /\d\/6/,
   );
-  for (const signal of [
-    "gamma",
-    "open-interest",
-    "volume",
-    "max-pain",
-    "gamma-flip",
-  ]) {
-    await expect(
-      page.locator(`.wall-confluence-signal.signal-${signal}`).first(),
-    ).toBeVisible();
-  }
+  await expect(structureBrief).toContainText("FLOW");
+  await expect(structureBrief).toContainText("GAMMA");
+  await expect(
+    structureBrief.locator(".structure-zone-signals").first(),
+  ).not.toBeEmpty();
+  await expect(page.locator(".wall-confluence")).toHaveCount(0);
   await expect(page.locator(".confluence-zone-band").first()).toBeVisible();
+  await expect(page.locator(".confluence-zone-band > span")).toHaveCount(0);
 
   const callWall = page.getByTestId("level-tag-call-wall");
   await callWall.hover();
@@ -125,10 +120,9 @@ test("updates Deribit expiry dates and overlays without recreating the chart", a
   await expect(profile).toHaveAttribute("data-profile-metric", "open-interest");
   await expect(profile.locator('[data-option-type="call"]')).not.toHaveCount(0);
   await expect(profile.locator('[data-option-type="put"]')).not.toHaveCount(0);
-  await page.getByRole("button", { name: "24-hour options volume" }).click();
-  await expect(profile).toHaveAttribute("data-profile-metric", "volume");
-  await expect(profile.locator('[data-option-type="call"]')).not.toHaveCount(0);
-  await expect(profile.locator('[data-option-type="put"]')).not.toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "24-hour options volume" }),
+  ).toHaveCount(0);
   expect(await getChartCreateCount(page)).toBe(1);
 
   await page
@@ -146,6 +140,31 @@ test("updates Deribit expiry dates and overlays without recreating the chart", a
     page.getByRole("complementary", { name: "Options chart levels" }),
   ).toHaveCount(0);
   expect(await getChartCreateCount(page)).toBe(1);
+});
+
+test("keeps options labels synchronized during price-scale dragging", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await openFixtureDashboard(page);
+
+  const chart = page.getByTestId("candlestick-chart");
+  const level = page.getByTestId("current-price-level");
+  const chartBox = await chart.boundingBox();
+  const before = await level.boundingBox();
+  if (!chartBox || !before) throw new Error("Chart geometry is unavailable");
+
+  await page.mouse.move(chartBox.x + chartBox.width - 6, chartBox.y + 220);
+  await page.mouse.down();
+  await page.mouse.move(chartBox.x + chartBox.width - 6, chartBox.y + 300, {
+    steps: 4,
+  });
+  await page.waitForTimeout(40);
+  const during = await level.boundingBox();
+  await page.mouse.up();
+
+  expect(during).not.toBeNull();
+  expect(Math.abs((during?.y ?? before.y) - before.y)).toBeGreaterThan(1);
 });
 
 test("keeps the chart-first Gamma layout stable across target viewports", async ({
@@ -171,7 +190,8 @@ test("keeps the chart-first Gamma layout stable across target viewports", async 
       const summary = document.querySelector<HTMLElement>(
         ".options-summary-bar",
       );
-      const riskTerminal = document.querySelector<HTMLElement>(".risk-terminal");
+      const riskTerminal =
+        document.querySelector<HTMLElement>(".risk-terminal");
       return {
         viewportWidth: document.documentElement.clientWidth,
         documentWidth: document.documentElement.scrollWidth,
@@ -192,8 +212,8 @@ test("keeps the chart-first Gamma layout stable across target viewports", async 
     expect(layout.railLeft).toBeGreaterThanOrEqual(layout.chartLeft);
     expect(layout.railRight).toBeLessThanOrEqual(layout.chartRight);
     expect(layout.chartRight - layout.railRight).toBeGreaterThanOrEqual(72);
-    expect(layout.railWidth).toBeLessThanOrEqual(104);
-    if (viewport.width > 1_100) {
+    expect(layout.railWidth).toBeLessThanOrEqual(82);
+    if (viewport.width > 760) {
       expect(layout.riskLeft).toBeGreaterThanOrEqual(layout.chartRight);
     } else {
       expect(layout.riskTop).toBeGreaterThanOrEqual(layout.chartBottom);

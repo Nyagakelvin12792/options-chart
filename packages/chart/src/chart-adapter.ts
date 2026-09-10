@@ -12,6 +12,7 @@ export interface ChartInitializeOptions {
   readonly backgroundColor: string;
   readonly textColor: string;
   readonly enableConflation?: boolean;
+  readonly showVolumePane?: boolean;
 }
 
 export interface ChartHistoryOptions {

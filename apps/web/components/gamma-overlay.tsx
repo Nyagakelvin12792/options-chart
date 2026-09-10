@@ -13,9 +13,10 @@ import {
   layoutCollisionItems,
   type CollisionItem,
 } from "./gamma-overlay-layout";
+import type { WallConfluenceZone, WallSignalKind } from "./wall-confluence";
 
 export type LevelDisplayState = "LIVE" | "FALLBACK" | "STALE" | "INVALID";
-export type ProfileMetric = "gex" | "open-interest" | "volume";
+export type ProfileMetric = "gex" | "open-interest";
 
 export interface LevelConcentrationDetails {
   readonly openInterestBtc: number;
@@ -89,6 +90,88 @@ const formatAge = (sourceTimestamp: number, now: number): string => {
 
 const profileVisualStrength = (strength: number): number =>
   Math.sqrt(Math.max(0, Math.min(1, strength)));
+
+const signalShortLabel: Record<WallSignalKind, string> = {
+  gamma: "GEX",
+  "open-interest": "OI",
+  volume: "VOL",
+  "flow-informed-dealer": "FLOW",
+  "max-pain": "MP",
+  "gamma-flip": "HVL",
+};
+
+function OptionsStructureBrief({
+  zones,
+  flowState,
+  gammaState,
+  gammaSamples,
+  gammaMaxDeviation,
+}: {
+  readonly zones: readonly WallConfluenceZone[];
+  readonly flowState: "CONNECTING" | "LIVE" | "STALE";
+  readonly gammaState: "CONNECTING" | "PASS" | "DIVERGED" | "STALE";
+  readonly gammaSamples: number;
+  readonly gammaMaxDeviation: number | null;
+}) {
+  return (
+    <div
+      className="options-structure-brief"
+      data-testid="options-structure-brief"
+    >
+      <div className="structure-health">
+        <span className={`health-${flowState.toLowerCase()}`}>
+          FLOW {flowState}
+        </span>
+        <span
+          className={`health-${gammaState.toLowerCase()}`}
+          title={
+            gammaMaxDeviation === null
+              ? "Deribit gamma reconciliation"
+              : `Maximum gamma deviation ${(gammaMaxDeviation * 100).toFixed(1)}%`
+          }
+        >
+          GAMMA {gammaState}
+          {gammaSamples > 0 ? ` ${gammaSamples}/6` : ""}
+        </span>
+      </div>
+      <div className="structure-zone-list">
+        {zones.slice(0, 3).map((zone) => {
+          const signalKinds = [
+            ...new Set(zone.signals.map(({ kind }) => kind)),
+          ];
+          const midpoint = (zone.priceLow + zone.priceHigh) / 2;
+          const bias =
+            zone.bias === "resistance"
+              ? "R"
+              : zone.bias === "support"
+                ? "S"
+                : "P";
+          return (
+            <div
+              className={`structure-zone bias-${zone.bias}`}
+              key={zone.id}
+              title={`${zone.bias} zone ${priceFormatter.format(zone.priceLow)} to ${priceFormatter.format(zone.priceHigh)}`}
+            >
+              <span className="structure-zone-summary">
+                <strong>
+                  {bias} {priceFormatter.format(midpoint)}
+                </strong>
+                <span>{signalKinds.length}/6</span>
+                <b>{Math.round(zone.score)}</b>
+              </span>
+              <span className="structure-zone-signals">
+                {signalKinds.map((kind) => signalShortLabel[kind]).join(" · ")}
+              </span>
+            </div>
+          );
+        })}
+        {zones.length === 0 ? (
+          <span className="structure-zone-empty">NO CONFLUENCE</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 function AuditTooltip({
   metadata,
@@ -251,19 +334,25 @@ export function GammaChartOverlay({
   profileExpanded,
   profileBars,
   profileMetric,
+  confluenceZones,
+  flowState,
+  gammaState,
+  gammaSamples,
+  gammaMaxDeviation,
 }: {
   readonly flipY: number | null;
   readonly shadingEnabled: boolean;
   readonly profileExpanded: boolean;
   readonly profileBars: readonly PositionedProfileBar[];
   readonly profileMetric: ProfileMetric;
+  readonly confluenceZones: readonly WallConfluenceZone[];
+  readonly flowState: "CONNECTING" | "LIVE" | "STALE";
+  readonly gammaState: "CONNECTING" | "PASS" | "DIVERGED" | "STALE";
+  readonly gammaSamples: number;
+  readonly gammaMaxDeviation: number | null;
 }) {
   const profileLabel =
-    profileMetric === "gex"
-      ? "GEX CONCENTRATION"
-      : profileMetric === "open-interest"
-        ? "OPEN INTEREST"
-        : "24H VOLUME";
+    profileMetric === "gex" ? "GEX CONCENTRATION" : "OPEN INTEREST";
   return (
     <div className="gamma-chart-overlay" aria-hidden="true">
       {shadingEnabled && flipY !== null ? (
@@ -280,6 +369,13 @@ export function GammaChartOverlay({
           data-profile-metric={profileMetric}
         >
           <span className="gamma-profile-title">{profileLabel}</span>
+          <OptionsStructureBrief
+            zones={confluenceZones}
+            flowState={flowState}
+            gammaState={gammaState}
+            gammaSamples={gammaSamples}
+            gammaMaxDeviation={gammaMaxDeviation}
+          />
           <span className="gamma-profile-zero" />
           {profileBars.length === 0 ? (
             <span className="gamma-profile-empty">NO DATA</span>

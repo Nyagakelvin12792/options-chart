@@ -66,7 +66,6 @@ import {
 import { RiskTerminal } from "@/components/risk-terminal";
 import {
   ConfluenceZoneOverlay,
-  WallConfluence,
   type PositionedWallConfluenceZone,
   type WallConfluenceZone as WallConfluenceDisplayZone,
 } from "@/components/wall-confluence";
@@ -174,7 +173,6 @@ const PROFILE_METRICS: readonly {
 }[] = [
   { value: "gex", label: "GEX", title: "Gross Gamma concentration" },
   { value: "open-interest", label: "OI", title: "Open Interest concentration" },
-  { value: "volume", label: "VOL", title: "24-hour options volume" },
 ];
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
@@ -269,6 +267,8 @@ export function DashboardClient({
   const reachedHistoryBeginningRef = useRef(false);
   const viewportReadyRef = useRef(false);
   const loadOlderHistoryRef = useRef<() => void>(() => undefined);
+  const refreshOverlayCoordinatesRef = useRef<() => void>(() => undefined);
+  const overlayAnimationFrameRef = useRef<number | null>(null);
   const diagnosticsTimerRef = useRef<ReturnType<typeof setInterval> | null>(
     null,
   );
@@ -382,8 +382,7 @@ export function DashboardClient({
     }),
     [activeExpiries, customExpiry],
   );
-  const selectedExpiry =
-    expiryScope.kind === "custom" ? expiryScope.expiry : 0;
+  const selectedExpiry = expiryScope.kind === "custom" ? expiryScope.expiry : 0;
   const optionsUnderlyingPrice = useMemo(() => {
     if (deribitIndexPrice !== null) return deribitIndexPrice;
     const expiryReference = optionsChain.instruments.find(
@@ -430,7 +429,9 @@ export function DashboardClient({
     }
     const result = estimateDealerFlowWall({
       trades: recentOptionTrades
-        .filter((trade) => trade.timestamp >= auditNow - DEALER_FLOW_LOOKBACK_MS)
+        .filter(
+          (trade) => trade.timestamp >= auditNow - DEALER_FLOW_LOOKBACK_MS,
+        )
         .map((trade) => ({
           tradeId: trade.trade_id,
           instrumentName: trade.instrument_name,
@@ -487,24 +488,22 @@ export function DashboardClient({
       "max-pain": 0.9,
       "gamma-flip": 0.75,
     } as const;
-    const staticSignals = staticWallSignals.map(
-      (signal): WallSignalInput => ({
-        id: signal.id,
-        kind: signal.kind,
-        label: signal.label,
-        price: signal.price,
-        normalizedConcentration: signal.concentration,
-        confidence: confidenceByKind[signal.kind],
-        expiry: selectedExpiry > 0 ? selectedExpiry : null,
-        direction:
-          signal.optionType === "put"
-            ? "support"
-            : signal.optionType === "call"
-              ? "resistance"
-              : "neutral",
-        detail: `${(signal.concentration * 100).toFixed(1)}% of ${signal.normalizationGroup}`,
-      }),
-    );
+    const staticSignals = staticWallSignals.map((signal): WallSignalInput => ({
+      id: signal.id,
+      kind: signal.kind,
+      label: signal.label,
+      price: signal.price,
+      normalizedConcentration: signal.concentration,
+      confidence: confidenceByKind[signal.kind],
+      expiry: selectedExpiry > 0 ? selectedExpiry : null,
+      direction:
+        signal.optionType === "put"
+          ? "support"
+          : signal.optionType === "call"
+            ? "resistance"
+            : "neutral",
+      detail: `${(signal.concentration * 100).toFixed(1)}% of ${signal.normalizationGroup}`,
+    }));
     return dealerFlowWall ? [...staticSignals, dealerFlowWall] : staticSignals;
   }, [dealerFlowWall, selectedExpiry, staticWallSignals]);
   const confluenceZones = useMemo(() => {
@@ -704,9 +703,7 @@ export function DashboardClient({
       value:
         profileMetric === "gex"
           ? concentration.grossGammaOnePercentUsd
-          : profileMetric === "open-interest"
-            ? concentration.openInterestBtc
-            : concentration.volumeBtc,
+          : concentration.openInterestBtc,
     }));
     const largestProfileValue = Math.max(
       1,
@@ -787,6 +784,10 @@ export function DashboardClient({
     overlaysVisible,
     profileMetric,
   ]);
+
+  useEffect(() => {
+    refreshOverlayCoordinatesRef.current = refreshOverlayCoordinates;
+  }, [refreshOverlayCoordinates]);
 
   const refreshDiagnostics = useCallback(() => {
     const adapter = chartAdapterRef.current;
@@ -892,6 +893,7 @@ export function DashboardClient({
       backgroundColor: "#111820",
       textColor: "#aebbc7",
       enableConflation: false,
+      showVolumePane: false,
     });
     chartAdapterRef.current = adapter;
 
@@ -905,7 +907,15 @@ export function DashboardClient({
       setDrawings(drawings);
       setDiagnostics(adapter.getDiagnostics());
     });
+    const scheduleOverlayRefresh = () => {
+      if (overlayAnimationFrameRef.current !== null) return;
+      overlayAnimationFrameRef.current = requestAnimationFrame(() => {
+        overlayAnimationFrameRef.current = null;
+        refreshOverlayCoordinatesRef.current();
+      });
+    };
     const unsubscribeViewport = adapter.subscribeViewportChange((viewport) => {
+      scheduleOverlayRefresh();
       if (
         viewportReadyRef.current &&
         viewport.barsBefore < LAZY_HISTORY_THRESHOLD_BARS
@@ -913,6 +923,14 @@ export function DashboardClient({
         loadOlderHistoryRef.current();
       }
     });
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.buttons !== 0) scheduleOverlayRefresh();
+    };
+    const handleWheel = () => scheduleOverlayRefresh();
+    container.addEventListener("pointermove", handlePointerMove, {
+      passive: true,
+    });
+    container.addEventListener("wheel", handleWheel, { passive: true });
     const observer = new ResizeObserver(([entry]) => {
       if (!entry) return;
       setChartHeight(Math.max(Math.floor(entry.contentRect.height), 1));
@@ -920,12 +938,19 @@ export function DashboardClient({
         Math.max(Math.floor(entry.contentRect.width), 1),
         Math.max(Math.floor(entry.contentRect.height), 1),
       );
+      scheduleOverlayRefresh();
     });
     observer.observe(container);
     setDiagnostics(adapter.getDiagnostics());
 
     return () => {
       observer.disconnect();
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("wheel", handleWheel);
+      if (overlayAnimationFrameRef.current !== null) {
+        cancelAnimationFrame(overlayAnimationFrameRef.current);
+        overlayAnimationFrameRef.current = null;
+      }
       unsubscribeViewport();
       unsubscribeDrawings();
       adapter.destroy();
@@ -1121,9 +1146,7 @@ export function DashboardClient({
             ticker.mark_iv / 100,
             ticker.interest_rate,
           );
-          const absoluteDifference = Math.abs(
-            calculated - ticker.greeks.gamma,
-          );
+          const absoluteDifference = Math.abs(calculated - ticker.greeks.gamma);
           return [
             {
               relative: absoluteDifference / ticker.greeks.gamma,
@@ -1328,8 +1351,6 @@ export function DashboardClient({
 
   useEffect(() => {
     refreshOverlayCoordinates();
-    const timer = setInterval(refreshOverlayCoordinates, 250);
-    return () => clearInterval(timer);
   }, [refreshOverlayCoordinates]);
 
   useEffect(() => {
@@ -1735,12 +1756,6 @@ export function DashboardClient({
         now={auditNow}
       />
 
-      <WallConfluence
-        zones={displayedConfluenceZones}
-        maxVisible={6}
-        title={`Wall confluence · flow ${dealerFlowState.toLowerCase()} · gamma ${gammaReconciliation.state.toLowerCase()}${gammaReconciliation.samples > 0 ? ` ${gammaReconciliation.samples}/6` : ""}${gammaReconciliation.maxDeviation !== null ? ` max ${(gammaReconciliation.maxDeviation * 100).toFixed(1)}%` : ""}`}
-      />
-
       <div className="workspace-grid">
         <section
           className="chart-workspace"
@@ -1840,6 +1855,11 @@ export function DashboardClient({
                   profileExpanded={profileExpanded}
                   profileBars={positionedProfileBars}
                   profileMetric={profileMetric}
+                  confluenceZones={displayedConfluenceZones}
+                  flowState={dealerFlowState}
+                  gammaState={gammaReconciliation.state}
+                  gammaSamples={gammaReconciliation.samples}
+                  gammaMaxDeviation={gammaReconciliation.maxDeviation}
                 />
               ) : null}
               {overlaysVisible ? (

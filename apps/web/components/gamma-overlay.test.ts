@@ -29,7 +29,7 @@ describe("level rail collision layout", () => {
     );
 
     expect(
-      result.every(({ displayY }) => displayY >= 17 && displayY <= 483),
+      result.every(({ displayY }) => displayY >= 12 && displayY <= 488),
     ).toBe(true);
   });
 });

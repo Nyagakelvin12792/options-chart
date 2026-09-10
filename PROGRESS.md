@@ -34,7 +34,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Deribit options data | COMPLETE | Live chain, index, ticker, recent-trade, and reconnect paths implemented |
 | Options engine | COMPLETE | Versioned Gamma, walls, Gamma Flip, Max Pain, OI, IV, and profile calculations |
 | Mathematical validation | COMPLETE | Independent parity, golden fixtures, live Deribit audit, and gamma reconciliation implemented |
-| Primary chart | COMPLETE | Candles, volume, drawings, regimes, profiles, zones, and compact level markers delivered |
+| Primary chart | COMPLETE | Candles, drawings, regimes, compact structure profile, zones, and minimal level markers delivered |
 | Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
@@ -72,7 +72,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-020 | Full profile recomputation is coalesced, maximum once per 2 seconds in v0 | ACCEPTED |
 | ADR-021 | v1 asset scope is BTC only | ACCEPTED |
 | ADR-022 | required chart timeframes are 1m, 5m, 15m, 1h, 4h, 1d, 1w | ACCEPTED |
-| ADR-023 | Binance Spot volume pane is required | ACCEPTED |
+| ADR-023 | Binance Spot volume pane is required | SUPERSEDED BY ADR-044 |
 | ADR-024 | v1 drawing tools are horizontal and vertical lines only | ACCEPTED |
 | ADR-025 | default Gamma expiry scope is <=30 DTE | SUPERSEDED BY ADR-040 |
 | ADR-026 | expiry presets include 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All, Custom | SUPERSEDED BY ADR-040 |
@@ -93,6 +93,9 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-041 | calculated levels use compact in-chart edge markers beside the Gamma profile without reserving a dedicated right rail | ACCEPTED |
 | ADR-042 | Gamma, OI, volume, flow-informed dealer, Max Pain, and Gamma Flip remain separate; confluence is a display and ranking layer | ACCEPTED |
 | ADR-043 | flow-informed dealer exposure is an explicitly labeled 60-minute proxy with confidence evidence, not known dealer inventory | ACCEPTED |
+| ADR-044 | the production dashboard omits the candle-volume pane and selectable options-volume profile while retaining volume as a wall signal | ACCEPTED |
+| ADR-045 | confluence health and strongest zones live inside the compact left options-structure profile, not in a standalone page row | ACCEPTED |
+| ADR-046 | price-aligned HTML overlays follow chart viewport and pointer movement through animation-frame scheduling | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -107,7 +110,7 @@ All architecture-blocking product decisions are resolved.
 - [x] Binance BTCUSDT Spot is the sole master candle source.
 - [x] 1m, 5m, 15m, 1h, 4h, 1d, 1w.
 - [x] Up to 10,000 validated real Binance candles through paginated bootstrap.
-- [x] Binance Spot volume pane.
+- [x] No candle-volume pane or selectable volume profile; 24-hour options volume remains a wall-confluence signal.
 - [x] Horizontal and vertical drawing tools.
 - [x] Nearest eligible active Deribit expiry by default.
 - [x] One exact active Deribit expiry date at a time.
@@ -559,6 +562,9 @@ Status: COMPLETE
 - [x] Independent Gamma, OI, 24-hour volume, flow-informed dealer, Max Pain, and Gamma Flip signals.
 - [x] Volatility-aware confluence zones with overlap-count strength and transparent secondary scoring factors.
 - [x] Compact in-chart level markers that keep the right price scale and risk terminal clear.
+- [x] Single-screen desktop layout with confluence integrated into the left options-structure profile.
+- [x] Animation-frame overlay synchronization during chart drag and zoom.
+- [x] Candle-volume pane and selectable options-volume profile removed without removing the volume-wall calculation.
 
 Evidence:
 
@@ -831,11 +837,13 @@ Implementation:
 - `4eb1651` added separate wall signals, overlap-first confluence scoring, Deribit-native pricing context, gamma reconciliation, and the flow-informed dealer proxy with confidence.
 - `1995ed3` fixed the wall-panel crash and chart displacement.
 - `ed071d2` replaced the dedicated right-side rail with compact in-chart level markers so metrics no longer interfere with the price scale or account risk terminal.
+- Follow-up refinement removed the standalone confluence row, integrated FLOW/GAMMA health and the strongest zones into the 146 px left structure profile, removed the candle-volume pane and VOL selector, and made chart overlays follow drag/zoom events per animation frame.
 
 Validation:
 
 - M10.1 delivery passed 241 unit and integration tests, the production build, Gamma-overlay browser tests, reliability/workflow browser tests, and desktop/mobile alignment checks.
 - Latest chart-marker refinement passed typecheck, lint, production build, and six relevant browser tests.
+- Single-screen refinement passed 14 focused unit tests and seven browser tests, including live price-scale drag synchronization, across laptop, wide-desktop, and mobile viewports.
 - Vercel production deployment is current through `ed071d2`.
 
 Remaining release evidence:

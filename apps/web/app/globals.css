@@ -12,12 +12,13 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
   background: #0b1015;
 }
 
 body {
-  min-height: 100vh;
+  height: 100vh;
 }
 
 input,
@@ -42,8 +43,10 @@ dd {
 
 .dashboard-shell {
   display: grid;
-  min-height: 100vh;
-  grid-template-rows: 58px 44px 42px auto minmax(0, 1fr) 26px;
+  height: 100dvh;
+  min-height: 0;
+  grid-template-rows: 52px 34px 38px minmax(0, 1fr) 22px;
+  overflow: hidden;
   background: #0b1015;
 }
 
@@ -464,14 +467,15 @@ h1 {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-columns: minmax(720px, 1fr) 330px;
+  grid-template-columns: minmax(0, 1fr) clamp(292px, 23vw, 324px);
+  overflow: hidden;
 }
 
 .chart-workspace {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: 36px minmax(360px, 1fr);
+  grid-template-rows: 32px minmax(0, 1fr);
   background: #111820;
 }
 
@@ -538,10 +542,10 @@ h1 {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: 42px auto auto minmax(0, 1fr);
-  gap: 10px;
-  padding: 11px 12px;
-  overflow-y: auto;
+  grid-template-rows: 34px auto auto minmax(0, 1fr);
+  gap: 6px;
+  padding: 7px 8px;
+  overflow: hidden;
   border-left: 1px solid #26323d;
   background: #0b1117;
 }
@@ -595,32 +599,32 @@ h1 {
 
 .risk-panel {
   min-width: 0;
-  padding: 12px;
+  padding: 8px;
   border: 1px solid #26323d;
   border-radius: 6px;
   background: #111820;
 }
 
 .risk-panel h2 {
-  margin: 0 0 11px;
+  margin: 0 0 7px;
   letter-spacing: 0.12em;
 }
 
 .risk-field-grid {
   display: grid;
   min-width: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .risk-trade-grid {
-  margin-top: 11px;
+  margin-top: 7px;
 }
 
 .risk-field {
   display: grid;
   min-width: 0;
-  gap: 5px;
+  gap: 3px;
 }
 
 .risk-input-wrap {
@@ -632,7 +636,7 @@ h1 {
 .risk-input-wrap input {
   width: 100%;
   min-width: 0;
-  height: 31px;
+  height: 27px;
   padding: 0 28px 0 9px;
   border: 1px solid #273541;
   border-radius: 4px;
@@ -686,7 +690,7 @@ h1 {
 }
 
 .risk-preset-row {
-  margin-top: 7px;
+  margin-top: 5px;
 }
 
 .risk-preset-row button {
@@ -696,11 +700,11 @@ h1 {
 .risk-detect-command {
   display: inline-flex;
   width: 100%;
-  height: 32px;
+  height: 28px;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  margin-top: 12px;
+  margin-top: 7px;
   border: 1px solid #4069bc;
   border-radius: 4px;
   background: #1a315f;
@@ -717,7 +721,7 @@ h1 {
 }
 
 .risk-detection-state {
-  margin-top: 8px;
+  margin-top: 5px;
   color: #6fcaa2;
 }
 
@@ -727,9 +731,10 @@ h1 {
 
 .risk-result-list {
   display: grid;
-  gap: 10px;
-  margin-top: 13px;
-  padding-top: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+  padding-top: 7px;
   border-top: 1px solid #26323d;
 }
 
@@ -741,6 +746,10 @@ h1 {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
+}
+
+.risk-result-list > div:nth-child(5) {
+  grid-column: 1 / -1;
 }
 
 .risk-result-list dd,
@@ -773,7 +782,7 @@ h1 {
 
 .risk-budget-row {
   grid-template-columns: 78px minmax(0, 1fr) 38px;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .risk-budget-track {
@@ -802,8 +811,8 @@ h1 {
 }
 
 .risk-balance-line {
-  margin-top: 14px;
-  padding-top: 11px;
+  margin-top: 8px;
+  padding-top: 7px;
   border-top: 1px dashed #26323d;
 }
 
@@ -840,7 +849,7 @@ h1 {
 .chart-stage {
   width: 100%;
   min-width: 0;
-  min-height: 360px;
+  min-height: 0;
   background: #111820;
 }
 
@@ -893,7 +902,7 @@ h1 {
   bottom: 26%;
   left: 0;
   z-index: 2;
-  width: 176px;
+  width: 146px;
   border-right: 1px solid rgb(112 130 144 / 38%);
   background: rgb(9 15 20 / 76%);
 }
@@ -907,6 +916,110 @@ h1 {
   font-size: 7px;
   font-weight: 800;
   pointer-events: none;
+}
+
+.options-structure-brief {
+  position: absolute;
+  z-index: 5;
+  top: 19px;
+  right: 0;
+  left: 0;
+  padding: 0 7px 6px;
+  border-bottom: 1px solid rgb(112 130 144 / 24%);
+  background: rgb(9 15 20 / 88%);
+  color: #aebbc7;
+  font-variant-numeric: tabular-nums;
+}
+
+.structure-health,
+.structure-zone-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.structure-health {
+  height: 18px;
+  border-bottom: 1px solid rgb(112 130 144 / 16%);
+  color: #72828f;
+  font-size: 6px;
+  font-weight: 800;
+}
+
+.structure-health .health-live,
+.structure-health .health-pass {
+  color: #53c795;
+}
+
+.structure-health .health-stale,
+.structure-health .health-diverged {
+  color: #e07986;
+}
+
+.structure-zone-list {
+  display: grid;
+}
+
+.structure-zone {
+  --structure-accent: #82919c;
+  min-width: 0;
+  padding: 4px 0 3px 5px;
+  border-bottom: 1px solid rgb(112 130 144 / 13%);
+  border-left: 2px solid var(--structure-accent);
+}
+
+.structure-zone:last-child {
+  border-bottom: 0;
+}
+
+.structure-zone.bias-support {
+  --structure-accent: #4ec291;
+}
+
+.structure-zone.bias-resistance {
+  --structure-accent: #eb6f7f;
+}
+
+.structure-zone.bias-pivot {
+  --structure-accent: #d9a84e;
+}
+
+.structure-zone-summary {
+  color: var(--structure-accent);
+  font-size: 7px;
+}
+
+.structure-zone-summary strong {
+  overflow: hidden;
+  color: #dce5ec;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.structure-zone-summary b {
+  min-width: 18px;
+  color: var(--structure-accent);
+  font-size: 9px;
+  text-align: right;
+}
+
+.structure-zone-signals,
+.structure-zone-empty {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  color: #71828e;
+  font-size: 6px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.structure-zone-empty {
+  padding: 7px 0;
 }
 
 .gamma-profile-empty {
@@ -948,8 +1061,8 @@ h1 {
   z-index: 8;
   top: 0;
   bottom: 0;
-  left: 184px;
-  width: 104px;
+  left: 151px;
+  width: 82px;
   overflow: visible;
   pointer-events: none;
 }
@@ -962,23 +1075,25 @@ h1 {
   --level-strength: 1;
   position: absolute;
   z-index: 4;
-  left: 5px;
+  left: 3px;
   display: grid;
-  width: 94px;
-  height: 22px;
-  grid-template-columns: 5px minmax(0, 1fr) auto;
+  width: 76px;
+  height: 16px;
+  grid-template-columns: 4px minmax(17px, auto) auto;
   align-items: center;
   gap: 4px;
-  padding: 0 5px;
+  padding: 0 1px 0 3px;
   transform: translateY(-50%);
-  border: 1px solid
-    color-mix(in srgb, currentcolor calc(var(--level-strength) * 70%), #384650);
-  border-left-width: 3px;
-  border-radius: 2px;
-  background: rgb(13 20 26 / 94%);
-  box-shadow: 0 1px 5px rgb(0 0 0 / 32%);
+  border: 0;
+  border-left: 2px solid currentcolor;
+  border-radius: 0;
+  background: transparent;
+  text-shadow:
+    0 1px 2px #081015,
+    0 0 4px #081015;
+  box-shadow: none;
   color: #aebac4;
-  font-size: 8px;
+  font-size: 7px;
   font-variant-numeric: tabular-nums;
   outline: none;
   pointer-events: auto;
@@ -986,10 +1101,10 @@ h1 {
 
 .level-concentration {
   position: absolute;
-  right: 3px;
-  bottom: 1px;
+  right: 1px;
+  bottom: 0;
   left: 3px;
-  height: 2px;
+  height: 1px;
   overflow: hidden;
   background: rgb(116 134 147 / 18%);
 }
@@ -1006,7 +1121,7 @@ h1 {
 }
 
 .level-tag strong {
-  font-size: 8px;
+  font-size: 7px;
   white-space: nowrap;
 }
 
@@ -1052,7 +1167,7 @@ h1 {
   z-index: 6;
   grid-template-columns: 1fr auto;
   border-color: #73d4ba;
-  background: #15362f;
+  background: transparent;
   color: #dff9f0;
 }
 
@@ -1273,22 +1388,30 @@ h1 {
   }
 
   .workspace-grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 292px;
   }
 
   .chart-surface-shell {
-    grid-template-columns: 42px minmax(600px, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr);
   }
 
   .risk-terminal {
-    border-top: 1px solid #26323d;
-    border-left: 0;
+    border-left: 1px solid #26323d;
   }
 }
 
 @media (max-width: 760px) {
+  html,
+  body {
+    height: auto;
+    overflow: auto;
+  }
+
   .dashboard-shell {
+    height: auto;
+    min-height: 100vh;
     grid-template-rows: auto auto auto auto minmax(0, 1fr) 26px;
+    overflow: visible;
   }
 
   .command-bar {
@@ -1343,6 +1466,7 @@ h1 {
 
   .workspace-grid {
     grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
   }
 
   .options-summary-bar {
@@ -1363,11 +1487,11 @@ h1 {
   }
 
   .gamma-profile {
-    width: 92px;
+    width: 112px;
   }
 
   .level-rail {
-    left: 100px;
+    left: 116px;
   }
 
   .level-state-mark {
@@ -1394,6 +1518,9 @@ h1 {
 
   .risk-terminal {
     grid-template-rows: auto;
+    overflow: visible;
+    border-top: 1px solid #26323d;
+    border-left: 0;
   }
 
   .metric-list {

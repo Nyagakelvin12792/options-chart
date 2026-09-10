@@ -168,6 +168,27 @@ describe("LightweightChartsAdapter", () => {
     expect(adapter.getDiagnostics().realtimeUpdateCount).toBe(1);
   });
 
+  it("can omit the volume pane while preserving candle updates", () => {
+    const adapter = new LightweightChartsAdapter();
+    adapter.initialize(mocks.container as unknown as HTMLElement, {
+      symbol: "BTCUSDT",
+      width: 1_200,
+      height: 700,
+      backgroundColor: "#111820",
+      textColor: "#ffffff",
+      showVolumePane: false,
+    });
+
+    adapter.setHistory([makeCandle(1_700_000_000_000)]);
+    adapter.updateCandle(makeCandle(1_700_000_000_000, 61_000));
+
+    expect(mocks.chart.addSeries).toHaveBeenCalledTimes(1);
+    expect(mocks.candleSeries.setData).toHaveBeenCalledTimes(1);
+    expect(mocks.candleSeries.update).toHaveBeenCalledTimes(1);
+    expect(mocks.volumeSeries.setData).not.toHaveBeenCalled();
+    expect(mocks.volumeSeries.update).not.toHaveBeenCalled();
+  });
+
   it("restores the exact visible range after a repair replacement", () => {
     const adapter = initialize();
     const before = adapter.getVisibleRange();

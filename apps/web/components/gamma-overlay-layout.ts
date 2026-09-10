@@ -9,8 +9,8 @@ export interface CollisionPlacement extends CollisionItem {
   readonly shifted: boolean;
 }
 
-const TAG_HEIGHT = 22;
-const TAG_GAP = 4;
+const TAG_HEIGHT = 16;
+const TAG_GAP = 3;
 
 export const layoutCollisionItems = (
   items: readonly CollisionItem[],

@@ -348,11 +348,7 @@ export function ConfluenceZoneOverlay({
             style={{ top, height }}
             role="img"
             aria-label={`${strengthLabel(strength)} ${zone.bias} confluence zone, score ${score}, ${signalCount} of 6 signals overlap`}
-          >
-            <span aria-hidden="true">
-              {score} · {signalCount}/6
-            </span>
-          </div>
+          />
         );
       })}
     </div>

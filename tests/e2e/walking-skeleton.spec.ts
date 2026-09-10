@@ -96,21 +96,31 @@ test("keeps the chart surface aligned on desktop and mobile", async ({
     const layout = await page.evaluate(() => ({
       viewportWidth: document.documentElement.clientWidth,
       documentWidth: document.documentElement.scrollWidth,
-      wallBottom:
-        document.querySelector<HTMLElement>(".wall-confluence")
-          ?.getBoundingClientRect().bottom ?? 0,
+      viewportHeight: document.documentElement.clientHeight,
+      documentHeight: document.documentElement.scrollHeight,
       workspaceTop:
-        document.querySelector<HTMLElement>(".workspace-grid")
+        document
+          .querySelector<HTMLElement>(".workspace-grid")
+          ?.getBoundingClientRect().top ?? 0,
+      structureTop:
+        document
+          .querySelector<HTMLElement>(".options-structure-brief")
+          ?.getBoundingClientRect().top ?? 0,
+      chartTop:
+        document
+          .querySelector<HTMLElement>("[data-testid='candlestick-chart']")
           ?.getBoundingClientRect().top ?? 0,
       chartHeight:
         document.querySelector<HTMLElement>("[data-testid='candlestick-chart']")
           ?.clientHeight ?? 0,
     }));
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
-    expect(Math.abs(layout.workspaceTop - layout.wallBottom)).toBeLessThanOrEqual(
-      1,
-    );
+    expect(layout.structureTop).toBeGreaterThanOrEqual(layout.chartTop);
+    expect(layout.workspaceTop).toBeGreaterThan(0);
     expect(layout.chartHeight).toBeGreaterThanOrEqual(360);
+    if (viewport.width > 760) {
+      expect(layout.documentHeight).toBeLessThanOrEqual(layout.viewportHeight);
+    }
 
     await page.screenshot({
       path: testInfo.outputPath(`${viewport.name}.png`),

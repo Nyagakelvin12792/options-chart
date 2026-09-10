@@ -4156,6 +4156,9 @@ The following delivered behaviors now form the current product contract:
 - Flow-informed dealer exposure uses a rolling 60-minute Deribit trade-flow proxy with taker direction, open-interest change, and implied-volatility change as confidence evidence. It does not claim actual dealer inventory or certain opening/closing classification.
 - The account risk terminal is read-only. It calculates long-position risk, margin, reward:risk, and risk-budget usage, and may detect entry, stop-loss, and take-profit from chart levels without placing orders.
 - Calculated levels use compact in-chart edge markers beside the Gamma profile. A dedicated right-side Level Rail is no longer reserved; the price scale and risk-terminal area must remain unobstructed.
+- Wall-confluence health and the strongest ranked zones are integrated into the compact left options-structure profile; no standalone confluence dashboard may consume a page row above the chart.
+- The production dashboard omits the candle-volume pane and the selectable options-volume profile to preserve chart height. The 24-hour options-volume wall remains an independent confluence input.
+- Price-aligned HTML overlays refresh from chart viewport and pointer movement through animation-frame scheduling so they track chart dragging without timer lag.
 
 
 # 38. Product Questions Status
@@ -4208,7 +4211,7 @@ Timeframes: 1m, 5m, 15m, 1h, 4h, 1d, 1w
 Initial history: up to 10,000 validated real candles
 History transport: REST pagination at no more than 1,000 bars per request
 Synthetic market fallback: prohibited
-Volume pane: yes
+Volume pane: no; preserve vertical space for price action
 Drawing tools: horizontal line + vertical line
 Chart engine: Lightweight Charts
 Fallback chart interface: retained
@@ -4222,7 +4225,8 @@ OI snapshot: 30 seconds
 Historical gamma persistence: no
 Wall signals: Gamma, open interest, 24-hour volume, flow-informed dealer, Max Pain, Gamma Flip
 Wall strength: overlap-count band first; concentration, persistence, spot distance, expiry importance, and recent reactions second
-Level presentation: compact in-chart edge markers beside the Gamma profile; no dedicated right-side rail
+Level presentation: compact transparent line labels beside the left options-structure profile; no dedicated right-side rail
+Wall confluence placement: integrated into the left options-structure profile; no standalone dashboard row
 Dealer flow window: rolling 60 minutes, explicitly labeled as an inferred proxy with confidence
 Gamma reconciliation: six representative near-ATM Deribit contracts
 Account risk terminal: read-only long sizing plus chart-level entry, stop-loss, and take-profit detection

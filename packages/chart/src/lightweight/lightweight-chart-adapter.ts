@@ -150,21 +150,23 @@ export class LightweightChartsAdapter implements ChartAdapter {
       lastValueVisible: true,
     });
 
-    this.volumeSeries = this.chart.addSeries(
-      HistogramSeries,
-      {
-        priceFormat: { type: "volume" },
-        priceLineVisible: false,
-        lastValueVisible: false,
-        priceScaleId: "right",
-      },
-      1,
-    );
-    this.volumeSeries.priceScale().applyOptions({
-      borderVisible: false,
-      scaleMargins: { top: 0.12, bottom: 0 },
-    });
-    this.resizeVolumePane(options.height);
+    if (options.showVolumePane ?? true) {
+      this.volumeSeries = this.chart.addSeries(
+        HistogramSeries,
+        {
+          priceFormat: { type: "volume" },
+          priceLineVisible: false,
+          lastValueVisible: false,
+          priceScaleId: "right",
+        },
+        1,
+      );
+      this.volumeSeries.priceScale().applyOptions({
+        borderVisible: false,
+        scaleMargins: { top: 0.12, bottom: 0 },
+      });
+      this.resizeVolumePane(options.height);
+    }
 
     container.addEventListener("click", this.handleContainerClick, true);
     this.chart
@@ -182,7 +184,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
 
     this.measureOperation(() => {
       this.requireSeries().setData(candles.map(toChartCandle));
-      this.requireVolumeSeries().setData(candles.map(toChartVolume));
+      this.volumeSeries?.setData(candles.map(toChartVolume));
     });
     this.historyReplacementCount += 1;
     this.dataPointCount = candles.length;
@@ -197,7 +199,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
   updateCandle(candle: Candle): void {
     this.measureOperation(() => {
       this.requireSeries().update(toChartCandle(candle));
-      this.requireVolumeSeries().update(toChartVolume(candle));
+      this.volumeSeries?.update(toChartVolume(candle));
     });
     this.realtimeUpdateCount += 1;
     this.dataPointCount = Math.max(this.dataPointCount, 1);
@@ -342,7 +344,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
   resize(width: number, height: number): void {
     this.measureOperation(() => {
       this.requireChart().resize(width, height);
-      this.resizeVolumePane(height);
+      if (this.volumeSeries) this.resizeVolumePane(height);
     });
     this.resizeCount += 1;
   }
