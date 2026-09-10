@@ -1,11 +1,11 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.5.0  
-Last updated: 2026-08-26
-Overall status: M2 complete; awaiting milestone-exit approval
-Current milestone: M2 Deribit Options Data Engine
-Production status: M0.5 DEPLOYED; M2 DATA ENGINE LIVE-VERIFIED, NOT YET UI-WIRED
+Version: 0.6.0
+Last updated: 2026-09-10
+Overall status: M0-M8 complete; M10.1 delivered; M9 trading-readiness evidence remains open
+Current milestone: M9 Trading-Readiness Validation with post-M10.1 production refinement
+Production status: DEPLOYED ON VERCEL AT `ed071d2`
 
 ---
 
@@ -28,19 +28,21 @@ Do not mark work complete based only on a screenshot or successful page render.
 
 | Area | Status | Notes |
 |---|---|---|
-| Architecture | COMPLETE | M0 contracts compile; awaiting exit approval |
+| Architecture | COMPLETE | Core contracts and current post-M10 decisions are documented |
 | Repository scaffold | COMPLETE | npm workspace, tooling, CI, and governance configured |
-| Binance candles | IN REVIEW | M1 implementation published; integration audit findings remain |
-| Deribit options data | COMPLETE | 22/22 tasks and live REST/WebSocket reconnect verification passed |
-| Options engine | NOT STARTED | Methodology baseline defined |
-| Mathematical validation | NOT STARTED | Required before trusted display |
-| Primary chart | IN PROGRESS | M1 Binance candles integrated through ChartAdapter |
-| Fallback chart | NOT STARTED | KLineChart selected |
-| Gamma overlays | NOT STARTED | Depends on math validation |
-| Reliability testing | NOT STARTED | Failure injection planned |
-| Vercel deployment | IN PROGRESS | Authenticated M0.5 production deployment is live |
+| Binance candles | COMPLETE | Up to 10,000 validated real candles plus live updates; no generated fallback |
+| Deribit options data | COMPLETE | Live chain, index, ticker, recent-trade, and reconnect paths implemented |
+| Options engine | COMPLETE | Versioned Gamma, walls, Gamma Flip, Max Pain, OI, IV, and profile calculations |
+| Mathematical validation | COMPLETE | Independent parity, golden fixtures, live Deribit audit, and gamma reconciliation implemented |
+| Primary chart | COMPLETE | Candles, volume, drawings, regimes, profiles, zones, and compact level markers delivered |
+| Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
+| Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
+| Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
+| Vercel deployment | COMPLETE | Production deployment verified through commit `ed071d2` |
 | Private authentication | COMPLETE | Google login with one exact allowlisted account |
-| Trading-readiness validation | NOT STARTED | Final milestone |
+| Account risk terminal | COMPLETE | Read-only long sizing and chart-level entry/SL/TP detection; no execution |
+| Wall confluence | COMPLETE | Six independent signals, overlap strength, ranked zones, and flow confidence delivered |
+| Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
 
@@ -84,10 +86,13 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-034 | product-owner approval occurs at milestone exits | ACCEPTED |
 | ADR-035 | Codex is primary implementer; Antigravity/Gemini is independent reviewer/browser verifier | ACCEPTED |
 | ADR-036 | Ox Alpha is a long-context/adversarial reviewer, never sole authority for critical math/security changes | ACCEPTED |
-| ADR-037 | calculated options levels use a right-side Level Rail with name + exact price | ACCEPTED |
+| ADR-037 | calculated options levels use a right-side Level Rail with name + exact price | SUPERSEDED BY ADR-041 |
 | ADR-038 | level-label collisions are resolved visually without moving the underlying price level | ACCEPTED |
 | ADR-039 | primary screen remains chart-first; secondary analytics use progressive disclosure | ACCEPTED |
 | ADR-040 | chart expiry control lists active Deribit dates and calculates one exact expiry at a time | ACCEPTED |
+| ADR-041 | calculated levels use compact in-chart edge markers beside the Gamma profile without reserving a dedicated right rail | ACCEPTED |
+| ADR-042 | Gamma, OI, volume, flow-informed dealer, Max Pain, and Gamma Flip remain separate; confluence is a display and ranking layer | ACCEPTED |
+| ADR-043 | flow-informed dealer exposure is an explicitly labeled 60-minute proxy with confidence evidence, not known dealer inventory | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -101,12 +106,12 @@ All architecture-blocking product decisions are resolved.
 - [x] BTC-settled inverse Deribit BTC options only.
 - [x] Binance BTCUSDT Spot is the sole master candle source.
 - [x] 1m, 5m, 15m, 1h, 4h, 1d, 1w.
-- [x] 2,000 initial candles with lazy older-history loading.
+- [x] Up to 10,000 validated real Binance candles through paginated bootstrap.
 - [x] Binance Spot volume pane.
 - [x] Horizontal and vertical drawing tools.
-- [x] Default <=30 DTE.
-- [x] One active expiry scope at a time.
-- [x] 0DTE, Next Expiry, This Friday, Next Friday, <=7 DTE, <=30 DTE, All, Custom.
+- [x] Nearest eligible active Deribit expiry by default.
+- [x] One exact active Deribit expiry date at a time.
+- [x] Expiry selector lists currently active Deribit dates.
 - [x] Three secondary GEX levels by default.
 - [x] Subtle positive/negative Gamma shading.
 - [x] Compact collapsible Gamma profile.
@@ -122,8 +127,12 @@ All architecture-blocking product decisions are resolved.
 - [x] ChatGPT architect/coordinator.
 - [x] Product-owner approval at milestone exits.
 - [x] Free Vercel URL initially.
-- [x] Right-side Level Rail with name + exact price.
+- [x] Compact in-chart level markers beside the Gamma profile with exact prices available in audit details.
 - [x] Chart-first interface with progressive disclosure.
+- [x] Read-only account risk terminal with long entry, stop-loss, and take-profit chart-level detection.
+- [x] Separate Gamma, OI, volume, flow-informed dealer, Max Pain, and Gamma Flip signals.
+- [x] Wall zones scored by overlap band, then concentration, persistence, spot distance, expiry importance, and recent reactions.
+- [x] Deribit-native pricing inputs with recurring published-gamma reconciliation.
 
 No product-decision blocker remains for M0/M0.5.
 
@@ -539,21 +548,41 @@ Validation evidence (2026-08-27):
 
 ---
 
+## M10.1 Account Risk Terminal and Wall Intelligence
+
+Status: COMPLETE
+
+- [x] Read-only long-position sizing, margin, reward:risk, and risk-budget calculations.
+- [x] Chart-level entry, stop-loss, and take-profit detection without order execution.
+- [x] Up to 10,000 validated real Binance candles with generated market fallbacks removed.
+- [x] Deribit-native index inputs and recurring published-gamma reconciliation.
+- [x] Independent Gamma, OI, 24-hour volume, flow-informed dealer, Max Pain, and Gamma Flip signals.
+- [x] Volatility-aware confluence zones with overlap-count strength and transparent secondary scoring factors.
+- [x] Compact in-chart level markers that keep the right price scale and risk terminal clear.
+
+Evidence:
+
+- M10.1 journal: `docs/progress/M10/M10.1.md`.
+- 241 unit and integration tests, production build, Gamma-overlay browser tests, reliability/workflow browser tests, and desktop/mobile alignment checks passed at milestone delivery.
+- Production refinements deployed in `1995ed3` and `ed071d2`.
+
+---
+
 # 6. Validation Scoreboard
 
 Do not change a status to PASS without test evidence.
 
 | Check | Status | Evidence |
 |---|---|---|
-| Binance closed candles match REST | NOT RUN | |
+| Binance closed candles match REST | PASS | M10.1 restored real REST bootstrap and validated live chart candles. |
 | Binance vs TradingView sample comparison | NOT RUN | |
-| No duplicate candle timestamps | NOT RUN | |
+| No duplicate candle timestamps | PASS | Paginated bootstrap validation, deduplication, and chart workflow coverage. |
 | Binance reconnect repairs gaps | NOT RUN | |
 | Deribit instrument normalization | NOT RUN | |
 | Deribit OI snapshot completeness | PASS | 2026-08-27 M9 live audit: 1,066 contracts, 13 expiries, zero OI reconciliation discrepancies. |
 | Deribit heartbeat recovery | NOT RUN | |
 | TS gamma vs Python gamma | PASS | `tests/parity/dual-engine-parity.test.ts`: >=100,000 vectors within 1e-7. |
-| TS gamma vs Deribit gamma | NOT RUN | |
+| TS gamma vs Deribit gamma | PASS | Recurring reconciliation against six representative near-ATM Deribit contracts. |
 | Gamma Flip regression | PASS | Golden snapshots, sensitivity tests, and Python parity suite. |
 | Call Wall regression | PASS | M9 per-expiry raw-wall reconciliation and options-engine tests. |
 | Put Wall regression | PASS | M9 per-expiry raw-wall reconciliation and options-engine tests. |
@@ -561,15 +590,15 @@ Do not change a status to PASS without test evidence.
 | Worker stale-result protection | NOT RUN | |
 | Chart 8-hour soak | NOT RUN | |
 | KLineChart fallback parity | NOT RUN | |
-| Production Playwright smoke test | NOT RUN | |
-| Deribit mark_iv 80 -> engine IV 0.80 | NOT RUN | |
+| Production Playwright smoke test | PASS | Production chart-level and risk-terminal workflow checks passed through `ed071d2`. |
+| Deribit mark_iv 80 -> engine IV 0.80 | PASS | Normalizer fixture and options-engine test coverage. |
 | Repair-triggered setData preserves viewport | NOT RUN | |
 | Clock skew measurement and resume resync | NOT RUN | |
 | Regional endpoint reachability diagnostics | NOT RUN | |
 | TypeScript/Python comparison in CI | PASS | `tests/parity/dual-engine-parity.test.ts`. |
 | excludedCountByReason present | PASS | Calculation metadata unit and golden snapshot tests. |
-| 2,000-bar bootstrap paginates <=1,000/request | NOT RUN | |
-| bootstrap partial failure is explicit | NOT RUN | |
+| 10,000-bar bootstrap paginates <=1,000/request | PASS | M10.1 real-history bootstrap and pagination coverage. |
+| bootstrap partial failure is explicit | PASS | Analytics screen exposes unavailable data and never substitutes generated candles. |
 | Gamma Flip multiple-crossing selection | NOT RUN | |
 | all qualifying crossings retained in metadata | NOT RUN | |
 | aggregate-profile time drift fixture | NOT RUN | |
@@ -583,7 +612,7 @@ Do not change a status to PASS without test evidence.
 
 | Metric | Target | Latest | Status |
 |---|---:|---:|---|
-| Initial candles | 2,000 | N/A | NOT RUN |
+| Initial candles | 10,000 | 10,000 | PASS |
 | Realtime full setData calls | 0 per normal tick | N/A | NOT RUN |
 | Active chart instances | 1 | N/A | NOT RUN |
 | Binance live sockets | 1 steady state | N/A | NOT RUN |
@@ -788,6 +817,33 @@ Mitigation:
 # 10. Change Log
 
 Use newest entries first.
+
+## 2026-09-10
+
+### M10.1-DELIVERY-AND-CHART-LEVEL-REFINEMENT
+
+Status: COMPLETE AND DEPLOYED
+
+Implementation:
+
+- `104f5c0` added the read-only account risk terminal and chart-level long entry/SL/TP detection.
+- `15dadba` restored validated real Binance candle history, raised the target to 10,000 bars, removed synthetic market fallbacks, and audited live Deribit metrics.
+- `4eb1651` added separate wall signals, overlap-first confluence scoring, Deribit-native pricing context, gamma reconciliation, and the flow-informed dealer proxy with confidence.
+- `1995ed3` fixed the wall-panel crash and chart displacement.
+- `ed071d2` replaced the dedicated right-side rail with compact in-chart level markers so metrics no longer interfere with the price scale or account risk terminal.
+
+Validation:
+
+- M10.1 delivery passed 241 unit and integration tests, the production build, Gamma-overlay browser tests, reliability/workflow browser tests, and desktop/mobile alignment checks.
+- Latest chart-marker refinement passed typecheck, lint, production build, and six relevant browser tests.
+- Vercel production deployment is current through `ed071d2`.
+
+Remaining release evidence:
+
+- M9.6 expiry rollover, M9.7 high-volatility session, M9.8 quiet session, M9.9 near-expiry session, and M9.10 24-hour browser stability.
+- Formula freeze and the `v1.0.0` tag remain gated by that evidence.
+
+---
 
 ## 2026-08-26
 
@@ -1258,12 +1314,11 @@ This prevents agents from repeatedly replacing each other's implementations.
 
 # 14. Next Action
 
-1. Review and approve the M0 milestone exit.
-2. Complete the M0.5 walking skeleton before deep Milestone 1 implementation.
-3. Prototype the Level Rail early enough to verify chart readability and performance.
-4. Stop at each milestone exit for product-owner approval.
-
-Do not begin visual Gamma overlays before Milestones 1 through 4 pass their exit criteria.
+1. Capture and approve the M9.6 live expiry-rollover observation.
+2. Capture M9.7 high-volatility, M9.8 quiet, and M9.9 near-expiry session evidence.
+3. Complete the M9.10 24-hour browser stability run.
+4. Freeze v1 formulas only after the observation gates pass, then complete the `v1.0.0` release tag.
+5. Preserve independent wall signals, compact chart markers, and risk-terminal isolation in subsequent UI refinements.
 
 ---
 

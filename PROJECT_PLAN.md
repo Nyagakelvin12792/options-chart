@@ -1,9 +1,9 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.5.0  
-Status: Architecture converged after second technical review  
-Date: 2026-08-25  
+Version: 0.6.0
+Status: M10.1 delivered; M9 trading-readiness evidence remains open
+Date: 2026-09-10
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
 Production scope: Read-only market analytics. No order execution. No private exchange credentials.
@@ -43,8 +43,12 @@ The dashboard must eventually display:
 - Expiry filters.
 - Data freshness and connection health.
 - Calculation version and audit information.
+- A read-only account risk terminal with long-position sizing and chart-level entry, stop-loss, and take-profit detection.
+- Separate Gamma, open-interest, 24-hour volume, flow-informed dealer, Max Pain, and Gamma Flip signals.
+- Volatility-aware wall zones with signal overlap counts and transparent confluence scores.
+- Deribit-published gamma reconciliation for representative near-ATM contracts.
 
-Later releases may add Vanna, Charm, volatility surfaces, flow, and other derivatives metrics without changing the core market-data and chart architecture.
+Later releases may add Vanna, Charm, volatility surfaces, persistent replay data, and other derivatives metrics without changing the core market-data and chart architecture.
 
 ---
 
@@ -75,6 +79,9 @@ The project must satisfy all of the following.
 20. Every material calculation change must increment a calculation version.
 21. Every completed development task must update PROGRESS.md.
 22. No single source file should become a dumping ground for unrelated logic.
+23. Flow-informed dealer exposure must be labeled as an inferred proxy with confidence evidence, never as known dealer inventory.
+24. Wall confluence scores are relative ranking aids, not probabilities or guaranteed support/resistance levels.
+25. Missing live market data must produce an explicit unavailable or stale state, never generated candles or synthetic options metrics.
 
 ---
 
@@ -4135,6 +4142,21 @@ Binance WebSocket client control traffic: five messages per second per connectio
 Lightweight Charts historicalUpdate: replaces an existing historical point but does not insert a missing historical point.
 ```
 
+---
+
+# 37.3 Post-M10 Delivery Decisions Adopted in v0.6
+
+The following delivered behaviors now form the current product contract:
+
+- The dashboard bootstraps up to 10,000 real Binance candles through validated REST pagination and continues with the live candle feed.
+- Generated candle and options fallbacks are prohibited on the analytics screen; unavailable feeds show an explicit unavailable state.
+- Gamma, open-interest, 24-hour volume, flow-informed dealer, Max Pain, and Gamma Flip remain separate signals so each can be inspected independently.
+- Nearby signals may be grouped into volatility-aware wall zones. The overlap count is the primary confluence-strength band; concentration, persistence, distance from spot, expiry importance, and recent reactions rank zones within a band.
+- Deribit options mathematics uses Deribit-native index and expiry context. Six representative near-ATM contracts are periodically reconciled against Deribit's published gamma.
+- Flow-informed dealer exposure uses a rolling 60-minute Deribit trade-flow proxy with taker direction, open-interest change, and implied-volatility change as confidence evidence. It does not claim actual dealer inventory or certain opening/closing classification.
+- The account risk terminal is read-only. It calculates long-position risk, margin, reward:risk, and risk-budget usage, and may detect entry, stop-loss, and take-profit from chart levels without placing orders.
+- Calculated levels use compact in-chart edge markers beside the Gamma profile. A dedicated right-side Level Rail is no longer reserved; the price scale and risk-terminal area must remain unobstructed.
+
 
 # 38. Product Questions Status
 
@@ -4164,6 +4186,10 @@ Ox Alpha long-context/adversarial reviewer
 ChatGPT architect/coordinator
 milestone-exit owner approvals
 free Vercel URL initially
+10,000 validated Binance candles
+separate wall signals with confluence zones and overlap counts
+read-only account risk terminal
+compact in-chart level markers beside the Gamma profile
 ```
 
 No remaining product decision blocks Milestone 0 or Milestone 0.5.
@@ -4179,8 +4205,9 @@ Asset: BTC only
 Master chart: Binance BTCUSDT Spot
 Perpetual candles: no
 Timeframes: 1m, 5m, 15m, 1h, 4h, 1d, 1w
-Initial history: 2,000 candles
-Older history: lazy load
+Initial history: up to 10,000 validated real candles
+History transport: REST pagination at no more than 1,000 bars per request
+Synthetic market fallback: prohibited
 Volume pane: yes
 Drawing tools: horizontal line + vertical line
 Chart engine: Lightweight Charts
@@ -4193,6 +4220,12 @@ Max Pain: specific expiry only
 Gamma refresh: no more than one full profile calculation every 2 seconds while dirty
 OI snapshot: 30 seconds
 Historical gamma persistence: no
+Wall signals: Gamma, open interest, 24-hour volume, flow-informed dealer, Max Pain, Gamma Flip
+Wall strength: overlap-count band first; concentration, persistence, spot distance, expiry importance, and recent reactions second
+Level presentation: compact in-chart edge markers beside the Gamma profile; no dedicated right-side rail
+Dealer flow window: rolling 60 minutes, explicitly labeled as an inferred proxy with confidence
+Gamma reconciliation: six representative near-ATM Deribit contracts
+Account risk terminal: read-only long sizing plus chart-level entry, stop-loss, and take-profit detection
 Desktop: primary launch target
 Mobile: responsive where practical, not a launch gate
 Theme: dark first
