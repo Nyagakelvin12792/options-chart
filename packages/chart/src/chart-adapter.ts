@@ -1,4 +1,5 @@
 import type { Candle, GammaLevel } from "@options-chart/domain";
+import type { VolumeProfileRenderInput } from "./volume-profile/types";
 
 export interface ChartVisibleRange {
   readonly fromTimestamp: number;
@@ -84,7 +85,10 @@ export interface ChartAdapter {
   subscribeDrawingsChange(
     listener: (drawings: readonly ChartDrawing[]) => void,
   ): () => void;
+  setVolumeProfile?(id: string, renderInput: VolumeProfileRenderInput): void;
+  removeVolumeProfile?(id: string): void;
   getDiagnostics(): ChartAdapterDiagnostics;
   resize(width: number, height: number): void;
   destroy(): void;
 }
+
