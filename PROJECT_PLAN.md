@@ -1,8 +1,8 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.9.0
-Status: M10.4 persistent Volume Profile settings delivered and deployed; M9 observation evidence remains open
+Version: 0.9.1
+Status: M10.5 Anchored VWAP and unified indicator settings implemented; deployment verification and M9 observation evidence remain open
 Date: 2026-09-15
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
@@ -283,6 +283,16 @@ Do not calculate an unlabeled all-expiries Max Pain.
 - Label candle-direction Up/Down as an estimate and do not present it as trade-aggressor delta.
 - Apply style-only settings without recalculating the profile or recreating the chart.
 - Keep the settings menu contained within desktop and mobile viewports without adding page sections or permanent chart clutter.
+
+## M10.5 Anchored VWAP and unified indicator settings
+
+- Integrate the reviewed Anchored VWAP engine through the existing `ChartAdapter` without creating a second chart.
+- Calculate cumulative price-volume from normalized Binance BTCUSDT candle volume with replay cutoffs and numerically stable weighted variance.
+- Support session, UTC week, UTC month, and direct chart-picked anchors plus HLC3, Close, HL2, OHLC4, and weighted-close sources.
+- Render independently configurable standard-deviation bands, restrained fill, anchor line, and an exact AVWAP price-axis label without changing chart autoscale.
+- Place Anchored VWAP and Volume Profile inside one compact Indicators panel with persistent, validated Inputs and Style settings.
+- Keep both indicators isolated from Deribit options-volume, GEX, wall selection, confluence scoring, risk calculations, and order execution.
+- Preserve the single-screen desktop dashboard and avoid chart recreation while indicators are configured.
 
 ## Historical Gamma
 

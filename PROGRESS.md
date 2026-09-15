@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.0
+Version: 0.9.1
 Last updated: 2026-09-15
-Overall status: M0-M8 and M10.2-M10.4 complete; M9 observation evidence remains open
-Current milestone: M9 Trading-Readiness Validation after M10.4 delivery
+Overall status: M0-M8 and M10.2-M10.5 implementation complete; M10.5 deployment verification and M9 observation evidence remain open
+Current milestone: M10.5 deployment verification, then M9 Trading-Readiness Validation
 Production status: DEPLOYED ON VERCEL AT `c096097`
 
 ---
@@ -44,7 +44,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
 | Volume Profile | COMPLETE | Persistent TradingView-aligned settings deployed through commit `c096097` |
-| External indicators | IN PARALLEL | Anchored VWAP remains on its independent feature branch and is not merged |
+| External indicators | IMPLEMENTED | Anchored VWAP is merged at `ee9f5b7` with persistent settings and a unified VP/AVWAP panel; deployment pending |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -106,6 +106,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-051 | long and short position tools own draggable Entry, SL, and TP levels behind ChartAdapter | ACCEPTED |
 | ADR-052 | multi-expiry wall confluence preserves per-expiry signals and adds expiry breadth without replacing validated aggregate walls | ACCEPTED |
 | ADR-053 | Volume Profile settings persist locally and remain isolated from Deribit options-volume and wall calculations | ACCEPTED |
+| ADR-054 | Anchored VWAP uses Binance candle volume, strict replay cutoffs, direct chart anchors, and a shared settings surface while remaining independent from options calculations | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -653,6 +654,32 @@ Evidence:
 
 ---
 
+## M10.5 Anchored VWAP and Unified Indicator Settings
+
+Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
+
+- [x] Review and integrate Antigravity Anchored VWAP commit `d500f7c` on top of the current Volume Profile, replay, and position-tool dashboard.
+- [x] Preserve the weighted cumulative VWAP and West-Welford variance method while preventing an undefined zero-volume anchor from producing a false initial value.
+- [x] Add strict replay filtering, bounded caching, debounced recalculation, high-DPI rendering, autoscale isolation, and adapter lifecycle cleanup.
+- [x] Add session, UTC week, UTC month, and direct chart-click anchor selection.
+- [x] Add HLC3, Close, HL2, OHLC4, and weighted-close source controls plus three configurable deviation bands.
+- [x] Replace the separate VP control with one compact Indicators panel for Volume Profile and Anchored VWAP Inputs/Style settings.
+- [x] Persist and validate Anchored VWAP visibility, anchor, source, bands, colors, fill, line width, anchor line, and price label.
+- [x] Preserve Volume Profile settings, chart instance, replay behavior, wall calculations, and risk tools.
+- [x] Pass 57 test files and 344 tests in the single-worker full run.
+- [x] Pass production build and focused desktop/mobile browser persistence checks.
+- [ ] Push `ee9f5b7` and the M10.5 documentation commit to GitHub.
+- [ ] Verify the Vercel production deployment.
+
+Evidence:
+
+- M10.5 journal: `docs/progress/M10/M10.5.md`.
+- Feature commit: `ee9f5b7`.
+- Focused browser checks for Volume Profile and direct chart-picked Anchored VWAP: 2 passed.
+- Desktop 1366x768 and mobile 390x844 settings containment: PASS.
+
+---
+
 # 6. Validation Scoreboard
 
 Do not change a status to PASS without test evidence.
@@ -902,6 +929,31 @@ Mitigation:
 # 10. Change Log
 
 Use newest entries first.
+
+## 2026-09-15
+
+### M10.5-ANCHORED-VWAP-AND-INDICATOR-PANEL
+
+Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
+
+Implementation:
+
+- Reviewed Antigravity commit `d500f7c` and integrated its isolated AVWAP engine at `ee9f5b7` without replacing current Volume Profile, replay, position drawings, or wall behavior.
+- Added direct chart anchoring, UTC period anchors, persistent settings, and a compact shared Indicators panel.
+- Corrected initial zero-volume handling so AVWAP remains undefined until positive traded volume exists.
+- Removed generated screenshot and bundle outputs from the integration commit while retaining source fixtures and production browser evidence.
+
+Validation:
+
+- 57 Vitest files and 344 tests passed with one worker.
+- TypeScript, workspace lint, production build, and two focused Chromium persistence workflows passed.
+- Visual checks passed at 1366x768 and 390x844 without panel overflow.
+
+Remaining:
+
+- Push the implementation and documentation commits, then verify Vercel production before marking M10.5 deployed.
+
+---
 
 ## 2026-09-10
 
