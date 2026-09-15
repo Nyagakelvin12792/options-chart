@@ -26,6 +26,8 @@ import type {
   ChartViewportState,
   PositionDrawing,
 } from "../chart-adapter";
+import type { AnchoredVwapRenderInput } from "../anchored-vwap/types";
+import { AnchoredVwapPrimitive } from "../anchored-vwap/anchored-vwap-primitive";
 import {
   createPositionDrawing,
   isPositionDrawingOrderValid,
@@ -98,11 +100,18 @@ export class LightweightChartsAdapter implements ChartAdapter {
     string,
     VolumeProfilePrimitive
   >();
+  private readonly anchoredVwapPrimitives = new Map<
+    string,
+    AnchoredVwapPrimitive
+  >();
   private readonly viewportListeners = new Set<
     (state: ChartViewportState) => void
   >();
   private readonly drawingsChangeListeners = new Set<
     (drawings: readonly ChartDrawing[]) => void
+  >();
+  private readonly timeSelectionListeners = new Set<
+    (timestamp: number) => void
   >();
 
   private drawingMode: ChartDrawingMode = "pointer";
@@ -287,6 +296,27 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.volumeProfilePrimitives.delete(id);
   }
 
+  setAnchoredVwap(id: string, renderInput: AnchoredVwapRenderInput): void {
+    const series = this.requireSeries();
+    const existing = this.anchoredVwapPrimitives.get(id);
+    if (existing) {
+      existing.update(renderInput);
+      return;
+    }
+    const primitive = new AnchoredVwapPrimitive(renderInput);
+    series.attachPrimitive(primitive);
+    this.anchoredVwapPrimitives.set(id, primitive);
+  }
+
+  removeAnchoredVwap(id: string): void {
+    const primitive = this.anchoredVwapPrimitives.get(id);
+    if (!primitive) return;
+    if (this.series) {
+      this.series.detachPrimitive(primitive);
+    }
+    this.anchoredVwapPrimitives.delete(id);
+  }
+
   setVisibleRange(range: ChartVisibleRange): void {
     this.requireChart()
       .timeScale()
@@ -381,6 +411,11 @@ export class LightweightChartsAdapter implements ChartAdapter {
     return () => this.drawingsChangeListeners.delete(listener);
   }
 
+  subscribeTimeSelection(listener: (timestamp: number) => void): () => void {
+    this.timeSelectionListeners.add(listener);
+    return () => this.timeSelectionListeners.delete(listener);
+  }
+
   getDiagnostics(): ChartAdapterDiagnostics {
     return {
       initializedAt: this.initializedAt,
@@ -393,7 +428,8 @@ export class LightweightChartsAdapter implements ChartAdapter {
       listenerCount:
         (this.chart ? 2 : 0) +
         this.viewportListeners.size +
-        this.drawingsChangeListeners.size,
+        this.drawingsChangeListeners.size +
+        this.timeSelectionListeners.size,
       conflationEnabled: this.conflationEnabled,
       lastOperationDurationMs: this.lastOperationDurationMs,
       maxOperationDurationMs: this.maxOperationDurationMs,
@@ -449,10 +485,15 @@ export class LightweightChartsAdapter implements ChartAdapter {
       for (const primitive of this.volumeProfilePrimitives.values()) {
         this.series.detachPrimitive(primitive);
       }
+      for (const primitive of this.anchoredVwapPrimitives.values()) {
+        this.series.detachPrimitive(primitive);
+      }
     }
     this.volumeProfilePrimitives.clear();
+    this.anchoredVwapPrimitives.clear();
     this.viewportListeners.clear();
     this.drawingsChangeListeners.clear();
+    this.timeSelectionListeners.clear();
     this.chart?.remove();
     this.chart = null;
     this.container = null;
@@ -514,6 +555,11 @@ export class LightweightChartsAdapter implements ChartAdapter {
         (visibleRange.to - visibleRange.from) * ratio) as UTCTimestamp;
     }
     if (typeof chartTime === "number") {
+      if (this.drawingMode === "anchored-vwap") {
+        const timestamp = chartTime * 1_000;
+        for (const listener of this.timeSelectionListeners) listener(timestamp);
+        return;
+      }
       this.addDrawing({
         id,
         type: "vertical-line",

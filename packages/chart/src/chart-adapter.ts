@@ -1,4 +1,5 @@
 import type { Candle, GammaLevel } from "@options-chart/domain";
+import type { AnchoredVwapRenderInput } from "./anchored-vwap/types";
 import type { VolumeProfileRenderInput } from "./volume-profile/types";
 
 export interface ChartVisibleRange {
@@ -25,6 +26,7 @@ export type ChartDrawingMode =
   | "pointer"
   | "horizontal-line"
   | "vertical-line"
+  | "anchored-vwap"
   | "long-position"
   | "short-position";
 
@@ -54,9 +56,7 @@ export interface PositionDrawing extends ChartDrawingBase {
 }
 
 export type ChartDrawing =
-  | HorizontalLineDrawing
-  | VerticalLineDrawing
-  | PositionDrawing;
+  HorizontalLineDrawing | VerticalLineDrawing | PositionDrawing;
 
 export interface ChartViewportState {
   readonly visibleRange: ChartVisibleRange | null;
@@ -103,8 +103,11 @@ export interface ChartAdapter {
   subscribeDrawingsChange(
     listener: (drawings: readonly ChartDrawing[]) => void,
   ): () => void;
+  subscribeTimeSelection(listener: (timestamp: number) => void): () => void;
   setVolumeProfile?(id: string, renderInput: VolumeProfileRenderInput): void;
   removeVolumeProfile?(id: string): void;
+  setAnchoredVwap?(id: string, renderInput: AnchoredVwapRenderInput): void;
+  removeAnchoredVwap?(id: string): void;
   getDiagnostics(): ChartAdapterDiagnostics;
   resize(width: number, height: number): void;
   destroy(): void;

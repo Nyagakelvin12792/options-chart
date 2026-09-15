@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AnchoredVwapController,
   CALCULATION_VERSION as VOLUME_PROFILE_CALCULATION_VERSION,
   LightweightChartsAdapter,
   VolumeProfileController,
@@ -79,7 +80,16 @@ import {
   type ProfileMetric,
 } from "@/components/gamma-overlay";
 import { RiskTerminal } from "@/components/risk-terminal";
-import { VolumeProfileControls } from "@/components/volume-profile-controls";
+import { IndicatorControls } from "@/components/indicator-controls";
+import {
+  ANCHORED_VWAP_SETTINGS_STORAGE_KEY,
+  DEFAULT_ANCHORED_VWAP_SETTINGS,
+  getEnabledBandMultipliers,
+  normalizeAnchoredVwapSettings,
+  parseAnchoredVwapSettings,
+  resolveAnchoredVwapAnchor,
+  serializeAnchoredVwapSettings,
+} from "@/lib/anchored-vwap-settings";
 import {
   ConfluenceZoneOverlay,
   type PositionedWallConfluenceZone,
@@ -300,6 +310,7 @@ export function DashboardClient({
   const volumeProfileControllerRef = useRef<VolumeProfileController | null>(
     null,
   );
+  const anchoredVwapControllerRef = useRef<AnchoredVwapController | null>(null);
   const candleStoreRef = useRef<CandleStore | null>(null);
   const timeframeHistoryCacheRef = useRef(
     new Map<CandleInterval, readonly Candle[]>(),
@@ -403,6 +414,11 @@ export function DashboardClient({
   );
   const [volumeProfileSettingsReady, setVolumeProfileSettingsReady] =
     useState(false);
+  const [anchoredVwapSettings, setAnchoredVwapSettings] = useState(
+    DEFAULT_ANCHORED_VWAP_SETTINGS,
+  );
+  const [anchoredVwapSettingsReady, setAnchoredVwapSettingsReady] =
+    useState(false);
   const [chartHeight, setChartHeight] = useState(1);
   const [liveAuditNow, setAuditNow] = useState(() => Date.now());
   const [positionedLevels, setPositionedLevels] = useState<
@@ -437,6 +453,16 @@ export function DashboardClient({
       ? replayFrame.options.snapshot.capturedAt
       : auditNow;
   const lastPrice = replayFrame?.candle.close ?? liveLastPrice;
+  const anchoredVwapAnchor = useMemo(() => {
+    const latestTimestamp = replayFrame?.candle.openTime ?? auditNow;
+    return resolveAnchoredVwapAnchor(anchoredVwapSettings, latestTimestamp);
+  }, [anchoredVwapSettings, auditNow, replayFrame?.candle.openTime]);
+  const anchoredVwapAnchorLabel = anchoredVwapAnchor
+    ? new Date(anchoredVwapAnchor)
+        .toISOString()
+        .slice(0, 16)
+        .replace("T", " ") + " UTC"
+    : "Pick a candle on the chart";
 
   if (replayStorageRef.current === null) {
     replayStorageRef.current = createReplaySnapshotStorage(
@@ -461,6 +487,16 @@ export function DashboardClient({
       setVolumeProfileSettings(DEFAULT_VOLUME_PROFILE_SETTINGS);
     }
     setVolumeProfileSettingsReady(true);
+    try {
+      setAnchoredVwapSettings(
+        parseAnchoredVwapSettings(
+          localStorage.getItem(ANCHORED_VWAP_SETTINGS_STORAGE_KEY),
+        ),
+      );
+    } catch {
+      setAnchoredVwapSettings(DEFAULT_ANCHORED_VWAP_SETTINGS);
+    }
+    setAnchoredVwapSettingsReady(true);
   }, []);
 
   useEffect(() => {
@@ -474,6 +510,18 @@ export function DashboardClient({
       // The chart remains usable when browser storage is unavailable.
     }
   }, [volumeProfileSettings, volumeProfileSettingsReady]);
+
+  useEffect(() => {
+    if (!anchoredVwapSettingsReady) return;
+    try {
+      localStorage.setItem(
+        ANCHORED_VWAP_SETTINGS_STORAGE_KEY,
+        serializeAnchoredVwapSettings(anchoredVwapSettings),
+      );
+    } catch {
+      // The chart remains usable when browser storage is unavailable.
+    }
+  }, [anchoredVwapSettings, anchoredVwapSettingsReady]);
   if (deribitFlowClientRef.current == null) {
     deribitFlowClientRef.current = new DeribitRestClient({
       endpoint: "/api/deribit",
@@ -1191,6 +1239,16 @@ export function DashboardClient({
       },
     });
     volumeProfileControllerRef.current = volumeProfileController;
+    const anchoredVwapController = new AnchoredVwapController({
+      vwapId: "dashboard-anchored-vwap",
+      debounceMs: 80,
+      maxDelayMs: 250,
+      cacheCapacity: 40,
+      onRender: (renderInput) => {
+        adapter.setAnchoredVwap?.("dashboard-anchored-vwap", renderInput);
+      },
+    });
+    anchoredVwapControllerRef.current = anchoredVwapController;
 
     for (const drawing of readStoredDrawings()) adapter.addDrawing(drawing);
     setDrawingCount(adapter.getDrawings().length);
@@ -1202,6 +1260,20 @@ export function DashboardClient({
       setDrawings(drawings);
       setDiagnostics(adapter.getDiagnostics());
     });
+    const unsubscribeTimeSelection = adapter.subscribeTimeSelection(
+      (timestamp) => {
+        setAnchoredVwapSettings((current) =>
+          normalizeAnchoredVwapSettings({
+            ...current,
+            enabled: true,
+            anchorMode: "manual",
+            manualTimestamp: timestamp,
+          }),
+        );
+        adapter.setDrawingMode("pointer");
+        setDrawingModeState("pointer");
+      },
+    );
     const scheduleOverlayRefresh = () => {
       if (overlayAnimationFrameRef.current !== null) return;
       overlayAnimationFrameRef.current = requestAnimationFrame(() => {
@@ -1254,11 +1326,15 @@ export function DashboardClient({
       }
       unsubscribeViewport();
       unsubscribeDrawings();
+      unsubscribeTimeSelection();
       volumeProfileController.dispose();
       adapter.removeVolumeProfile?.("dashboard-volume-profile");
+      anchoredVwapController.dispose();
+      adapter.removeAnchoredVwap?.("dashboard-anchored-vwap");
       adapter.destroy();
       chartAdapterRef.current = null;
       volumeProfileControllerRef.current = null;
+      anchoredVwapControllerRef.current = null;
     };
   }, []);
 
@@ -1326,6 +1402,71 @@ export function DashboardClient({
     replayTimeline,
     selectedInterval,
     volumeProfileSettings,
+    volumeProfileRevision,
+  ]);
+
+  useEffect(() => {
+    const adapter = chartAdapterRef.current;
+    const controller = anchoredVwapControllerRef.current;
+    if (!adapter || !controller) return;
+    if (!anchoredVwapSettings.enabled) {
+      adapter.removeAnchoredVwap?.("dashboard-anchored-vwap");
+      return;
+    }
+
+    const candles =
+      replayTimeline && replayIndex >= 0
+        ? replayTimeline.candles.slice(0, replayIndex + 1)
+        : (candleStoreRef.current?.getSorted() ?? []);
+    const latest = candles.at(-1);
+    if (!latest) return;
+    const anchorTimestamp = resolveAnchoredVwapAnchor(
+      anchoredVwapSettings,
+      latest.openTime,
+    );
+    if (anchorTimestamp === null) {
+      adapter.removeAnchoredVwap?.("dashboard-anchored-vwap");
+      return;
+    }
+
+    const multipliers = getEnabledBandMultipliers(anchoredVwapSettings);
+    const fillAlpha = anchoredVwapSettings.fillOpacityPercent / 100;
+    controller.setPresentation({
+      vwapColor: anchoredVwapSettings.vwapColor,
+      vwapLineWidth: anchoredVwapSettings.lineWidth,
+      showBands: multipliers.length > 0,
+      bandColors: [
+        `${anchoredVwapSettings.bandColor}b8`,
+        `${anchoredVwapSettings.bandColor}80`,
+        `${anchoredVwapSettings.bandColor}52`,
+      ],
+      bandLineWidth: 1,
+      bandFillColor: `${anchoredVwapSettings.bandColor}${Math.round(
+        fillAlpha * 255,
+      )
+        .toString(16)
+        .padStart(2, "0")}`,
+      showFill: anchoredVwapSettings.showFill && multipliers.length > 0,
+      showAnchorLine: anchoredVwapSettings.showAnchorLine,
+      anchorLineColor: `${anchoredVwapSettings.vwapColor}8f`,
+      showLabels: anchoredVwapSettings.showLabel,
+      labelPrecision: 2,
+    });
+    controller.setInput({
+      anchorTimestamp,
+      candles,
+      priceSource: anchoredVwapSettings.priceSource,
+      bandMultipliers: multipliers,
+      replayCutoff:
+        replayTimeline && replayIndex >= 0 ? latest.closeTime : undefined,
+      symbol: "BTCUSDT",
+      timeframe: selectedInterval,
+    });
+  }, [
+    anchoredVwapSettings,
+    replayIndex,
+    replayTimeline,
+    selectedInterval,
     volumeProfileRevision,
   ]);
 
@@ -2323,13 +2464,22 @@ export function DashboardClient({
               <strong>BTC / USDT · {selectedInterval}</strong>
             </div>
             <div className="chart-heading-actions">
-              <VolumeProfileControls
-                settings={volumeProfileSettings}
-                onChange={(settings) =>
+              <IndicatorControls
+                volumeProfile={volumeProfileSettings}
+                anchoredVwap={anchoredVwapSettings}
+                anchorLabel={anchoredVwapAnchorLabel}
+                anchorPicking={drawingMode === "anchored-vwap"}
+                onVolumeProfileChange={(settings) =>
                   setVolumeProfileSettings(
                     normalizeVolumeProfileSettings(settings),
                   )
                 }
+                onAnchoredVwapChange={(settings) =>
+                  setAnchoredVwapSettings(
+                    normalizeAnchoredVwapSettings(settings),
+                  )
+                }
+                onStartAnchorPick={() => setDrawingMode("anchored-vwap")}
               />
               <button
                 type="button"

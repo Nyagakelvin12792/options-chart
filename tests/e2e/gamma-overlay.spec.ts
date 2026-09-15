@@ -148,21 +148,19 @@ test("retains Volume Profile inputs and style settings without recreating the ch
   test.setTimeout(120_000);
   await openFixtureDashboard(page);
 
-  const toggle = page.getByRole("button", { name: "Toggle Volume Profile" });
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
   expect(await getChartCreateCount(page)).toBe(1);
 
   const settingsToggle = page.getByRole("button", {
-    name: "Volume Profile settings",
+    name: "Indicators and settings",
   });
   await settingsToggle.click();
   const dialog = page.getByRole("dialog", {
-    name: "Volume Profile settings",
+    name: "Indicators and settings",
   });
+  const toggle = dialog.getByRole("button", { name: "Toggle Volume Profile" });
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await dialog.getByLabel("Volume Profile rows").fill("96");
-  await dialog
-    .getByLabel("Volume Profile volume mode")
-    .selectOption("total");
+  await dialog.getByLabel("Volume Profile volume mode").selectOption("total");
   await dialog.getByLabel("Volume Profile volume unit").selectOption("quote");
   await dialog.getByLabel("Volume Profile value area percent").fill("80");
   await dialog.getByRole("tab", { name: "STYLE" }).click();
@@ -174,8 +172,8 @@ test("retains Volume Profile inputs and style settings without recreating the ch
 
   await page.reload();
   await expect(page.getByTestId("candle-count")).toHaveText("10000");
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await settingsToggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await expect(dialog.getByLabel("Volume Profile rows")).toHaveValue("96");
   await expect(dialog.getByLabel("Volume Profile volume mode")).toHaveValue(
     "total",
@@ -194,9 +192,9 @@ test("retains Volume Profile inputs and style settings without recreating the ch
   await expect(dialog.getByLabel("Volume Profile width percent")).toHaveValue(
     "24",
   );
-  await expect(
-    dialog.getByLabel("Volume Profile opacity percent"),
-  ).toHaveValue("55");
+  await expect(dialog.getByLabel("Volume Profile opacity percent")).toHaveValue(
+    "55",
+  );
   await expect(
     dialog.getByRole("checkbox", { name: "LEVEL LABELS" }),
   ).not.toBeChecked();
@@ -213,17 +211,65 @@ test("retains Volume Profile inputs and style settings without recreating the ch
     expect(bounds.y).toBeGreaterThanOrEqual(0);
     expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
     await page.screenshot({
-      path: testInfo.outputPath(`vp-settings-${viewport.width}x${viewport.height}.png`),
+      path: testInfo.outputPath(
+        `vp-settings-${viewport.width}x${viewport.height}.png`,
+      ),
       fullPage: true,
     });
   }
 
-  await settingsToggle.click();
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await page.reload();
   await expect(page.getByTestId("candle-count")).toHaveText("10000");
+  await settingsToggle.click();
   await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  expect(await getChartCreateCount(page)).toBe(1);
+});
+
+test("anchors VWAP from the chart and retains its indicator settings", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000);
+  await openFixtureDashboard(page);
+
+  const menu = page.getByRole("button", { name: "Indicators and settings" });
+  await menu.click();
+  const dialog = page.getByRole("dialog", { name: "Indicators and settings" });
+  await dialog.getByRole("tab", { name: /ANCHORED VWAP/ }).click();
+  const toggle = dialog.getByRole("button", { name: "Toggle Anchored VWAP" });
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await toggle.click();
+  await dialog.getByRole("button", { name: "PICK" }).click();
+  await page.getByTestId("candlestick-chart").click({
+    position: { x: 420, y: 240 },
+  });
+
+  await menu.click();
+  await dialog.getByRole("tab", { name: /ANCHORED VWAP/ }).click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.getByText("CUSTOM ANCHOR")).toBeVisible();
+  await dialog.getByLabel("Anchored VWAP price source").selectOption("ohlc4");
+  await dialog.getByLabel("Anchored VWAP band 3 multiplier").fill("3.5");
+  await dialog.getByRole("checkbox", { name: "BAND 3" }).check();
+  expect(await getChartCreateCount(page)).toBe(1);
+
+  await page.screenshot({
+    path: testInfo.outputPath("anchored-vwap-indicator-panel.png"),
+    fullPage: true,
+  });
+  await page.reload();
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
+  await menu.click();
+  await dialog.getByRole("tab", { name: /ANCHORED VWAP/ }).click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.getByText("CUSTOM ANCHOR")).toBeVisible();
+  await expect(dialog.getByLabel("Anchored VWAP price source")).toHaveValue(
+    "ohlc4",
+  );
+  await expect(
+    dialog.getByLabel("Anchored VWAP band 3 multiplier"),
+  ).toHaveValue("3.5");
   expect(await getChartCreateCount(page)).toBe(1);
 });
 
