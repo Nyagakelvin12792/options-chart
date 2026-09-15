@@ -2,7 +2,7 @@
 ## PROJECT_PLAN.md
 
 Version: 0.9.0
-Status: M10.4 persistent Volume Profile settings locally verified; Vercel deployment pending
+Status: M10.4 persistent Volume Profile settings delivered and deployed; M9 observation evidence remains open
 Date: 2026-09-15
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
