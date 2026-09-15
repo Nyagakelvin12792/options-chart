@@ -11,6 +11,7 @@ import { Info } from "lucide-react";
 
 import {
   layoutCollisionItems,
+  getLevelPriority,
   type CollisionItem,
 } from "./gamma-overlay-layout";
 import type { WallConfluenceZone, WallSignalKind } from "./wall-confluence";
@@ -51,12 +52,7 @@ export interface PositionedProfileBar {
   readonly strength: number;
 }
 
-const levelPriority = (kind: GammaLevelKind): number => {
-  if (kind === "gamma-flip") return 1;
-  if (kind === "call-wall" || kind === "put-wall") return 2;
-  if (kind === "max-pain") return 3;
-  return 4;
-};
+const levelPriority = (kind: GammaLevelKind): number => getLevelPriority(kind);
 
 const compactUsd = new Intl.NumberFormat("en-US", {
   notation: "compact",

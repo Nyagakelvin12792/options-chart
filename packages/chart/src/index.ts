@@ -20,6 +20,12 @@ export {
   positionRewardRiskRatio,
   type PositionDrawingLevel,
 } from "./position-drawing";
+export type {
+  LevelSegment,
+  LevelSegmentsPresentationOptions,
+  SegmentLineStyle,
+} from "./level-segments/types";
+export { LevelSegmentsPrimitive } from "./level-segments/level-segments-primitive";
 
 // Volume Profile indicator exports
 export type {

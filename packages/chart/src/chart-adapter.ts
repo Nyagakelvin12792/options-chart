@@ -1,4 +1,8 @@
 import type { Candle, GammaLevel } from "@options-chart/domain";
+import type {
+  LevelSegment,
+  LevelSegmentsPresentationOptions,
+} from "./level-segments/types";
 import type { VolumeProfileRenderInput } from "./volume-profile/types";
 
 export interface ChartVisibleRange {
@@ -88,6 +92,11 @@ export interface ChartAdapter {
   updateCandle(candle: Candle): void;
   setLevels(levels: readonly GammaLevel[]): void;
   removeLevel(id: string): void;
+  setLevelSegments?(
+    segments: readonly LevelSegment[],
+    presentation?: LevelSegmentsPresentationOptions,
+  ): void;
+  clearLevelSegments?(): void;
   setVisibleRange(range: ChartVisibleRange): void;
   getVisibleRange(): ChartVisibleRange | null;
   priceToCoordinate(price: number): number | null;
