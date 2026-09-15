@@ -510,6 +510,13 @@ h1 {
   gap: 4px;
 }
 
+.chart-heading-actions .volume-profile-toggle {
+  display: inline-flex;
+  min-width: 44px;
+  align-items: center;
+  gap: 4px;
+}
+
 .replay-controls {
   display: flex;
   min-width: 0;

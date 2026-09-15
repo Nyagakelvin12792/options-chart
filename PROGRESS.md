@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.7.0
+Version: 0.8.0
 Last updated: 2026-09-15
-Overall status: M0-M8 and M10.2 complete; M9 observation evidence remains open
-Current milestone: M9 Trading-Readiness Validation after M10.2 delivery
+Overall status: M0-M8 and M10.2 complete; M10.3 locally verified; M9 observation evidence remains open
+Current milestone: M10.3 Vercel deployment verification alongside M9 Trading-Readiness Validation
 Production status: DEPLOYED ON VERCEL AT `8c18364`
 
 ---
@@ -43,7 +43,8 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Account risk terminal | COMPLETE | Read-only long/short sizing and explicit position-tool entry/SL/TP detection; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
-| External indicators | IN PARALLEL | Anchored VWAP and Volume Profile have an integration contract; external feature branches are not yet merged |
+| Volume Profile | LOCALLY VERIFIED | Antigravity engine merged, wired to live/replay, and passed the complete release gate |
+| External indicators | IN PARALLEL | Anchored VWAP remains on its independent feature branch and is not merged |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -603,6 +604,28 @@ Evidence:
 - 49 test files and 292 tests passed in the final unit/integration run.
 - Production build passed, and fixture-backed 1366x768, 1920x1080, and 390x844 layout checks passed.
 - GitHub independently returned commit `8c18364`, and its Vercel status completed successfully.
+
+---
+
+## M10.3 Volume Profile Integration
+
+Status: LOCALLY VERIFIED - VERCEL DEPLOYMENT VERIFICATION IN PROGRESS
+
+- [x] Merge Antigravity Volume Profile commit `27d1d64` while retaining the newer position-tool and replay adapter behavior.
+- [x] Wire the profile to the single dashboard chart and visible Binance candle range.
+- [x] Add a compact `VP` toggle without adding a dashboard panel or page scroll.
+- [x] Preserve POC, VAH, VAL, 70% value area, replay cutoff, debounce, cache, and lifecycle cleanup behavior.
+- [x] Keep Binance candle volume independent from Deribit options-volume and wall calculations.
+- [x] Pass 33 focused calculation, performance, primitive, and adapter tests.
+- [x] Pass the dashboard toggle check and laptop, wide-desktop, and mobile layout checks.
+- [x] Pass the complete repository test and production build gate.
+- [ ] Push and verify the Vercel production deployment.
+
+Evidence:
+
+- M10.3 journal: `docs/progress/M10/M10.3.md`.
+- Antigravity implementation report: `packages/chart/src/volume-profile/REPORT.md`.
+- Final validation passed 52 test files and 317 tests, typecheck, lint, production build, and progress consistency.
 
 ---
 

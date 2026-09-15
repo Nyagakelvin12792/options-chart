@@ -21,6 +21,7 @@ export default defineConfig([
     "**/.next/**",
     "**/coverage/**",
     "**/dist/**",
+    "**/volume-profile/fixture/bundle.js",
     "node_modules/**",
     "playwright-report/**",
     "test-results/**",

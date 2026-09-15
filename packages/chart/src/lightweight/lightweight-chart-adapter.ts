@@ -32,6 +32,8 @@ import {
   movePositionDrawingLevel,
   type PositionDrawingLevel,
 } from "../position-drawing";
+import type { VolumeProfileRenderInput } from "../volume-profile/types";
+import { VolumeProfilePrimitive } from "../volume-profile/volume-profile-primitive";
 import { VerticalLinePrimitive } from "./vertical-line-primitive";
 
 const LEVEL_COLORS: Readonly<Record<GammaLevel["kind"], string>> = {
@@ -91,6 +93,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
   private readonly verticalDrawingPrimitives = new Map<
     string,
     VerticalLinePrimitive
+  >();
+  private readonly volumeProfilePrimitives = new Map<
+    string,
+    VolumeProfilePrimitive
   >();
   private readonly viewportListeners = new Set<
     (state: ChartViewportState) => void
@@ -260,6 +266,27 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.levelLines.delete(id);
   }
 
+  setVolumeProfile(id: string, renderInput: VolumeProfileRenderInput): void {
+    const series = this.requireSeries();
+    const existing = this.volumeProfilePrimitives.get(id);
+    if (existing) {
+      existing.update(renderInput);
+      return;
+    }
+    const primitive = new VolumeProfilePrimitive(renderInput);
+    series.attachPrimitive(primitive);
+    this.volumeProfilePrimitives.set(id, primitive);
+  }
+
+  removeVolumeProfile(id: string): void {
+    const primitive = this.volumeProfilePrimitives.get(id);
+    if (!primitive) return;
+    if (this.series) {
+      this.series.detachPrimitive(primitive);
+    }
+    this.volumeProfilePrimitives.delete(id);
+  }
+
   setVisibleRange(range: ChartVisibleRange): void {
     this.requireChart()
       .timeScale()
@@ -418,6 +445,12 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.horizontalDrawingLines.clear();
     this.positionDrawingLines.clear();
     this.verticalDrawingPrimitives.clear();
+    if (this.series) {
+      for (const primitive of this.volumeProfilePrimitives.values()) {
+        this.series.detachPrimitive(primitive);
+      }
+    }
+    this.volumeProfilePrimitives.clear();
     this.viewportListeners.clear();
     this.drawingsChangeListeners.clear();
     this.chart?.remove();

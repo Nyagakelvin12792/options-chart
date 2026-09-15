@@ -1,8 +1,8 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.7.0
-Status: M10.2 delivered and deployed; M9 observation evidence remains open
+Version: 0.8.0
+Status: M10.3 Volume Profile locally verified; Vercel deployment verification in progress
 Date: 2026-09-15
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
@@ -266,6 +266,15 @@ Do not calculate an unlabeled all-expiries Max Pain.
 - OI-weighted IV, Call IV, Put IV, near-forward ATM IV, and per-expiry term structure remain separately identifiable calculations.
 - Multi-expiry confluence retains each expiry's Gamma, OI, and volume signal before combining them into a total zone score and expiry-breadth score.
 - Anchored VWAP and Volume Profile are parallel indicator branches governed by `docs/indicator-integration-contract.md`; they are not part of M10.2 until independently reviewed and merged.
+
+## M10.3 Volume Profile integration
+
+- Integrate Antigravity commit `27d1d64` through the existing `ChartAdapter` without creating a second chart.
+- Calculate from normalized Binance BTCUSDT candle volume for the visible range; never mix it with Deribit options-volume signals.
+- Display a right-aligned 70-row profile with POC, VAH, VAL, and a 70% value area behind a compact chart-header toggle.
+- Keep replay deterministic by excluding candles whose close time is after the replay cutoff.
+- Debounce viewport changes, memoize repeated inputs, avoid pointer-triggered recalculation, and preserve chart viewport and drawings.
+- Anchored VWAP remains on its independent feature branch until separately reviewed and merged.
 
 ## Historical Gamma
 

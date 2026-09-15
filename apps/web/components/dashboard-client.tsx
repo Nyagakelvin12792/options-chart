@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  CALCULATION_VERSION as VOLUME_PROFILE_CALCULATION_VERSION,
   LightweightChartsAdapter,
+  VolumeProfileController,
   type ChartAdapter,
   type ChartAdapterDiagnostics,
   type ChartDrawing,
@@ -49,6 +51,7 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
+  BarChart3,
   Eye,
   EyeOff,
   Eraser,
@@ -287,6 +290,9 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartAdapterRef = useRef<ChartAdapter | null>(null);
+  const volumeProfileControllerRef = useRef<VolumeProfileController | null>(
+    null,
+  );
   const candleStoreRef = useRef<CandleStore | null>(null);
   const timeframeHistoryCacheRef = useRef(
     new Map<CandleInterval, readonly Candle[]>(),
@@ -334,6 +340,7 @@ export function DashboardClient({
   const [feedState, setFeedState] = useState<FeedHealthState>("CONNECTING");
   const [candleStatus, setCandleStatus] = useState("Initializing");
   const [candleCount, setCandleCount] = useState(0);
+  const [volumeProfileRevision, setVolumeProfileRevision] = useState(0);
   const [liveLastPrice, setLastPrice] = useState<number | null>(null);
   const [dayChange, setDayChange] = useState<number | null>(null);
   const [drawingMode, setDrawingModeState] =
@@ -384,6 +391,7 @@ export function DashboardClient({
   const [shadingEnabled, setShadingEnabled] = useState(true);
   const [profileExpanded, setProfileExpanded] = useState(true);
   const [profileMetric, setProfileMetric] = useState<ProfileMetric>("gex");
+  const [volumeProfileEnabled, setVolumeProfileEnabled] = useState(true);
   const [chartHeight, setChartHeight] = useState(1);
   const [liveAuditNow, setAuditNow] = useState(() => Date.now());
   const [positionedLevels, setPositionedLevels] = useState<
@@ -404,6 +412,8 @@ export function DashboardClient({
   );
   const replayActive = replayState !== null;
   const replayPlayback = replayState?.playback ?? "paused";
+  const replayTimeline = replayState?.timeline ?? null;
+  const replayIndex = replayFrame?.index ?? -1;
   const optionsChain = useMemo(() => {
     if (!replayState) return liveOptionsChain;
     return replayFrame?.options.status === "available"
@@ -1041,6 +1051,7 @@ export function DashboardClient({
       latestCandleRef.current = latest;
       if (latest) setLastPrice(latest.close);
     }
+    setVolumeProfileRevision((revision) => revision + 1);
     timeframeHistoryCacheRef.current.set(
       activeIntervalRef.current,
       store.getSorted(),
@@ -1089,6 +1100,7 @@ export function DashboardClient({
         preserveVisibleRange: true,
         fitContent: false,
       });
+      setVolumeProfileRevision((revision) => revision + 1);
       setCandleCount(store.size);
       setCandleStatus(
         result.candles.length > 0
@@ -1123,6 +1135,26 @@ export function DashboardClient({
       showVolumePane: false,
     });
     chartAdapterRef.current = adapter;
+    const volumeProfileController = new VolumeProfileController({
+      profileId: "dashboard-volume-profile",
+      debounceMs: 120,
+      maxDelayMs: 400,
+      cacheCapacity: 40,
+      presentation: {
+        placement: "right",
+        widthFraction: 0.16,
+        barOpacity: 0.38,
+        showPOC: true,
+        showVAH: true,
+        showVAL: true,
+        showValueAreaShading: true,
+        showLabels: true,
+      },
+      onRender: (renderInput) => {
+        adapter.setVolumeProfile?.("dashboard-volume-profile", renderInput);
+      },
+    });
+    volumeProfileControllerRef.current = volumeProfileController;
 
     for (const drawing of readStoredDrawings()) adapter.addDrawing(drawing);
     setDrawingCount(adapter.getDrawings().length);
@@ -1143,6 +1175,12 @@ export function DashboardClient({
     };
     const unsubscribeViewport = adapter.subscribeViewportChange((viewport) => {
       scheduleOverlayRefresh();
+      if (viewport.visibleRange) {
+        volumeProfileController.updateViewportRange(
+          viewport.visibleRange.fromTimestamp,
+          viewport.visibleRange.toTimestamp,
+        );
+      }
       if (
         viewportReadyRef.current &&
         viewport.barsBefore < LAZY_HISTORY_THRESHOLD_BARS
@@ -1180,10 +1218,65 @@ export function DashboardClient({
       }
       unsubscribeViewport();
       unsubscribeDrawings();
+      volumeProfileController.dispose();
+      adapter.removeVolumeProfile?.("dashboard-volume-profile");
       adapter.destroy();
       chartAdapterRef.current = null;
+      volumeProfileControllerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const adapter = chartAdapterRef.current;
+    const controller = volumeProfileControllerRef.current;
+    if (!adapter || !controller) return;
+    if (!volumeProfileEnabled) {
+      adapter.removeVolumeProfile?.("dashboard-volume-profile");
+      return;
+    }
+
+    const candles =
+      replayTimeline && replayIndex >= 0
+        ? replayTimeline.candles.slice(0, replayIndex + 1)
+        : (candleStoreRef.current?.getSorted() ?? []);
+    const first = candles[0];
+    const last = candles.at(-1);
+    if (!first || !last) return;
+    const visibleRange = adapter.getVisibleRange();
+    const range = visibleRange
+      ? {
+          from: visibleRange.fromTimestamp,
+          to: visibleRange.toTimestamp,
+        }
+      : { from: first.openTime, to: last.closeTime };
+
+    controller.setInput({
+      candles,
+      range,
+      replayCutoff:
+        replayTimeline && replayIndex >= 0 ? last.closeTime : undefined,
+      binConfig: { mode: "rowCount", rowCount: 70 },
+      volumeUnit: "base",
+      directionMode: "candle-direction",
+      valueAreaPercent: 70,
+      sourceMetadata: {
+        exchange: "binance",
+        market: "spot",
+        symbol: "BTCUSDT",
+        sourceTimeframe: selectedInterval,
+        displayTimeframe: selectedInterval,
+        volumeUnit: "base",
+        calculationVersion: VOLUME_PROFILE_CALCULATION_VERSION,
+        sourceRevision: `${selectedInterval}:${volumeProfileRevision}:${replayIndex}`,
+      },
+    });
+  }, [
+    replayIndex,
+    replayTimeline,
+    selectedInterval,
+    volumeProfileEnabled,
+    volumeProfileRevision,
+  ]);
 
   useEffect(() => {
     if (requestedInterval === selectedInterval) return;
@@ -1223,6 +1316,7 @@ export function DashboardClient({
       preserveVisibleRange = false,
     ) => {
       store.setHistory(historyCandles);
+      setVolumeProfileRevision((revision) => revision + 1);
       timeframeHistoryCacheRef.current.set(selectedInterval, historyCandles);
       const adapter = chartAdapterRef.current;
       if (!replayActiveRef.current) {
@@ -1290,6 +1384,8 @@ export function DashboardClient({
           interval: selectedInterval,
           onCandle: (candle) => {
             if (feedGenerationRef.current !== generation) return;
+            const startsNewBar =
+              latestCandleRef.current?.openTime !== candle.openTime;
             if (store.applyLiveCandle(candle) === null) return;
             if (!replayActiveRef.current) {
               chartAdapterRef.current?.updateCandle(candle);
@@ -1297,6 +1393,9 @@ export function DashboardClient({
             latestCandleRef.current = candle;
             setLastPrice(candle.close);
             setCandleCount(store.size);
+            if (startsNewBar) {
+              setVolumeProfileRevision((revision) => revision + 1);
+            }
           },
           onHealthChange: (state) => {
             if (feedGenerationRef.current === generation) setFeedState(state);
@@ -2173,6 +2272,21 @@ export function DashboardClient({
               <strong>BTC / USDT · {selectedInterval}</strong>
             </div>
             <div className="chart-heading-actions">
+              <button
+                type="button"
+                className={
+                  volumeProfileEnabled ? "active volume-profile-toggle" : "volume-profile-toggle"
+                }
+                aria-label="Toggle Volume Profile"
+                title="Toggle Volume Profile"
+                aria-pressed={volumeProfileEnabled}
+                onClick={() =>
+                  setVolumeProfileEnabled((enabled) => !enabled)
+                }
+              >
+                <BarChart3 size={14} />
+                VP
+              </button>
               <button
                 type="button"
                 className={

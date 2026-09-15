@@ -142,6 +142,25 @@ test("updates Deribit expiry dates and overlays without recreating the chart", a
   expect(await getChartCreateCount(page)).toBe(1);
 });
 
+test("toggles the Binance Volume Profile without recreating the chart", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await openFixtureDashboard(page);
+
+  const toggle = page.getByRole("button", { name: "Toggle Volume Profile" });
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  expect(await getChartCreateCount(page)).toBe(1);
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  expect(await getChartCreateCount(page)).toBe(1);
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  expect(await getChartCreateCount(page)).toBe(1);
+});
+
 test("keeps options labels synchronized during price-scale dragging", async ({
   page,
 }) => {
