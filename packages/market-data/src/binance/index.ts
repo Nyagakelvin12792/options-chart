@@ -46,6 +46,17 @@ export type {
   OlderHistoryResult,
 } from "./pagination";
 
+export {
+  fetchInitialHistoryPage,
+  streamOlderHistoryPages,
+} from "./staged-pagination";
+export type {
+  InitialHistoryOptions,
+  InitialHistoryResult,
+  StreamOlderHistoryOptions,
+  StreamOlderHistoryResult,
+} from "./staged-pagination";
+
 export { CandleStore } from "./reconciliation";
 export type { ReconciliationResult, RepairAction } from "./reconciliation";
 

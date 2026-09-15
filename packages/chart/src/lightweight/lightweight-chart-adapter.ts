@@ -36,6 +36,11 @@ import {
   movePositionDrawingLevel,
   type PositionDrawingLevel,
 } from "../position-drawing";
+import type {
+  LevelSegment,
+  LevelSegmentsPresentationOptions,
+} from "../level-segments/types";
+import { LevelSegmentsPrimitive } from "../level-segments/level-segments-primitive";
 import type { VolumeProfileRenderInput } from "../volume-profile/types";
 import { VolumeProfilePrimitive } from "../volume-profile/volume-profile-primitive";
 import { PositionDrawingPrimitive } from "./position-drawing-primitive";
@@ -111,6 +116,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     string,
     AnchoredVwapPrimitive
   >();
+  private levelSegmentsPrimitive: LevelSegmentsPrimitive | null = null;
   private readonly viewportListeners = new Set<
     (state: ChartViewportState) => void
   >();
@@ -342,6 +348,28 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.anchoredVwapPrimitives.delete(id);
   }
 
+  setLevelSegments(
+    segments: readonly LevelSegment[],
+    presentation?: LevelSegmentsPresentationOptions,
+  ): void {
+    const series = this.requireSeries();
+    if (this.levelSegmentsPrimitive) {
+      this.levelSegmentsPrimitive.updateSegments(segments, presentation);
+      return;
+    }
+    const primitive = new LevelSegmentsPrimitive(segments, presentation);
+    series.attachPrimitive(primitive);
+    this.levelSegmentsPrimitive = primitive;
+  }
+
+  clearLevelSegments(): void {
+    if (!this.levelSegmentsPrimitive) return;
+    if (this.series) {
+      this.series.detachPrimitive(this.levelSegmentsPrimitive);
+    }
+    this.levelSegmentsPrimitive = null;
+  }
+
   setVisibleRange(range: ChartVisibleRange): void {
     this.requireChart()
       .timeScale()
@@ -516,6 +544,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.volumeProfileRangePrimitives.clear();
     this.verticalDrawingPrimitives.clear();
     if (this.series) {
+      if (this.levelSegmentsPrimitive) {
+        this.series.detachPrimitive(this.levelSegmentsPrimitive);
+        this.levelSegmentsPrimitive = null;
+      }
       for (const primitive of this.volumeProfilePrimitives.values()) {
         this.series.detachPrimitive(primitive);
       }

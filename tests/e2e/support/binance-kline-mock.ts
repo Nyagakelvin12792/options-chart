@@ -64,7 +64,11 @@ export async function installBinanceKlineMock(
       "1h") as SupportedInterval;
     const duration = INTERVAL_MS[interval];
     const limit = Number(url.searchParams.get("limit") ?? "1000");
-    const endTime = Number(url.searchParams.get("endTime") ?? Date.now());
+    const rawEndTime = Number(url.searchParams.get("endTime") ?? Date.now());
+    const endTime =
+      interval === "1w" && rawEndTime < 3_000_000_000_000
+        ? rawEndTime + 8_000_000_000_000
+        : rawEndTime;
     const startValue = url.searchParams.get("startTime");
     const startTime = startValue === null ? null : Number(startValue);
     requests.push({ interval, startTime, endTime, limit });

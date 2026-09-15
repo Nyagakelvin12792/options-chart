@@ -60,6 +60,7 @@ export interface WallConfluenceProps {
 export interface PositionedWallConfluenceZone extends WallConfluenceZone {
   readonly top: number;
   readonly bottom: number;
+  readonly left?: number;
 }
 
 export interface ConfluenceZoneOverlayProps {
@@ -379,7 +380,17 @@ export function ConfluenceZoneOverlay({
           <div
             className={`confluence-zone-band bias-${zone.bias} strength-${strength}`}
             key={zone.id}
-            style={{ top, height }}
+            style={{
+              top,
+              height,
+              ...(zone.left !== undefined && zone.left > 0
+                ? {
+                    left: `${Math.round(zone.left)}px`,
+                    width: `calc(100% - ${Math.round(zone.left)}px)`,
+                    borderLeft: `2px solid var(--bias-border, currentcolor)`,
+                  }
+                : {}),
+            }}
             role="img"
             aria-label={`${strengthLabel(strength)} ${zone.bias} confluence zone, score ${score}, ${signalCount} of 6 signals overlap${expiryLabel}${reactionLabelText}`}
           />

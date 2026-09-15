@@ -10,6 +10,7 @@ import {
   type ChartDrawing,
   type ChartDrawingMode,
   type ChartVisibleRange,
+  type LevelSegment,
 } from "@options-chart/chart";
 import type {
   Candle,
@@ -18,15 +19,15 @@ import type {
   GammaLevelKind,
   OptionsChainSnapshot,
 } from "@options-chart/domain";
+import { LevelShiftTracker } from "@options-chart/shared";
+import { TimeframeManager } from "../lib/timeframe-manager";
 import {
   BinanceKlineSocket,
   BinanceRestClient,
-  bootstrapHistory,
   CandleStore,
   DeribitOptionsDataEngine,
   DeribitRestClient,
   fetchOlderHistory,
-  parseBinanceKlines,
   syncBinanceClock,
   TIMEFRAME_DEBOUNCE_MS,
   type DeribitRecentOptionTradePayload,
@@ -210,6 +211,7 @@ const LAZY_HISTORY_PAGE_BARS = 1_000;
 const LAZY_HISTORY_THRESHOLD_BARS = 80;
 const INITIAL_VISIBLE_BARS = 180;
 const DRAWING_STORAGE_KEY = "options-chart:user-drawings:v1";
+const LEVEL_SHIFT_STORAGE_KEY = "options-chart:level-shifts:v1";
 const DAY_MS = 86_400_000;
 const OPTIONS_STALE_AFTER_MS = 90_000;
 const DEALER_FLOW_LOOKBACK_MS = 60 * 60_000;
@@ -229,6 +231,14 @@ const PROFILE_METRICS: readonly {
 const DASHBOARD_EXPIRY_SCOPES = EXPIRY_SCOPE_OPTIONS.filter(
   ({ kind }) => kind !== "custom",
 );
+
+const LEVEL_COLORS: Readonly<Record<string, string>> = {
+  "call-wall": "#29b57a",
+  "put-wall": "#e05263",
+  "gamma-flip": "#f0b44d",
+  "max-pain": "#65a9ff",
+  "secondary-gex": "#9aa7b6",
+};
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -303,6 +313,28 @@ const calculateDayChange = (candles: readonly Candle[]): number | null => {
   return ((latest.close - baseline.close) / baseline.close) * 100;
 };
 
+const snapTimestampToCandle = (
+  timestamp: number,
+  candles: readonly Candle[],
+): number | null => {
+  if (candles.length === 0 || !Number.isFinite(timestamp)) return null;
+  let low = 0;
+  let high = candles.length - 1;
+  let nearest = candles[0]?.openTime ?? null;
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    const candle = candles[middle];
+    if (!candle) break;
+    if (candle.openTime <= timestamp) {
+      nearest = candle.openTime;
+      low = middle + 1;
+    } else {
+      high = middle - 1;
+    }
+  }
+  return nearest;
+};
+
 const getHeapBytes = (): number | null => {
   const memory = (
     performance as Performance & {
@@ -325,6 +357,10 @@ export function DashboardClient({
   const candleStoreRef = useRef<CandleStore | null>(null);
   const timeframeHistoryCacheRef = useRef(
     new Map<CandleInterval, readonly Candle[]>(),
+  );
+  const timeframeManagerRef = useRef<TimeframeManager>(new TimeframeManager());
+  const levelShiftTrackerRef = useRef<LevelShiftTracker>(
+    new LevelShiftTracker(),
   );
   const binanceSocketRef = useRef<BinanceKlineSocket | null>(null);
   const restClientRef = useRef<BinanceRestClient | null>(null);
@@ -488,6 +524,13 @@ export function DashboardClient({
   }
 
   useEffect(() => {
+    try {
+      levelShiftTrackerRef.current.loadPersisted(
+        localStorage.getItem(LEVEL_SHIFT_STORAGE_KEY),
+      );
+    } catch {
+      // Shift tracking remains session-local when storage is unavailable.
+    }
     try {
       setVolumeProfileSettings(
         parseVolumeProfileSettings(
@@ -1071,7 +1114,9 @@ export function DashboardClient({
     );
     if (confluenceSignature !== confluenceGeometrySignatureRef.current) {
       confluenceGeometrySignatureRef.current = confluenceSignature;
-      setPositionedConfluenceZones(confluenceZoneBands);
+      setPositionedConfluenceZones(
+        chartAdapterRef.current?.setLevelSegments ? [] : confluenceZoneBands,
+      );
     }
     const signature = JSON.stringify({
       levels: levels.map(({ level, trueY, displayStrength, concentration }) => [
@@ -1294,6 +1339,12 @@ export function DashboardClient({
     };
     const unsubscribeViewport = adapter.subscribeViewportChange((viewport) => {
       scheduleOverlayRefresh();
+      if (viewportReadyRef.current && viewport.visibleRange) {
+        timeframeManagerRef.current.setCachedViewport(
+          activeIntervalRef.current,
+          viewport.visibleRange,
+        );
+      }
       if (
         viewportReadyRef.current &&
         viewport.barsBefore < LAZY_HISTORY_THRESHOLD_BARS
@@ -1532,6 +1583,10 @@ export function DashboardClient({
       store.setHistory(historyCandles);
       setVolumeProfileRevision((revision) => revision + 1);
       timeframeHistoryCacheRef.current.set(selectedInterval, historyCandles);
+      timeframeManagerRef.current.setCachedCandles(
+        selectedInterval,
+        historyCandles,
+      );
       const adapter = chartAdapterRef.current;
       if (!replayActiveRef.current) {
         adapter?.setHistory(historyCandles, {
@@ -1539,18 +1594,24 @@ export function DashboardClient({
           fitContent: false,
         });
       }
-      const visibleBarCount =
-        (chartContainerRef.current?.clientWidth ?? 1_000) < 600
-          ? 64
-          : INITIAL_VISIBLE_BARS;
-      const visibleFrom =
-        historyCandles[Math.max(historyCandles.length - visibleBarCount, 0)];
       const visibleTo = historyCandles.at(-1);
-      if (!preserveVisibleRange && adapter && visibleFrom && visibleTo) {
-        adapter.setVisibleRange({
-          fromTimestamp: visibleFrom.openTime,
-          toTimestamp: visibleTo.openTime,
-        });
+      const cachedViewport =
+        timeframeManagerRef.current.getCachedViewport(selectedInterval);
+      if (!preserveVisibleRange && adapter && cachedViewport) {
+        adapter.setVisibleRange(cachedViewport);
+      } else {
+        const visibleBarCount =
+          (chartContainerRef.current?.clientWidth ?? 1_000) < 600
+            ? 64
+            : INITIAL_VISIBLE_BARS;
+        const visibleFrom =
+          historyCandles[Math.max(historyCandles.length - visibleBarCount, 0)];
+        if (!preserveVisibleRange && adapter && visibleFrom && visibleTo) {
+          adapter.setVisibleRange({
+            fromTimestamp: visibleFrom.openTime,
+            toTimestamp: visibleTo.openTime,
+          });
+        }
       }
       const latest = visibleTo ?? null;
       latestCandleRef.current = latest;
@@ -1573,78 +1634,95 @@ export function DashboardClient({
       );
     }
 
-    if (!cachedHistory?.length) {
-      void client
-        .fetchKlines({ interval: selectedInterval, limit: 1_000 })
-        .then((payload) => {
-          if (feedGenerationRef.current !== generation || store.size > 0)
-            return;
-          const preview = parseBinanceKlines(
-            payload,
-            Date.now(),
-            selectedInterval,
-          );
-          if (preview.length > 0) {
-            applyHistory(
-              preview,
-              `Live ${selectedInterval} preview · loading full history`,
-            );
+    const startSocket = () => {
+      if (socket || feedGenerationRef.current !== generation) return;
+      socket = new BinanceKlineSocket({
+        interval: selectedInterval,
+        onCandle: (candle) => {
+          if (feedGenerationRef.current !== generation) return;
+          const startsNewBar =
+            latestCandleRef.current?.openTime !== candle.openTime;
+          if (store.applyLiveCandle(candle) === null) return;
+          if (!replayActiveRef.current) {
+            chartAdapterRef.current?.updateCandle(candle);
           }
-        })
-        .catch(() => undefined);
-    }
+          latestCandleRef.current = candle;
+          setLastPrice(candle.close);
+          setCandleCount(store.size);
+          if (startsNewBar) {
+            setVolumeProfileRevision((revision) => revision + 1);
+          }
+        },
+        onHealthChange: (state) => {
+          if (feedGenerationRef.current === generation) setFeedState(state);
+        },
+        onReconnect: () => {
+          if (feedGenerationRef.current === generation) {
+            void handleReconcile();
+          }
+        },
+      });
+      binanceSocketRef.current = socket;
+      socket.connect();
+    };
 
     void (async () => {
       try {
-        const bootstrap = await bootstrapHistory(client, {
+        await timeframeManagerRef.current.switchTimeframe({
           interval: selectedInterval,
+          client,
           targetBars: HISTORY_TARGET_BARS,
-        });
-        if (feedGenerationRef.current !== generation) return;
-
-        const preserveCurrentRange =
-          Boolean(cachedHistory?.length) || store.size > 0;
-        applyHistory(
-          bootstrap.candles,
-          bootstrap.completeness === "COMPLETE"
-            ? `Binance REST + live ${selectedInterval}`
-            : `Binance REST degraded ${selectedInterval}`,
-          preserveCurrentRange,
-        );
-
-        if (bootstrap.candles.length === 0) {
-          setFeedState("DEGRADED");
-          return;
-        }
-
-        socket = new BinanceKlineSocket({
-          interval: selectedInterval,
-          onCandle: (candle) => {
+          onInitialReady: (initialCandles, { fromCache }) => {
             if (feedGenerationRef.current !== generation) return;
-            const startsNewBar =
-              latestCandleRef.current?.openTime !== candle.openTime;
-            if (store.applyLiveCandle(candle) === null) return;
+            applyHistory(
+              initialCandles,
+              fromCache
+                ? `Cached ${selectedInterval} bars · live`
+                : `Binance REST (initial ${initialCandles.length}) + live ${selectedInterval}`,
+              Boolean(cachedHistory?.length) || fromCache,
+            );
+            if (initialCandles.length > 0) {
+              startSocket();
+            }
+          },
+          onBackgroundProgress: (accumulatedCandles, meta) => {
+            if (feedGenerationRef.current !== generation) return;
+            store.setHistory(accumulatedCandles);
+            timeframeHistoryCacheRef.current.set(
+              selectedInterval,
+              accumulatedCandles,
+            );
+            timeframeManagerRef.current.setCachedCandles(
+              selectedInterval,
+              accumulatedCandles,
+            );
+            const adapter = chartAdapterRef.current;
             if (!replayActiveRef.current) {
-              chartAdapterRef.current?.updateCandle(candle);
+              adapter?.setHistory(accumulatedCandles, {
+                preserveVisibleRange: true,
+                fitContent: false,
+              });
             }
-            latestCandleRef.current = candle;
-            setLastPrice(candle.close);
-            setCandleCount(store.size);
-            if (startsNewBar) {
-              setVolumeProfileRevision((revision) => revision + 1);
-            }
+            setCandleCount(accumulatedCandles.length);
+            setVolumeProfileRevision((revision) => revision + 1);
+            setCandleStatus(
+              accumulatedCandles.length >= meta.targetBars
+                ? `Binance REST + live ${selectedInterval}`
+                : `Binance streaming ${selectedInterval} (${accumulatedCandles.length}/${meta.targetBars})`,
+            );
+            refreshDiagnostics();
           },
-          onHealthChange: (state) => {
-            if (feedGenerationRef.current === generation) setFeedState(state);
-          },
-          onReconnect: () => {
-            if (feedGenerationRef.current === generation) {
-              void handleReconcile();
+          onError: (error) => {
+            if (feedGenerationRef.current !== generation) return;
+            if (store.size === 0) {
+              applyHistory([], "Binance candle data unavailable");
             }
+            setFeedState("DEGRADED");
+            setCandleStatus(
+              error instanceof Error ? error.message : "History load failed",
+            );
           },
         });
-        binanceSocketRef.current = socket;
-        socket.connect();
       } catch (error) {
         if (feedGenerationRef.current !== generation) return;
         if (store.size === 0) {
@@ -1658,6 +1736,7 @@ export function DashboardClient({
     })();
 
     return () => {
+      timeframeManagerRef.current.cancelActiveLoads();
       socket?.destroy();
       if (store.size > 0) {
         timeframeHistoryCacheRef.current.set(
@@ -1960,12 +2039,119 @@ export function DashboardClient({
   useEffect(() => {
     const adapter = chartAdapterRef.current;
     if (!adapter) return;
-    adapter.setLevels(overlaysVisible ? displayedLevels : []);
+
+    if (!overlaysVisible) {
+      adapter.setLevels([]);
+      adapter.clearLevelSegments?.();
+      refreshOverlayCoordinates();
+      refreshDiagnostics();
+      return;
+    }
+
+    const tracker = levelShiftTrackerRef.current;
+    const observationTs =
+      replayFrame?.candle.openTime ??
+      latestCandleRef.current?.openTime ??
+      optionsCalculationNow ??
+      Date.now();
+    const expiryKey =
+      typeof expiryScope === "string"
+        ? expiryScope
+        : JSON.stringify(expiryScope);
+
+    const levelRecords = tracker.updateLevels(
+      displayedLevels,
+      expiryKey,
+      observationTs,
+    );
+    const zoneInputs = displayedConfluenceZones.map((z) => ({
+      id: z.id,
+      priceLow: z.priceLow,
+      priceHigh: z.priceHigh,
+      score: z.score,
+      bias: z.bias,
+      signalKinds: z.signals.map((s) => s.kind),
+    }));
+    const zoneRecords = tracker.updateConfluenceZones(
+      zoneInputs,
+      expiryKey,
+      observationTs,
+    );
+
+    const levelRecordsMap = new Map(levelRecords.map((r) => [r.id, r]));
+    const zoneRecordsMap = new Map(zoneRecords.map((r) => [r.id, r]));
+    const segmentCandles =
+      replayTimeline && replayIndex >= 0
+        ? replayTimeline.candles.slice(0, replayIndex + 1)
+        : (candleStoreRef.current?.getSorted() ?? []);
+    const segmentStart = (timestamp: number | undefined): number | null =>
+      timestamp === undefined
+        ? null
+        : snapTimestampToCandle(timestamp, segmentCandles);
+
+    const segments: LevelSegment[] = [];
+
+    for (const level of displayedLevels) {
+      const semanticId =
+        level.kind === "call-wall" ||
+        level.kind === "put-wall" ||
+        level.kind === "gamma-flip" ||
+        level.kind === "max-pain"
+          ? `${level.kind}-${expiryKey}`
+          : `${level.kind}-${level.id}-${expiryKey}`;
+
+      const record = levelRecordsMap.get(semanticId);
+
+      segments.push({
+        id: level.id,
+        kind: level.kind,
+        label: level.label,
+        price: level.price,
+        activationTimestamp: segmentStart(record?.activationTimestamp),
+        importance: level.importance,
+        color: LEVEL_COLORS[level.kind],
+      });
+    }
+
+    for (const zone of displayedConfluenceZones) {
+      const record = zoneRecordsMap.get(`confluence-${zone.id}-${expiryKey}`);
+      segments.push({
+        id: zone.id,
+        kind: "confluence-zone",
+        label: "Confluence Zone",
+        price: (zone.priceLow + zone.priceHigh) / 2,
+        priceLow: zone.priceLow,
+        priceHigh: zone.priceHigh,
+        activationTimestamp: segmentStart(record?.activationTimestamp),
+        bias: zone.bias,
+        score: zone.score,
+      });
+    }
+
+    if (adapter.setLevelSegments) {
+      adapter.setLevelSegments(segments, { showPips: true });
+      adapter.setLevels([]);
+    } else {
+      adapter.setLevels(displayedLevels);
+    }
+
+    try {
+      localStorage.setItem(LEVEL_SHIFT_STORAGE_KEY, tracker.serialize());
+    } catch {
+      // Shift tracking remains available for the current session.
+    }
+
     refreshOverlayCoordinates();
     refreshDiagnostics();
   }, [
+    displayedConfluenceZones,
     displayedLevels,
+    expiryScope,
+    optionsCalculationNow,
     overlaysVisible,
+    replayFrame?.candle.openTime,
+    replayIndex,
+    replayTimeline,
     refreshDiagnostics,
     refreshOverlayCoordinates,
   ]);
