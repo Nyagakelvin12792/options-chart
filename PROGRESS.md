@@ -3,9 +3,9 @@
 
 Version: 0.7.0
 Last updated: 2026-09-15
-Overall status: M0-M8 complete; M10.2 locally verified; M9 observation evidence remains open
-Current milestone: M10.2 GitHub/Vercel release verification alongside M9 Trading-Readiness Validation
-Production status: LAST VERIFIED VERCEL DEPLOYMENT `9a773ff`; M10.2 DEPLOYMENT PENDING
+Overall status: M0-M8 and M10.2 complete; M9 observation evidence remains open
+Current milestone: M9 Trading-Readiness Validation after M10.2 delivery
+Production status: DEPLOYED ON VERCEL AT `8c18364`
 
 ---
 
@@ -38,7 +38,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
-| Vercel deployment | COMPLETE | Production deployment verified through commit `ed071d2` |
+| Vercel deployment | COMPLETE | Production deployment verified through commit `8c18364` |
 | Private authentication | COMPLETE | Google login with one exact allowlisted account |
 | Account risk terminal | COMPLETE | Read-only long/short sizing and explicit position-tool entry/SL/TP detection; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
@@ -584,7 +584,7 @@ Evidence:
 
 ## M10.2 Multi-Expiry, Bidirectional Risk, and Replay
 
-Status: LOCALLY VERIFIED - GITHUB/VERCEL RELEASE VERIFICATION IN PROGRESS
+Status: COMPLETE - DEPLOYED AND VERIFIED AT `8c18364`
 
 - [x] Strict UTC 0DTE, relative, All Expiries, and exact Deribit expiry scopes.
 - [x] OI-weighted Average IV with separate Call, Put, near-forward ATM IV, and term-structure calculations.
@@ -602,7 +602,7 @@ Evidence:
 - M10.2 journal: `docs/progress/M10/M10.2.md`.
 - 49 test files and 292 tests passed in the final unit/integration run.
 - Production build passed, and fixture-backed 1366x768, 1920x1080, and 390x844 layout checks passed.
-- Final commit, GitHub push, and Vercel deployment verification remain pending in this delivery run.
+- GitHub independently returned commit `8c18364`, and its Vercel status completed successfully.
 
 ---
 

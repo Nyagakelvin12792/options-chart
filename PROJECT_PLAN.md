@@ -2,7 +2,7 @@
 ## PROJECT_PLAN.md
 
 Version: 0.7.0
-Status: M10.2 locally verified; GitHub/Vercel release verification in progress
+Status: M10.2 delivered and deployed; M9 observation evidence remains open
 Date: 2026-09-15
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
