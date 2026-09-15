@@ -3,9 +3,9 @@
 
 Version: 0.8.0
 Last updated: 2026-09-15
-Overall status: M0-M8 and M10.2 complete; M10.3 locally verified; M9 observation evidence remains open
-Current milestone: M10.3 Vercel deployment verification alongside M9 Trading-Readiness Validation
-Production status: DEPLOYED ON VERCEL AT `8c18364`
+Overall status: M0-M8, M10.2, and M10.3 complete; M9 observation evidence remains open
+Current milestone: M9 Trading-Readiness Validation after M10.3 delivery
+Production status: DEPLOYED ON VERCEL AT `91d5d51`
 
 ---
 
@@ -38,12 +38,12 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
-| Vercel deployment | COMPLETE | Production deployment verified through commit `8c18364` |
+| Vercel deployment | COMPLETE | Production deployment verified through commit `91d5d51` |
 | Private authentication | COMPLETE | Google login with one exact allowlisted account |
 | Account risk terminal | COMPLETE | Read-only long/short sizing and explicit position-tool entry/SL/TP detection; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
-| Volume Profile | LOCALLY VERIFIED | Antigravity engine merged, wired to live/replay, and passed the complete release gate |
+| Volume Profile | COMPLETE | Antigravity engine merged, validated, and deployed through commit `91d5d51` |
 | External indicators | IN PARALLEL | Anchored VWAP remains on its independent feature branch and is not merged |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
@@ -609,7 +609,7 @@ Evidence:
 
 ## M10.3 Volume Profile Integration
 
-Status: LOCALLY VERIFIED - VERCEL DEPLOYMENT VERIFICATION IN PROGRESS
+Status: COMPLETE - DEPLOYED AND VERIFIED AT `91d5d51`
 
 - [x] Merge Antigravity Volume Profile commit `27d1d64` while retaining the newer position-tool and replay adapter behavior.
 - [x] Wire the profile to the single dashboard chart and visible Binance candle range.
@@ -619,13 +619,14 @@ Status: LOCALLY VERIFIED - VERCEL DEPLOYMENT VERIFICATION IN PROGRESS
 - [x] Pass 33 focused calculation, performance, primitive, and adapter tests.
 - [x] Pass the dashboard toggle check and laptop, wide-desktop, and mobile layout checks.
 - [x] Pass the complete repository test and production build gate.
-- [ ] Push and verify the Vercel production deployment.
+- [x] Push and verify the Vercel production deployment.
 
 Evidence:
 
 - M10.3 journal: `docs/progress/M10/M10.3.md`.
 - Antigravity implementation report: `packages/chart/src/volume-profile/REPORT.md`.
 - Final validation passed 52 test files and 317 tests, typecheck, lint, production build, and progress consistency.
+- GitHub commit `91d5d51` was pushed to `main`, and its Vercel deployment completed successfully.
 
 ---
 
