@@ -142,22 +142,88 @@ test("updates Deribit expiry dates and overlays without recreating the chart", a
   expect(await getChartCreateCount(page)).toBe(1);
 });
 
-test("toggles the Binance Volume Profile without recreating the chart", async ({
+test("retains Volume Profile inputs and style settings without recreating the chart", async ({
   page,
-}) => {
-  test.setTimeout(90_000);
+}, testInfo) => {
+  test.setTimeout(120_000);
   await openFixtureDashboard(page);
 
   const toggle = page.getByRole("button", { name: "Toggle Volume Profile" });
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   expect(await getChartCreateCount(page)).toBe(1);
 
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  const settingsToggle = page.getByRole("button", {
+    name: "Volume Profile settings",
+  });
+  await settingsToggle.click();
+  const dialog = page.getByRole("dialog", {
+    name: "Volume Profile settings",
+  });
+  await dialog.getByLabel("Volume Profile rows").fill("96");
+  await dialog
+    .getByLabel("Volume Profile volume mode")
+    .selectOption("total");
+  await dialog.getByLabel("Volume Profile volume unit").selectOption("quote");
+  await dialog.getByLabel("Volume Profile value area percent").fill("80");
+  await dialog.getByRole("tab", { name: "STYLE" }).click();
+  await dialog.getByRole("button", { name: "LEFT" }).click();
+  await dialog.getByLabel("Volume Profile width percent").fill("24");
+  await dialog.getByLabel("Volume Profile opacity percent").fill("55");
+  await dialog.getByRole("checkbox", { name: "LEVEL LABELS" }).uncheck();
   expect(await getChartCreateCount(page)).toBe(1);
 
-  await toggle.click();
+  await page.reload();
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await settingsToggle.click();
+  await expect(dialog.getByLabel("Volume Profile rows")).toHaveValue("96");
+  await expect(dialog.getByLabel("Volume Profile volume mode")).toHaveValue(
+    "total",
+  );
+  await expect(dialog.getByLabel("Volume Profile volume unit")).toHaveValue(
+    "quote",
+  );
+  await expect(
+    dialog.getByLabel("Volume Profile value area percent"),
+  ).toHaveValue("80");
+  await dialog.getByRole("tab", { name: "STYLE" }).click();
+  await expect(dialog.getByRole("button", { name: "LEFT" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(dialog.getByLabel("Volume Profile width percent")).toHaveValue(
+    "24",
+  );
+  await expect(
+    dialog.getByLabel("Volume Profile opacity percent"),
+  ).toHaveValue("55");
+  await expect(
+    dialog.getByRole("checkbox", { name: "LEVEL LABELS" }),
+  ).not.toBeChecked();
+
+  for (const viewport of [
+    { width: 1_366, height: 768 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    const bounds = await dialog.boundingBox();
+    if (!bounds) throw new Error("Volume Profile settings are unavailable");
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(viewport.width);
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(viewport.height);
+    await page.screenshot({
+      path: testInfo.outputPath(`vp-settings-${viewport.width}x${viewport.height}.png`),
+      fullPage: true,
+    });
+  }
+
+  await settingsToggle.click();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await page.reload();
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
   expect(await getChartCreateCount(page)).toBe(1);
 });
 

@@ -1,8 +1,8 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.8.0
-Status: M10.3 Volume Profile delivered and deployed; M9 observation evidence remains open
+Version: 0.9.0
+Status: M10.4 persistent Volume Profile settings locally verified; Vercel deployment pending
 Date: 2026-09-15
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
@@ -275,6 +275,14 @@ Do not calculate an unlabeled all-expiries Max Pain.
 - Keep replay deterministic by excluding candles whose close time is after the replay cutoff.
 - Debounce viewport changes, memoize repeated inputs, avoid pointer-triggered recalculation, and preserve chart viewport and drawings.
 - Anchored VWAP remains on its independent feature branch until separately reviewed and merged.
+
+## M10.4 Persistent Volume Profile settings
+
+- Retain Volume Profile visibility and settings in versioned browser storage with validated defaults.
+- Expose TradingView-aligned Number of Rows, volume display, value-area percentage, placement, width, opacity, and POC/VAH/VAL controls.
+- Label candle-direction Up/Down as an estimate and do not present it as trade-aggressor delta.
+- Apply style-only settings without recalculating the profile or recreating the chart.
+- Keep the settings menu contained within desktop and mobile viewports without adding page sections or permanent chart clutter.
 
 ## Historical Gamma
 

@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.8.0
+Version: 0.9.0
 Last updated: 2026-09-15
-Overall status: M0-M8, M10.2, and M10.3 complete; M9 observation evidence remains open
-Current milestone: M9 Trading-Readiness Validation after M10.3 delivery
+Overall status: M0-M8, M10.2, and M10.3 complete; M10.4 locally verified; M9 observation evidence remains open
+Current milestone: M10.4 Vercel deployment verification alongside M9 Trading-Readiness Validation
 Production status: DEPLOYED ON VERCEL AT `91d5d51`
 
 ---
@@ -43,7 +43,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Account risk terminal | COMPLETE | Read-only long/short sizing and explicit position-tool entry/SL/TP detection; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
-| Volume Profile | COMPLETE | Antigravity engine merged, validated, and deployed through commit `91d5d51` |
+| Volume Profile | LOCALLY VERIFIED | Persistent TradingView-aligned settings pass unit, browser, and production-build validation |
 | External indicators | IN PARALLEL | Anchored VWAP remains on its independent feature branch and is not merged |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
@@ -105,6 +105,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-050 | chart replay uses only recorded options snapshots at or before candle close and never fabricates missing history | ACCEPTED |
 | ADR-051 | long and short position tools own draggable Entry, SL, and TP levels behind ChartAdapter | ACCEPTED |
 | ADR-052 | multi-expiry wall confluence preserves per-expiry signals and adds expiry breadth without replacing validated aggregate walls | ACCEPTED |
+| ADR-053 | Volume Profile settings persist locally and remain isolated from Deribit options-volume and wall calculations | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -627,6 +628,27 @@ Evidence:
 - Antigravity implementation report: `packages/chart/src/volume-profile/REPORT.md`.
 - Final validation passed 52 test files and 317 tests, typecheck, lint, production build, and progress consistency.
 - GitHub commit `91d5d51` was pushed to `main`, and its Vercel deployment completed successfully.
+
+---
+
+## M10.4 Persistent Volume Profile Settings
+
+Status: LOCALLY VERIFIED - VERCEL DEPLOYMENT VERIFICATION IN PROGRESS
+
+- [x] Persist visibility, row count, volume mode/unit, value-area percentage, placement, width, opacity, labels, POC, VAH, VAL, and shading.
+- [x] Validate stored values and recover safely from malformed or unavailable browser storage.
+- [x] Add compact Inputs and Style tabs without adding a permanent dashboard panel.
+- [x] Apply style controls through the existing primitive without recreating the chart.
+- [x] Preserve replay cutoffs and Binance/Deribit volume isolation.
+- [x] Pass desktop and mobile settings-menu containment checks.
+- [x] Pass 53 test files and 320 tests in the contention-free full run.
+- [x] Pass typecheck, workspace lint, targeted settings lint, production build, and progress consistency.
+- [ ] Push and verify the Vercel production deployment.
+
+Evidence:
+
+- M10.4 journal: `docs/progress/M10/M10.4.md`.
+- Browser persistence and target-viewport checks: PASS.
 
 ---
 

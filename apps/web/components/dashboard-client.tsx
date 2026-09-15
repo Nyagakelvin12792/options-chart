@@ -51,7 +51,6 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
-  BarChart3,
   Eye,
   EyeOff,
   Eraser,
@@ -80,6 +79,7 @@ import {
   type ProfileMetric,
 } from "@/components/gamma-overlay";
 import { RiskTerminal } from "@/components/risk-terminal";
+import { VolumeProfileControls } from "@/components/volume-profile-controls";
 import {
   ConfluenceZoneOverlay,
   type PositionedWallConfluenceZone,
@@ -114,6 +114,13 @@ import {
   type WallSignalHistory,
   type WallSignalInput,
 } from "@/lib/wall-confluence";
+import {
+  DEFAULT_VOLUME_PROFILE_SETTINGS,
+  normalizeVolumeProfileSettings,
+  parseVolumeProfileSettings,
+  serializeVolumeProfileSettings,
+  VOLUME_PROFILE_SETTINGS_STORAGE_KEY,
+} from "@/lib/volume-profile-settings";
 
 interface DashboardClientProps {
   readonly accessLabel: string;
@@ -391,7 +398,11 @@ export function DashboardClient({
   const [shadingEnabled, setShadingEnabled] = useState(true);
   const [profileExpanded, setProfileExpanded] = useState(true);
   const [profileMetric, setProfileMetric] = useState<ProfileMetric>("gex");
-  const [volumeProfileEnabled, setVolumeProfileEnabled] = useState(true);
+  const [volumeProfileSettings, setVolumeProfileSettings] = useState(
+    DEFAULT_VOLUME_PROFILE_SETTINGS,
+  );
+  const [volumeProfileSettingsReady, setVolumeProfileSettingsReady] =
+    useState(false);
   const [chartHeight, setChartHeight] = useState(1);
   const [liveAuditNow, setAuditNow] = useState(() => Date.now());
   const [positionedLevels, setPositionedLevels] = useState<
@@ -438,6 +449,31 @@ export function DashboardClient({
       endpoints: ["/api/binance"],
     });
   }
+
+  useEffect(() => {
+    try {
+      setVolumeProfileSettings(
+        parseVolumeProfileSettings(
+          localStorage.getItem(VOLUME_PROFILE_SETTINGS_STORAGE_KEY),
+        ),
+      );
+    } catch {
+      setVolumeProfileSettings(DEFAULT_VOLUME_PROFILE_SETTINGS);
+    }
+    setVolumeProfileSettingsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!volumeProfileSettingsReady) return;
+    try {
+      localStorage.setItem(
+        VOLUME_PROFILE_SETTINGS_STORAGE_KEY,
+        serializeVolumeProfileSettings(volumeProfileSettings),
+      );
+    } catch {
+      // The chart remains usable when browser storage is unavailable.
+    }
+  }, [volumeProfileSettings, volumeProfileSettingsReady]);
   if (deribitFlowClientRef.current == null) {
     deribitFlowClientRef.current = new DeribitRestClient({
       endpoint: "/api/deribit",
@@ -1230,7 +1266,7 @@ export function DashboardClient({
     const adapter = chartAdapterRef.current;
     const controller = volumeProfileControllerRef.current;
     if (!adapter || !controller) return;
-    if (!volumeProfileEnabled) {
+    if (!volumeProfileSettings.enabled) {
       adapter.removeVolumeProfile?.("dashboard-volume-profile");
       return;
     }
@@ -1250,22 +1286,37 @@ export function DashboardClient({
         }
       : { from: first.openTime, to: last.closeTime };
 
+    const opacity = volumeProfileSettings.opacityPercent / 100;
+    controller.setPresentation({
+      placement: volumeProfileSettings.placement,
+      widthFraction: volumeProfileSettings.widthPercent / 100,
+      valueAreaOpacity: opacity,
+      nonValueAreaOpacity: Math.max(0.05, opacity * 0.35),
+      showLabels: volumeProfileSettings.showLabels,
+      showPOC: volumeProfileSettings.showPOC,
+      showVAH: volumeProfileSettings.showVAH,
+      showVAL: volumeProfileSettings.showVAL,
+      showValueAreaShading: volumeProfileSettings.showValueAreaShading,
+    });
     controller.setInput({
       candles,
       range,
       replayCutoff:
         replayTimeline && replayIndex >= 0 ? last.closeTime : undefined,
-      binConfig: { mode: "rowCount", rowCount: 70 },
-      volumeUnit: "base",
-      directionMode: "candle-direction",
-      valueAreaPercent: 70,
+      binConfig: {
+        mode: "rowCount",
+        rowCount: volumeProfileSettings.rowCount,
+      },
+      volumeUnit: volumeProfileSettings.volumeUnit,
+      directionMode: volumeProfileSettings.directionMode,
+      valueAreaPercent: volumeProfileSettings.valueAreaPercent,
       sourceMetadata: {
         exchange: "binance",
         market: "spot",
         symbol: "BTCUSDT",
         sourceTimeframe: selectedInterval,
         displayTimeframe: selectedInterval,
-        volumeUnit: "base",
+        volumeUnit: volumeProfileSettings.volumeUnit,
         calculationVersion: VOLUME_PROFILE_CALCULATION_VERSION,
         sourceRevision: `${selectedInterval}:${volumeProfileRevision}:${replayIndex}`,
       },
@@ -1274,7 +1325,7 @@ export function DashboardClient({
     replayIndex,
     replayTimeline,
     selectedInterval,
-    volumeProfileEnabled,
+    volumeProfileSettings,
     volumeProfileRevision,
   ]);
 
@@ -2272,21 +2323,14 @@ export function DashboardClient({
               <strong>BTC / USDT · {selectedInterval}</strong>
             </div>
             <div className="chart-heading-actions">
-              <button
-                type="button"
-                className={
-                  volumeProfileEnabled ? "active volume-profile-toggle" : "volume-profile-toggle"
+              <VolumeProfileControls
+                settings={volumeProfileSettings}
+                onChange={(settings) =>
+                  setVolumeProfileSettings(
+                    normalizeVolumeProfileSettings(settings),
+                  )
                 }
-                aria-label="Toggle Volume Profile"
-                title="Toggle Volume Profile"
-                aria-pressed={volumeProfileEnabled}
-                onClick={() =>
-                  setVolumeProfileEnabled((enabled) => !enabled)
-                }
-              >
-                <BarChart3 size={14} />
-                VP
-              </button>
+              />
               <button
                 type="button"
                 className={
