@@ -30,6 +30,8 @@ export {
   bucketOptionsByExpiry,
   filterOptionsByExpiryScope,
   formatExpiryScope,
+  listActiveOptionExpiries,
+  resolveExpiryScopeExpiries,
   type ExpiryScope,
 } from "./expiry/filters";
 export {
@@ -43,7 +45,24 @@ export {
   calculateModeledSignedGexOnePercentUsd,
   type ContractExposure,
 } from "./exposure/exposure";
-export { calculateOpenInterestWeightedAverageIv } from "./iv/average-iv";
+export {
+  calculateCallPutOpenInterestWeightedMarkIv,
+  calculateOpenInterestWeightedAverageIv,
+  calculateOpenInterestWeightedMarkIv,
+  type CallPutOpenInterestWeightedMarkIvResult,
+  type OpenInterestWeightedMarkIvResult,
+  type WeightedMarkIvExclusionReason,
+} from "./iv/average-iv";
+export {
+  calculateNearForwardAtmIv,
+  type AtmIvExclusionReason,
+  type AtmIvSideResult,
+  type NearForwardAtmIvResult,
+} from "./iv/atm-iv";
+export {
+  calculateIvTermStructure,
+  type IvTermStructurePoint,
+} from "./iv/term-structure";
 export { rankSecondaryGexLevels } from "./levels/secondary-gex";
 export {
   calculateStaticWallSignals,

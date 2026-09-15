@@ -79,6 +79,35 @@ describe("options worker protocol guards", () => {
     ).toBe(true);
   });
 
+  it("accepts an exact Deribit expiry scope", () => {
+    expect(
+      isOptionsCalculationRequest({
+        protocolVersion: OPTIONS_WORKER_PROTOCOL_VERSION,
+        type: "calculate-options-metrics",
+        inputVersion: 5,
+        input: {
+          chain: {
+            metadata: {
+              source: "deribit",
+              sourceTimestamp: 1,
+              receivedTimestamp: 1,
+              normalizedTimestamp: 1,
+              schemaVersion: "test-v1",
+            },
+            currency: "BTC",
+            instruments: [],
+          },
+          underlyingPriceUsd: 100_000,
+          calculatedAt: 1,
+          expiryScope: { kind: "exact-expiry", expiry: 2 },
+          interestRateFallbackDecimal: 0,
+          maxPainExpiry: 2,
+          secondaryLevelCount: 3,
+        },
+      }),
+    ).toBe(true);
+  });
+
   it("validates a versioned full-chain worker response", () => {
     expect(
       isOptionsMetricResponse({

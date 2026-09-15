@@ -94,22 +94,22 @@ test("updates Deribit expiry dates and overlays without recreating the chart", a
   expect(await getChartCreateCount(page)).toBe(1);
 
   const expirySelect = page.getByLabel("Expiry date");
-  expect(await expirySelect.locator("option").count()).toBeGreaterThanOrEqual(
-    2,
-  );
-  await expect(expirySelect.locator("option").first()).toHaveText(
-    /^\d{2} [A-Z]{3} \d{2}$/,
-  );
-  const expiryValues = await expirySelect
-    .locator("option")
-    .evaluateAll((options) =>
-      options.map((option) => (option as HTMLOptionElement).value),
-    );
-  const selectedExpiry = expiryValues[1]!;
+  const exactExpiries = expirySelect.locator('option[value^="expiry:"]');
+  expect(await exactExpiries.count()).toBeGreaterThanOrEqual(2);
+  await expect(exactExpiries.first()).toHaveText(/^\d{2} [A-Z]{3} \d{2}$/);
+  const selectedExpiry = await exactExpiries.nth(1).getAttribute("value");
+  if (!selectedExpiry) throw new Error("Expected a second exact expiry");
   await expirySelect.selectOption(selectedExpiry);
   await expect(
     page.getByRole("region", { name: "Options summary metrics" }),
-  ).toHaveAttribute("data-expiry-scope", `custom:${selectedExpiry}`);
+  ).toHaveAttribute(
+    "data-expiry-scope",
+    `exact-expiry:${selectedExpiry.slice(7)}`,
+  );
+  await expirySelect.selectOption("scope:all");
+  await expect(
+    page.getByRole("region", { name: "Options summary metrics" }),
+  ).toHaveAttribute("data-expiry-scope", "all");
   expect(await getChartCreateCount(page)).toBe(1);
 
   const profile = page.getByTestId("gamma-profile");

@@ -2,6 +2,7 @@ import type { Candle, GammaLevel } from "@options-chart/domain";
 import {
   CandlestickSeries,
   ColorType,
+  CrosshairMode,
   createChart,
   HistogramSeries,
   LineStyle,
@@ -23,7 +24,14 @@ import type {
   ChartInitializeOptions,
   ChartVisibleRange,
   ChartViewportState,
+  PositionDrawing,
 } from "../chart-adapter";
+import {
+  createPositionDrawing,
+  isPositionDrawingOrderValid,
+  movePositionDrawingLevel,
+  type PositionDrawingLevel,
+} from "../position-drawing";
 import { VerticalLinePrimitive } from "./vertical-line-primitive";
 
 const LEVEL_COLORS: Readonly<Record<GammaLevel["kind"], string>> = {
@@ -35,6 +43,12 @@ const LEVEL_COLORS: Readonly<Record<GammaLevel["kind"], string>> = {
 };
 
 const USER_DRAWING_COLOR = "#f2c14e";
+const POSITION_COLORS = {
+  entry: "#5fa8ff",
+  stopLoss: "#e05263",
+  takeProfit: "#29b57a",
+} as const;
+const POSITION_DRAG_TOLERANCE_PX = 8;
 
 const toChartTimestamp = (timestamp: number): UTCTimestamp =>
   Math.floor(timestamp / 1_000) as UTCTimestamp;
@@ -70,6 +84,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
   private readonly levelLines = new Map<string, IPriceLine>();
   private readonly drawings = new Map<string, ChartDrawing>();
   private readonly horizontalDrawingLines = new Map<string, IPriceLine>();
+  private readonly positionDrawingLines = new Map<
+    string,
+    readonly IPriceLine[]
+  >();
   private readonly verticalDrawingPrimitives = new Map<
     string,
     VerticalLinePrimitive
@@ -84,6 +102,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
   private drawingMode: ChartDrawingMode = "pointer";
   private selectedDrawingId: string | null = null;
   private drawingSequence = 0;
+  private draggedPositionLevel: {
+    readonly drawingId: string;
+    readonly level: PositionDrawingLevel;
+  } | null = null;
   private initializedAt = 0;
   private chartCreateCount = 0;
   private historyReplacementCount = 0;
@@ -132,6 +154,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
         precomputeConflationOnInit: false,
       },
       crosshair: {
+        mode: CrosshairMode.Normal,
         vertLine: { color: "#7d8b99", labelBackgroundColor: "#25313c" },
         horzLine: { color: "#7d8b99", labelBackgroundColor: "#25313c" },
       },
@@ -169,6 +192,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
     }
 
     container.addEventListener("click", this.handleContainerClick, true);
+    container.addEventListener("pointerdown", this.handlePointerDown, true);
+    container.addEventListener("pointermove", this.handlePointerMove, true);
+    container.addEventListener("pointerup", this.handlePointerUp, true);
+    container.addEventListener("pointercancel", this.handlePointerUp, true);
     this.chart
       .timeScale()
       .subscribeVisibleLogicalRangeChange(this.handleLogicalRangeChange);
@@ -279,7 +306,13 @@ export class LightweightChartsAdapter implements ChartAdapter {
     }
     if (
       (drawing.type === "horizontal-line" && !Number.isFinite(drawing.price)) ||
-      (drawing.type === "vertical-line" && !Number.isFinite(drawing.timestamp))
+      (drawing.type === "vertical-line" &&
+        !Number.isFinite(drawing.timestamp)) ||
+      (drawing.type === "position" &&
+        (!Number.isFinite(drawing.entry) ||
+          !Number.isFinite(drawing.stopLoss) ||
+          !Number.isFinite(drawing.takeProfit) ||
+          !isPositionDrawingOrderValid(drawing)))
     ) {
       throw new Error("Chart drawing coordinate must be finite");
     }
@@ -360,9 +393,30 @@ export class LightweightChartsAdapter implements ChartAdapter {
       this.handleContainerClick,
       true,
     );
+    this.container?.removeEventListener(
+      "pointerdown",
+      this.handlePointerDown,
+      true,
+    );
+    this.container?.removeEventListener(
+      "pointermove",
+      this.handlePointerMove,
+      true,
+    );
+    this.container?.removeEventListener(
+      "pointerup",
+      this.handlePointerUp,
+      true,
+    );
+    this.container?.removeEventListener(
+      "pointercancel",
+      this.handlePointerUp,
+      true,
+    );
     this.levelLines.clear();
     this.drawings.clear();
     this.horizontalDrawingLines.clear();
+    this.positionDrawingLines.clear();
     this.verticalDrawingPrimitives.clear();
     this.viewportListeners.clear();
     this.drawingsChangeListeners.clear();
@@ -372,6 +426,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.series = null;
     this.volumeSeries = null;
     this.selectedDrawingId = null;
+    this.draggedPositionLevel = null;
   }
 
   private readonly handleContainerClick = (event: MouseEvent): void => {
@@ -389,6 +444,24 @@ export class LightweightChartsAdapter implements ChartAdapter {
       const price = this.requireSeries().coordinateToPrice(y);
       if (price !== null) {
         this.addDrawing({ id, type: "horizontal-line", price, createdAt });
+      }
+      return;
+    }
+
+    if (
+      this.drawingMode === "long-position" ||
+      this.drawingMode === "short-position"
+    ) {
+      const entry = this.requireSeries().coordinateToPrice(y);
+      if (entry !== null && Number.isFinite(entry) && entry > 0) {
+        this.addDrawing(
+          createPositionDrawing({
+            id,
+            direction: this.drawingMode === "long-position" ? "long" : "short",
+            entry,
+            createdAt,
+          }),
+        );
       }
       return;
     }
@@ -415,6 +488,76 @@ export class LightweightChartsAdapter implements ChartAdapter {
         createdAt,
       });
     }
+  };
+
+  private readonly handlePointerDown = (event: PointerEvent): void => {
+    if (this.drawingMode !== "pointer" || !this.container) return;
+    const bounds = this.container.getBoundingClientRect();
+    const y = event.clientY - bounds.top;
+    let closest:
+      | {
+          readonly drawingId: string;
+          readonly level: PositionDrawingLevel;
+          readonly distance: number;
+        }
+      | undefined;
+
+    for (const drawing of this.drawings.values()) {
+      if (drawing.type !== "position") continue;
+      for (const level of ["entry", "stopLoss", "takeProfit"] as const) {
+        const coordinate = this.requireSeries().priceToCoordinate(
+          drawing[level],
+        );
+        if (coordinate === null) continue;
+        const distance = Math.abs(coordinate - y);
+        if (
+          distance <= POSITION_DRAG_TOLERANCE_PX &&
+          (!closest || distance < closest.distance)
+        ) {
+          closest = { drawingId: drawing.id, level, distance };
+        }
+      }
+    }
+
+    if (!closest) return;
+    this.draggedPositionLevel = {
+      drawingId: closest.drawingId,
+      level: closest.level,
+    };
+    this.selectedDrawingId = closest.drawingId;
+    event.preventDefault();
+  };
+
+  private readonly handlePointerMove = (event: PointerEvent): void => {
+    if (!this.draggedPositionLevel || !this.container) return;
+    const drawing = this.drawings.get(this.draggedPositionLevel.drawingId);
+    if (!drawing || drawing.type !== "position") {
+      this.draggedPositionLevel = null;
+      return;
+    }
+
+    const bounds = this.container.getBoundingClientRect();
+    const nextPrice = this.requireSeries().coordinateToPrice(
+      event.clientY - bounds.top,
+    );
+    if (nextPrice === null || !Number.isFinite(nextPrice) || nextPrice <= 0) {
+      return;
+    }
+
+    const nextDrawing = movePositionDrawingLevel(
+      drawing,
+      this.draggedPositionLevel.level,
+      nextPrice,
+    );
+    this.removeRenderedDrawing(drawing.id);
+    this.drawings.set(drawing.id, nextDrawing);
+    this.renderDrawing(nextDrawing);
+    this.notifyDrawingsChange();
+    event.preventDefault();
+  };
+
+  private readonly handlePointerUp = (): void => {
+    this.draggedPositionLevel = null;
   };
 
   private readonly handleLogicalRangeChange = (
@@ -445,6 +588,11 @@ export class LightweightChartsAdapter implements ChartAdapter {
       return;
     }
 
+    if (drawing.type === "position") {
+      this.renderPositionDrawing(drawing);
+      return;
+    }
+
     const primitive = new VerticalLinePrimitive({
       id: drawing.id,
       timestamp: drawing.timestamp,
@@ -467,6 +615,32 @@ export class LightweightChartsAdapter implements ChartAdapter {
       series.detachPrimitive(verticalPrimitive);
       this.verticalDrawingPrimitives.delete(id);
     }
+    const positionLines = this.positionDrawingLines.get(id);
+    if (positionLines) {
+      for (const line of positionLines) series.removePriceLine(line);
+      this.positionDrawingLines.delete(id);
+    }
+  }
+
+  private renderPositionDrawing(drawing: PositionDrawing): void {
+    const series = this.requireSeries();
+    const side = drawing.direction === "long" ? "Long" : "Short";
+    const lines = (["entry", "stopLoss", "takeProfit"] as const).map((level) =>
+      series.createPriceLine({
+        price: drawing[level],
+        color: POSITION_COLORS[level],
+        lineWidth: level === "entry" ? 2 : 1,
+        lineStyle: level === "entry" ? LineStyle.Solid : LineStyle.Dashed,
+        axisLabelVisible: true,
+        title:
+          level === "entry"
+            ? `${side} Entry`
+            : level === "stopLoss"
+              ? "SL"
+              : "TP",
+      }),
+    );
+    this.positionDrawingLines.set(drawing.id, lines);
   }
 
   private notifyDrawingsChange(): void {

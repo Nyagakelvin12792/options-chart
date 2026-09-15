@@ -1,6 +1,7 @@
 import type { OptionsChainSnapshot } from "@options-chart/domain";
 import {
   filterOptionsByExpiryScope,
+  listActiveOptionExpiries,
   minimumProfileTimeToExpiryMs,
   type ExpiryScope,
 } from "@options-chart/options-engine";
@@ -22,9 +23,11 @@ export const listActiveExpiries = (
   chain: OptionsChainSnapshot,
   now: number,
 ): readonly number[] =>
-  [...new Set(chain.instruments.map(({ instrument }) => instrument.expiry))]
-    .filter((expiry) => expiry - now >= minimumProfileTimeToExpiryMs)
-    .sort((left, right) => left - right);
+  listActiveOptionExpiries(
+    chain.instruments,
+    now,
+    minimumProfileTimeToExpiryMs,
+  );
 
 const DERIBIT_MONTHS = [
   "JAN",
@@ -57,6 +60,11 @@ export const createExpiryScope = (
   kind === "custom"
     ? { kind, expiry: customExpiry ?? 0 }
     : ({ kind } as ExpiryScope);
+
+export const createExactExpiryScope = (expiry: number): ExpiryScope => ({
+  kind: "exact-expiry",
+  expiry,
+});
 
 export const selectMaxPainExpiry = (
   chain: OptionsChainSnapshot,

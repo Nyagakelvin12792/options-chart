@@ -39,6 +39,26 @@ export interface ConfluenceScoreBreakdown {
   readonly reaction: number;
 }
 
+export type WallReactionClassification =
+  "rejection" | "breakout" | "retest" | "unconfirmed";
+
+export interface WallReactionAnalysis {
+  readonly classification: WallReactionClassification;
+  readonly score: number;
+  readonly touches: number;
+  readonly rejectionCount: number;
+  readonly breakoutCount: number;
+  readonly retestCount: number;
+  readonly lastReactionAt: number | null;
+}
+
+export interface WallExpiryBreadth {
+  readonly distinctExpiryCount: number;
+  readonly expiries: readonly number[];
+  readonly signalsWithExpiryCount: number;
+  readonly unscopedSignalCount: number;
+}
+
 export interface WallConfluenceZone {
   readonly id: string;
   readonly centerPrice: number;
@@ -51,6 +71,12 @@ export interface WallConfluenceZone {
   readonly signals: readonly WallSignalInput[];
   readonly components: ConfluenceScoreBreakdown;
   readonly reactionTouches: number;
+}
+
+export interface WallConfluenceZoneV2 extends WallConfluenceZone {
+  readonly reactionClassification: WallReactionClassification;
+  readonly reactionAnalysis: WallReactionAnalysis;
+  readonly expiryBreadth: WallExpiryBreadth;
 }
 
 export interface WallConfluenceOptions {
@@ -76,6 +102,38 @@ export interface DealerFlowWallResult {
   readonly openingPressure: number;
   readonly closingPressure: number;
   readonly netDealerGammaOnePercentUsd: number;
+}
+
+export interface WallMovementSnapshot {
+  readonly observedAt: number;
+  readonly wallPrice: number | null;
+  readonly spotPrice: number | null;
+  readonly normalizedConcentration: number | null;
+  readonly expiry: number | null;
+  readonly concentrationLeaderId?: string | null;
+}
+
+export type WallMovementAttribution =
+  "price" | "concentration" | "expiry-settlement" | "unknown";
+
+export interface WallMovementAuditOptions {
+  readonly movementToleranceUsd?: number;
+  readonly concentrationChangeThreshold?: number;
+  readonly spotChangeThresholdRatio?: number;
+}
+
+export interface WallMovementAudit {
+  readonly moved: boolean;
+  readonly attribution: WallMovementAttribution;
+  readonly contributingFactors: readonly Exclude<
+    WallMovementAttribution,
+    "unknown"
+  >[];
+  readonly wallPriceChangeUsd: number | null;
+  readonly spotPriceChangeUsd: number | null;
+  readonly concentrationChange: number | null;
+  readonly expiryChanged: boolean;
+  readonly settlementCrossed: boolean;
 }
 
 const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
@@ -116,7 +174,12 @@ export const estimateDealerFlowWall = ({
   );
   const strikeFlow = new Map<
     number,
-    { signedGex: number; grossGex: number; confidenceTotal: number; trades: number }
+    {
+      signedGex: number;
+      grossGex: number;
+      confidenceTotal: number;
+      trades: number;
+    }
   >();
   let openingPressure = 0;
   let closingPressure = 0;
@@ -251,6 +314,16 @@ const calculateAtr = (candles: readonly Candle[]): number => {
   return average(ranges);
 };
 
+const priceSide = (
+  price: number,
+  lowerPrice: number,
+  upperPrice: number,
+): -1 | 0 | 1 => {
+  if (price < lowerPrice) return -1;
+  if (price > upperPrice) return 1;
+  return 0;
+};
+
 export const calculateWallZoneTolerance = (
   spotPrice: number,
   candles: readonly Candle[] = [],
@@ -294,21 +367,41 @@ export const updateWallSignalHistory = (
   return next;
 };
 
-interface ReactionResult {
-  readonly score: number;
-  readonly touches: number;
-}
-
-const calculateReactionScore = (
+export const analyzeWallReaction = (
   candles: readonly Candle[],
   centerPrice: number,
   halfWidth: number,
-): ReactionResult => {
+): WallReactionAnalysis => {
   const sample = candles.slice(-320);
   const atr = calculateAtr(sample);
-  if (sample.length < 20 || atr <= 0) return { score: 0, touches: 0 };
+  const empty: WallReactionAnalysis = {
+    classification: "unconfirmed",
+    score: 0,
+    touches: 0,
+    rejectionCount: 0,
+    breakoutCount: 0,
+    retestCount: 0,
+    lastReactionAt: null,
+  };
+  if (
+    sample.length < 20 ||
+    atr <= 0 ||
+    !Number.isFinite(centerPrice) ||
+    !Number.isFinite(halfWidth)
+  ) {
+    return empty;
+  }
 
   const reactions: number[] = [];
+  const normalizedHalfWidth = Math.max(0, halfWidth);
+  const lowerPrice = centerPrice - normalizedHalfWidth;
+  const upperPrice = centerPrice + normalizedHalfWidth;
+  let latestClassification: WallReactionClassification = "unconfirmed";
+  let rejectionCount = 0;
+  let breakoutCount = 0;
+  let retestCount = 0;
+  let lastReactionAt: number | null = null;
+  let breakoutSide: -1 | 1 | null = null;
   let previousTouch = -10;
   for (let index = 0; index < sample.length - 3; index += 1) {
     const candle = sample[index]!;
@@ -317,21 +410,185 @@ const calculateReactionScore = (
       candle.high >= centerPrice - halfWidth;
     if (!touched || index - previousTouch < 5) continue;
     previousTouch = index;
-    const followThrough = sample.slice(index + 1, Math.min(sample.length, index + 7));
+    const followThrough = sample.slice(
+      index + 1,
+      Math.min(sample.length, index + 7),
+    );
     const excursion = followThrough.reduce(
       (largest, next) =>
-        Math.max(largest, Math.abs(next.close - centerPrice) - halfWidth),
+        Math.max(
+          largest,
+          Math.abs(next.close - centerPrice) - normalizedHalfWidth,
+        ),
       0,
     );
     reactions.push(clamp01(excursion / (atr * 1.5)));
+
+    const approachSide =
+      index > 0
+        ? priceSide(sample[index - 1]!.close, lowerPrice, upperPrice)
+        : 0;
+    const confirmedSides = followThrough
+      .filter(
+        (next) =>
+          Math.max(
+            0,
+            Math.abs(next.close - centerPrice) - normalizedHalfWidth,
+          ) >=
+          atr * 0.25,
+      )
+      .map((next) => priceSide(next.close, lowerPrice, upperPrice))
+      .filter((side): side is -1 | 1 => side !== 0);
+    const oppositeSide =
+      approachSide === 0
+        ? null
+        : (confirmedSides.find((side) => side === -approachSide) ?? null);
+    const returnedSide =
+      approachSide === 0
+        ? null
+        : (confirmedSides.find((side) => side === approachSide) ?? null);
+
+    if (oppositeSide !== null) {
+      latestClassification = "breakout";
+      breakoutCount += 1;
+      breakoutSide = oppositeSide;
+      lastReactionAt = candle.openTime;
+    } else if (returnedSide !== null && breakoutSide === approachSide) {
+      latestClassification = "retest";
+      retestCount += 1;
+      lastReactionAt = candle.openTime;
+    } else if (returnedSide !== null) {
+      latestClassification = "rejection";
+      rejectionCount += 1;
+      lastReactionAt = candle.openTime;
+    }
   }
 
   const recentReactions = reactions.slice(-5);
-  if (recentReactions.length === 0) return { score: 0, touches: 0 };
+  if (recentReactions.length === 0) return empty;
   const repeatability = Math.min(1, recentReactions.length / 3);
   return {
+    classification: latestClassification,
     score: clamp01(average(recentReactions) * (0.65 + repeatability * 0.35)),
     touches: recentReactions.length,
+    rejectionCount,
+    breakoutCount,
+    retestCount,
+    lastReactionAt,
+  };
+};
+
+const expiryBreadthForSignals = (
+  signals: readonly WallSignalInput[],
+): WallExpiryBreadth => {
+  const expiries = [
+    ...new Set(
+      signals
+        .map(({ expiry }) => expiry)
+        .filter(
+          (expiry): expiry is number =>
+            expiry !== null && Number.isFinite(expiry) && expiry > 0,
+        ),
+    ),
+  ].sort((left, right) => left - right);
+  const signalsWithExpiryCount = signals.filter(
+    ({ expiry }) => expiry !== null && Number.isFinite(expiry) && expiry > 0,
+  ).length;
+  return {
+    distinctExpiryCount: expiries.length,
+    expiries,
+    signalsWithExpiryCount,
+    unscopedSignalCount: signals.length - signalsWithExpiryCount,
+  };
+};
+
+const finiteDifference = (
+  current: number | null,
+  previous: number | null,
+): number | null =>
+  current !== null &&
+  previous !== null &&
+  Number.isFinite(current) &&
+  Number.isFinite(previous)
+    ? current - previous
+    : null;
+
+export const auditWallMovement = (
+  previous: WallMovementSnapshot,
+  current: WallMovementSnapshot,
+  options: WallMovementAuditOptions = {},
+): WallMovementAudit => {
+  const wallPriceChangeUsd = finiteDifference(
+    current.wallPrice,
+    previous.wallPrice,
+  );
+  const spotPriceChangeUsd = finiteDifference(
+    current.spotPrice,
+    previous.spotPrice,
+  );
+  const concentrationChange = finiteDifference(
+    current.normalizedConcentration,
+    previous.normalizedConcentration,
+  );
+  const referenceWallPrice = previous.wallPrice ?? current.wallPrice ?? 0;
+  const movementToleranceUsd = Math.max(
+    0,
+    options.movementToleranceUsd ?? Math.max(1, referenceWallPrice * 0.0001),
+  );
+  const moved =
+    wallPriceChangeUsd === null
+      ? previous.wallPrice !== current.wallPrice
+      : Math.abs(wallPriceChangeUsd) > movementToleranceUsd;
+  const expiryChanged = previous.expiry !== current.expiry;
+  const settlementCrossed =
+    previous.expiry !== null &&
+    Number.isFinite(previous.expiry) &&
+    previous.observedAt < previous.expiry &&
+    current.observedAt >= previous.expiry;
+  const leaderChanged =
+    previous.concentrationLeaderId !== undefined &&
+    current.concentrationLeaderId !== undefined &&
+    previous.concentrationLeaderId !== current.concentrationLeaderId;
+  const concentrationChanged =
+    leaderChanged ||
+    (concentrationChange !== null &&
+      Math.abs(concentrationChange) >=
+        (options.concentrationChangeThreshold ?? 0.05));
+  const previousSpot = previous.spotPrice;
+  const spotChanged =
+    spotPriceChangeUsd !== null &&
+    previousSpot !== null &&
+    Number.isFinite(previousSpot) &&
+    previousSpot > 0 &&
+    Math.abs(spotPriceChangeUsd / previousSpot) >=
+      (options.spotChangeThresholdRatio ?? 0.0025);
+  const movedWithSpot =
+    wallPriceChangeUsd !== null &&
+    spotPriceChangeUsd !== null &&
+    Math.sign(wallPriceChangeUsd) === Math.sign(spotPriceChangeUsd);
+
+  const contributingFactors: Array<
+    Exclude<WallMovementAttribution, "unknown">
+  > = [];
+  if (moved && (expiryChanged || settlementCrossed)) {
+    contributingFactors.push("expiry-settlement");
+  }
+  if (moved && concentrationChanged) {
+    contributingFactors.push("concentration");
+  }
+  if (moved && spotChanged && movedWithSpot) {
+    contributingFactors.push("price");
+  }
+
+  return {
+    moved,
+    attribution: contributingFactors[0] ?? "unknown",
+    contributingFactors,
+    wallPriceChangeUsd,
+    spotPriceChangeUsd,
+    concentrationChange,
+    expiryChanged,
+    settlementCrossed,
   };
 };
 
@@ -340,16 +597,15 @@ const persistenceForSignal = (
   now: number,
 ): number => {
   if (!history) return 0;
-  const recency = Math.exp(-Math.max(0, now - history.lastSeenAt) / (10 * 60_000));
+  const recency = Math.exp(
+    -Math.max(0, now - history.lastSeenAt) / (10 * 60_000),
+  );
   const consecutive = Math.min(1, history.consecutiveObservations / 6);
   const observations = Math.min(1, history.observations / 12);
   return clamp01((consecutive * 0.7 + observations * 0.3) * recency);
 };
 
-const expiryScoreForSignal = (
-  signal: WallSignalInput,
-  now: number,
-): number => {
+const expiryScoreForSignal = (signal: WallSignalInput, now: number): number => {
   if (signal.expiry === null) return 0.5;
   const dte = Math.max(0, signal.expiry - now) / 86_400_000;
   return 1 / (1 + dte / 7);
@@ -381,7 +637,7 @@ const strongestByKind = (
 
 export const createWallConfluenceZones = (
   options: WallConfluenceOptions,
-): readonly WallConfluenceZone[] => {
+): readonly WallConfluenceZoneV2[] => {
   const candles = options.candles ?? [];
   const history = options.history ?? new Map<string, WallSignalHistory>();
   const tolerance =
@@ -400,7 +656,10 @@ export const createWallConfluenceZones = (
       normalizedConcentration: clamp01(signal.normalizedConcentration),
       confidence: clamp01(signal.confidence),
     }))
-    .sort((left, right) => left.price - right.price || left.id.localeCompare(right.id));
+    .sort(
+      (left, right) =>
+        left.price - right.price || left.id.localeCompare(right.id),
+    );
 
   const clusters: WallSignalInput[][] = [];
   for (const signal of validSignals) {
@@ -415,7 +674,7 @@ export const createWallConfluenceZones = (
   }
 
   return clusters
-    .map((signals, index): WallConfluenceZone => {
+    .map((signals, index): WallConfluenceZoneV2 => {
       const representatives = strongestByKind(signals);
       const weightedPriceTotal = signals.reduce(
         (total, signal) =>
@@ -457,9 +716,12 @@ export const createWallConfluenceZones = (
         -Math.abs(centerPrice - options.spotPrice) / distanceScale,
       );
       const expiry = average(
-        representatives.map((signal) => expiryScoreForSignal(signal, options.now)),
+        representatives.map((signal) =>
+          expiryScoreForSignal(signal, options.now),
+        ),
       );
-      const reaction = calculateReactionScore(candles, centerPrice, halfWidth);
+      const reaction = analyzeWallReaction(candles, centerPrice, halfWidth);
+      const expiryBreadth = expiryBreadthForSignals(signals);
       const components: ConfluenceScoreBreakdown = {
         concentration: concentration * 100,
         persistence: persistence * 100,
@@ -494,6 +756,9 @@ export const createWallConfluenceZones = (
         signals,
         components,
         reactionTouches: reaction.touches,
+        reactionClassification: reaction.classification,
+        reactionAnalysis: reaction,
+        expiryBreadth,
       };
     })
     .sort(

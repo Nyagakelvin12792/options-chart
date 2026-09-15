@@ -1,5 +1,7 @@
 import type { ChartDrawing } from "@options-chart/chart";
 
+export type PositionSide = "long" | "short";
+
 export interface LongRiskInputs {
   readonly balanceUsd: number;
   readonly dailyLossLimitUsd: number;
@@ -12,7 +14,22 @@ export interface LongRiskInputs {
   readonly takeProfitPriceUsd: number | null;
 }
 
-export interface LongRiskResult {
+export interface PositionRiskInputs extends LongRiskInputs {
+  readonly side: PositionSide;
+}
+
+export type PositionRiskReason =
+  | "ok"
+  | "invalid-account"
+  | "invalid-risk"
+  | "invalid-entry"
+  | "invalid-stop"
+  | "stop-must-be-below-entry"
+  | "stop-must-be-above-entry"
+  | "target-must-be-above-entry"
+  | "target-must-be-below-entry";
+
+export interface PositionRiskResult {
   readonly valid: boolean;
   readonly riskAmountUsd: number;
   readonly riskPerBtcUsd: number;
@@ -25,29 +42,34 @@ export interface LongRiskResult {
   readonly dailyLossShare: number | null;
   readonly maxDrawdownShare: number | null;
   readonly profitTargetShare: number | null;
-  readonly reason:
-    | "ok"
-    | "invalid-account"
-    | "invalid-risk"
-    | "invalid-entry"
-    | "invalid-stop"
-    | "stop-must-be-below-entry"
-    | "target-must-be-above-entry";
+  readonly reason: PositionRiskReason;
 }
 
-export interface LongSetupDetection {
+export type LongRiskResult = PositionRiskResult;
+
+interface SetupDetection {
   readonly entryPriceUsd: number;
   readonly stopLossPriceUsd: number;
   readonly takeProfitPriceUsd: number;
-  readonly source: "market-price" | "chart-levels";
+  readonly source: "market-price" | "chart-levels" | "position-tool";
 }
+
+export interface PositionSetupDetection extends SetupDetection {
+  readonly side: PositionSide;
+}
+
+export type LongSetupDetection = SetupDetection;
 
 const isPositiveFinite = (value: number): boolean =>
   Number.isFinite(value) && value > 0;
 
-export const calculateLongRisk = (inputs: LongRiskInputs): LongRiskResult => {
+export const calculatePositionRisk = (
+  inputs: PositionRiskInputs,
+): PositionRiskResult => {
   const riskAmountUsd = inputs.balanceUsd * (inputs.riskPercent / 100);
-  const invalidResult = (reason: LongRiskResult["reason"]): LongRiskResult => ({
+  const invalidResult = (
+    reason: PositionRiskResult["reason"],
+  ): PositionRiskResult => ({
     valid: false,
     riskAmountUsd: Number.isFinite(riskAmountUsd)
       ? Math.max(0, riskAmountUsd)
@@ -80,24 +102,43 @@ export const calculateLongRisk = (inputs: LongRiskInputs): LongRiskResult => {
   if (!isPositiveFinite(inputs.stopLossPriceUsd)) {
     return invalidResult("invalid-stop");
   }
-  if (inputs.stopLossPriceUsd >= inputs.entryPriceUsd) {
+
+  const isLong = inputs.side === "long";
+  if (isLong && inputs.stopLossPriceUsd >= inputs.entryPriceUsd) {
     return invalidResult("stop-must-be-below-entry");
+  }
+  if (!isLong && inputs.stopLossPriceUsd <= inputs.entryPriceUsd) {
+    return invalidResult("stop-must-be-above-entry");
   }
   if (
     inputs.takeProfitPriceUsd !== null &&
+    isLong &&
     inputs.takeProfitPriceUsd <= inputs.entryPriceUsd
   ) {
     return invalidResult("target-must-be-above-entry");
   }
+  if (
+    inputs.takeProfitPriceUsd !== null &&
+    !isLong &&
+    inputs.takeProfitPriceUsd >= inputs.entryPriceUsd
+  ) {
+    return invalidResult("target-must-be-below-entry");
+  }
 
-  const riskPerBtcUsd = inputs.entryPriceUsd - inputs.stopLossPriceUsd;
+  const riskPerBtcUsd = Math.abs(
+    inputs.entryPriceUsd - inputs.stopLossPriceUsd,
+  );
   const positionSizeBtc = riskAmountUsd / riskPerBtcUsd;
   const notionalValueUsd = positionSizeBtc * inputs.entryPriceUsd;
   const marginRequiredUsd = notionalValueUsd / inputs.leverage;
-  const rewardUsd =
+  const rewardPerBtcUsd =
     inputs.takeProfitPriceUsd === null
       ? null
-      : positionSizeBtc * (inputs.takeProfitPriceUsd - inputs.entryPriceUsd);
+      : isLong
+        ? inputs.takeProfitPriceUsd - inputs.entryPriceUsd
+        : inputs.entryPriceUsd - inputs.takeProfitPriceUsd;
+  const rewardUsd =
+    rewardPerBtcUsd === null ? null : positionSizeBtc * rewardPerBtcUsd;
   const rewardRiskRatio = rewardUsd === null ? null : rewardUsd / riskAmountUsd;
 
   return {
@@ -120,19 +161,47 @@ export const calculateLongRisk = (inputs: LongRiskInputs): LongRiskResult => {
   };
 };
 
-export const detectLongSetupFromDrawings = (
+export const calculateLongRisk = (inputs: LongRiskInputs): LongRiskResult =>
+  calculatePositionRisk({ ...inputs, side: "long" });
+
+export const detectPositionSetupFromDrawings = (
   drawings: readonly ChartDrawing[],
   marketPriceUsd: number | null,
-): LongSetupDetection | null => {
-  const prices = drawings
+  side: PositionSide,
+): PositionSetupDetection | null => {
+  const position = drawings
     .filter(
-      (
-        drawing,
-      ): drawing is Extract<ChartDrawing, { type: "horizontal-line" }> =>
-        drawing.type === "horizontal-line" && isPositiveFinite(drawing.price),
+      (drawing): drawing is Extract<ChartDrawing, { type: "position" }> =>
+        drawing.type === "position" &&
+        drawing.direction === side &&
+        isPositiveFinite(drawing.entry) &&
+        isPositiveFinite(drawing.stopLoss) &&
+        isPositiveFinite(drawing.takeProfit),
     )
-    .map((drawing) => drawing.price)
-    .sort((left, right) => left - right);
+    .sort((left, right) => right.createdAt - left.createdAt)[0];
+  if (position) {
+    return {
+      side,
+      entryPriceUsd: position.entry,
+      stopLossPriceUsd: position.stopLoss,
+      takeProfitPriceUsd: position.takeProfit,
+      source: "position-tool",
+    };
+  }
+
+  const prices = [
+    ...new Set(
+      drawings
+        .filter(
+          (
+            drawing,
+          ): drawing is Extract<ChartDrawing, { type: "horizontal-line" }> =>
+            drawing.type === "horizontal-line" &&
+            isPositiveFinite(drawing.price),
+        )
+        .map((drawing) => drawing.price),
+    ),
+  ].sort((left, right) => left - right);
 
   if (prices.length < 2) return null;
 
@@ -155,29 +224,36 @@ export const detectLongSetupFromDrawings = (
         ? marketPriceUsd
         : null;
 
-  if (entryPriceUsd === null) {
-    return null;
-  }
+  if (entryPriceUsd === null) return null;
 
-  const stopLossPriceUsd = prices
-    .filter((price) => price < entryPriceUsd)
-    .at(-1);
-  const takeProfitPriceUsd = prices.find((price) => price > entryPriceUsd);
-
-  if (stopLossPriceUsd === undefined || takeProfitPriceUsd === undefined) {
-    if (prices.length < 3) return null;
-    return {
-      entryPriceUsd: prices[1]!,
-      stopLossPriceUsd: prices[0]!,
-      takeProfitPriceUsd: prices[2]!,
-      source: "chart-levels",
-    };
-  }
+  const lowerPrice = prices.filter((price) => price < entryPriceUsd).at(-1);
+  const upperPrice = prices.find((price) => price > entryPriceUsd);
+  if (lowerPrice === undefined || upperPrice === undefined) return null;
 
   return {
+    side,
     entryPriceUsd,
-    stopLossPriceUsd,
-    takeProfitPriceUsd,
+    stopLossPriceUsd: side === "long" ? lowerPrice : upperPrice,
+    takeProfitPriceUsd: side === "long" ? upperPrice : lowerPrice,
     source: candidateEntries.length > 0 ? "chart-levels" : "market-price",
+  };
+};
+
+export const detectLongSetupFromDrawings = (
+  drawings: readonly ChartDrawing[],
+  marketPriceUsd: number | null,
+): LongSetupDetection | null => {
+  const detected = detectPositionSetupFromDrawings(
+    drawings,
+    marketPriceUsd,
+    "long",
+  );
+  if (!detected) return null;
+
+  return {
+    entryPriceUsd: detected.entryPriceUsd,
+    stopLossPriceUsd: detected.stopLossPriceUsd,
+    takeProfitPriceUsd: detected.takeProfitPriceUsd,
+    source: detected.source,
   };
 };

@@ -503,6 +503,45 @@ h1 {
   gap: 8px;
 }
 
+.chart-heading-actions .replay-toggle {
+  display: inline-flex;
+  min-width: 66px;
+  align-items: center;
+  gap: 4px;
+}
+
+.replay-controls {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+.chart-heading-actions .replay-controls button {
+  width: 27px;
+  min-width: 27px;
+  height: 27px;
+  padding: 0;
+}
+
+.replay-controls select {
+  height: 27px;
+  border: 1px solid #354552;
+  border-radius: 4px;
+  background: #111820;
+  color: #d5dee6;
+  font-size: 9px;
+}
+
+.replay-controls > span {
+  overflow: hidden;
+  max-width: 190px;
+  color: #7f919f;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chart-heading-actions button {
   width: auto;
   min-width: 58px;

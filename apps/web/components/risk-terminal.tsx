@@ -5,9 +5,10 @@ import { SeparatorHorizontal, Settings2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
-  calculateLongRisk,
-  detectLongSetupFromDrawings,
-  type LongRiskResult,
+  calculatePositionRisk,
+  detectPositionSetupFromDrawings,
+  type PositionRiskResult,
+  type PositionSide,
 } from "@/lib/risk-calculator";
 
 interface RiskTerminalProps {
@@ -42,7 +43,7 @@ const numberFromInput = (value: string): number =>
 const toInputValue = (value: number): string =>
   Number.isInteger(value) ? String(value) : value.toFixed(2);
 
-const resultMessage = (result: LongRiskResult): string => {
+const resultMessage = (result: PositionRiskResult): string => {
   switch (result.reason) {
     case "ok":
       return "Ready";
@@ -56,8 +57,12 @@ const resultMessage = (result: LongRiskResult): string => {
       return "Check stop";
     case "stop-must-be-below-entry":
       return "Stop must be below entry";
+    case "stop-must-be-above-entry":
+      return "Stop must be above entry";
     case "target-must-be-above-entry":
       return "Target must be above entry";
+    case "target-must-be-below-entry":
+      return "Target must be below entry";
   }
 };
 
@@ -115,6 +120,7 @@ function BudgetRow({
 }
 
 export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
+  const [positionSide, setPositionSide] = useState<PositionSide>("long");
   const [balanceUsd, setBalanceUsd] = useState("10000");
   const [dailyLossLimitUsd, setDailyLossLimitUsd] = useState("300");
   const [maxDrawdownUsd, setMaxDrawdownUsd] = useState("500");
@@ -130,7 +136,8 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
 
   const riskResult = useMemo(
     () =>
-      calculateLongRisk({
+      calculatePositionRisk({
+        side: positionSide,
         balanceUsd: numberFromInput(balanceUsd),
         dailyLossLimitUsd: numberFromInput(dailyLossLimitUsd),
         maxDrawdownUsd: numberFromInput(maxDrawdownUsd),
@@ -150,6 +157,7 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
       entryPriceUsd,
       leverage,
       maxDrawdownUsd,
+      positionSide,
       profitTargetUsd,
       riskPercent,
       stopLossPriceUsd,
@@ -158,7 +166,11 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
   );
 
   const detectFromChart = () => {
-    const detected = detectLongSetupFromDrawings(drawings, lastPrice);
+    const detected = detectPositionSetupFromDrawings(
+      drawings,
+      lastPrice,
+      positionSide,
+    );
     if (!detected) {
       setDetectionState("missing");
       return;
@@ -167,6 +179,24 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
     setStopLossPriceUsd(toInputValue(detected.stopLossPriceUsd));
     setTakeProfitPriceUsd(toInputValue(detected.takeProfitPriceUsd));
     setDetectionState("detected");
+  };
+
+  const selectPositionSide = (nextSide: PositionSide) => {
+    if (nextSide === positionSide) return;
+
+    const entry = numberFromInput(entryPriceUsd);
+    const stop = numberFromInput(stopLossPriceUsd);
+    const target = numberFromInput(takeProfitPriceUsd);
+    if (Number.isFinite(entry)) {
+      if (Number.isFinite(stop)) {
+        setStopLossPriceUsd(toInputValue(2 * entry - stop));
+      }
+      if (Number.isFinite(target)) {
+        setTakeProfitPriceUsd(toInputValue(2 * entry - target));
+      }
+    }
+    setPositionSide(nextSide);
+    setDetectionState("idle");
   };
 
   return (
@@ -218,9 +248,22 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
       <section className="risk-panel">
         <div className="risk-section-heading">
           <h2>Position Sizer</h2>
-          <div className="risk-mode" aria-label="Position mode">
-            <span>Long</span>
-            <span>Crypto</span>
+          <div
+            className="risk-mode risk-preset-row"
+            role="group"
+            aria-label="Position side"
+          >
+            {(["long", "short"] as const).map((side) => (
+              <button
+                key={side}
+                type="button"
+                className={positionSide === side ? "active" : ""}
+                aria-pressed={positionSide === side}
+                onClick={() => selectPositionSide(side)}
+              >
+                {side}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -277,7 +320,7 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
           aria-live="polite"
         >
           {detectionState === "detected"
-            ? "Chart levels detected"
+            ? `${positionSide === "long" ? "Long" : "Short"} chart levels detected`
             : detectionState === "missing"
               ? "Need stop and target lines"
               : resultMessage(riskResult)}

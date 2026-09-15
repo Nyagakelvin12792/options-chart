@@ -10,7 +10,14 @@ export type ExpiryScope =
   | { readonly kind: "less-than-or-equal-7-dte" }
   | { readonly kind: "less-than-or-equal-30-dte" }
   | { readonly kind: "all" }
+  | { readonly kind: "exact-expiry"; readonly expiry: number }
   | { readonly kind: "custom"; readonly expiry: number };
+
+const assertFiniteTimestamp = (value: number, name: string): void => {
+  if (!Number.isFinite(value)) {
+    throw new RangeError(`${name} must be a finite timestamp`);
+  }
+};
 
 const utcDayStart = (timestamp: number): number => {
   const date = new Date(timestamp);
@@ -41,53 +48,92 @@ const sortContracts = (
       ),
   );
 
-export const filterOptionsByExpiryScope = (
+const getActiveContracts = (
   contracts: readonly OptionSnapshot[],
-  scope: ExpiryScope,
   calculationTimestamp: number,
 ): readonly OptionSnapshot[] => {
-  const activeContracts = contracts.filter(
+  assertFiniteTimestamp(calculationTimestamp, "Calculation time");
+  return contracts.filter(
     ({ instrument }) =>
       instrument.isActive &&
       Number.isFinite(instrument.expiry) &&
       instrument.expiry > calculationTimestamp,
   );
-  const activeExpiries = [
-    ...new Set(activeContracts.map(({ instrument }) => instrument.expiry)),
-  ].sort((left, right) => left - right);
+};
 
-  let selectedExpiries: ReadonlySet<number>;
-  if (scope.kind === "all") {
-    selectedExpiries = new Set(activeExpiries);
-  } else if (scope.kind === "next-expiry") {
-    selectedExpiries = new Set(activeExpiries.slice(0, 1));
-  } else if (scope.kind === "custom") {
-    selectedExpiries = new Set([scope.expiry]);
-  } else if (scope.kind === "0-dte") {
-    const dayStart = utcDayStart(calculationTimestamp);
-    selectedExpiries = new Set(
-      activeExpiries.filter(
-        (expiry) =>
-          expiry >= dayStart && expiry < dayStart + millisecondsPerDay,
-      ),
+export const listActiveOptionExpiries = (
+  contracts: readonly OptionSnapshot[],
+  calculationTimestamp: number,
+  minimumTimeToExpiryMs = 0,
+): readonly number[] => {
+  if (!Number.isFinite(minimumTimeToExpiryMs) || minimumTimeToExpiryMs < 0) {
+    throw new RangeError(
+      "Minimum time to expiry must be finite and non-negative",
     );
-  } else if (scope.kind === "this-friday" || scope.kind === "next-friday") {
+  }
+
+  return [
+    ...new Set(
+      getActiveContracts(contracts, calculationTimestamp)
+        .filter(
+          ({ instrument }) =>
+            instrument.expiry - calculationTimestamp >= minimumTimeToExpiryMs,
+        )
+        .map(({ instrument }) => instrument.expiry),
+    ),
+  ].sort((left, right) => left - right);
+};
+
+export const resolveExpiryScopeExpiries = (
+  contracts: readonly OptionSnapshot[],
+  scope: ExpiryScope,
+  calculationTimestamp: number,
+): readonly number[] => {
+  const activeExpiries = listActiveOptionExpiries(
+    contracts,
+    calculationTimestamp,
+  );
+
+  if (scope.kind === "all") {
+    return activeExpiries;
+  }
+  if (scope.kind === "next-expiry") {
+    return activeExpiries.slice(0, 1);
+  }
+  if (scope.kind === "custom" || scope.kind === "exact-expiry") {
+    assertFiniteTimestamp(scope.expiry, "Exact expiry");
+    return activeExpiries.includes(scope.expiry) ? [scope.expiry] : [];
+  }
+  if (scope.kind === "0-dte") {
+    const dayStart = utcDayStart(calculationTimestamp);
+    return activeExpiries.filter(
+      (expiry) => expiry >= dayStart && expiry < dayStart + millisecondsPerDay,
+    );
+  }
+  if (scope.kind === "this-friday" || scope.kind === "next-friday") {
     const [start, end] = fridayWindow(
       calculationTimestamp,
       scope.kind === "next-friday" ? 1 : 0,
     );
-    selectedExpiries = new Set(
-      activeExpiries.filter((expiry) => expiry >= start && expiry < end),
-    );
-  } else {
-    const maximumDte = scope.kind === "less-than-or-equal-7-dte" ? 7 : 30;
-    selectedExpiries = new Set(
-      activeExpiries.filter(
-        (expiry) =>
-          calculateDaysToExpiry(expiry, calculationTimestamp) <= maximumDte,
-      ),
-    );
+    return activeExpiries.filter((expiry) => expiry >= start && expiry < end);
   }
+
+  const maximumDte = scope.kind === "less-than-or-equal-7-dte" ? 7 : 30;
+  return activeExpiries.filter(
+    (expiry) =>
+      calculateDaysToExpiry(expiry, calculationTimestamp) <= maximumDte,
+  );
+};
+
+export const filterOptionsByExpiryScope = (
+  contracts: readonly OptionSnapshot[],
+  scope: ExpiryScope,
+  calculationTimestamp: number,
+): readonly OptionSnapshot[] => {
+  const activeContracts = getActiveContracts(contracts, calculationTimestamp);
+  const selectedExpiries = new Set(
+    resolveExpiryScopeExpiries(contracts, scope, calculationTimestamp),
+  );
 
   return sortContracts(
     activeContracts.filter(({ instrument }) =>
@@ -117,4 +163,6 @@ export const bucketOptionsByExpiry = (
 };
 
 export const formatExpiryScope = (scope: ExpiryScope): string =>
-  scope.kind === "custom" ? `custom:${scope.expiry}` : scope.kind;
+  scope.kind === "custom" || scope.kind === "exact-expiry"
+    ? `${scope.kind}:${scope.expiry}`
+    : scope.kind;

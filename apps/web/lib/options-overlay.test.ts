@@ -4,6 +4,7 @@ import { minimumProfileTimeToExpiryMs } from "@options-chart/options-engine";
 
 import {
   buildUnavailableOptionsChain,
+  createExactExpiryScope,
   createExpiryScope,
   formatDeribitExpiryDate,
   listActiveExpiries,
@@ -25,8 +26,10 @@ describe("options overlay utilities", () => {
   it("maps custom and preset scopes and keeps Max Pain expiry-specific", () => {
     const customExpiry = Date.UTC(2026, 7, 28, 8);
     const custom = createExpiryScope("custom", customExpiry);
+    const exact = createExactExpiryScope(customExpiry);
 
     expect(custom).toEqual({ kind: "custom", expiry: customExpiry });
+    expect(exact).toEqual({ kind: "exact-expiry", expiry: customExpiry });
     expect(
       selectMaxPainExpiry(buildUnavailableOptionsChain(NOW), custom, NOW),
     ).toBeNull();
@@ -42,7 +45,7 @@ describe("options overlay utilities", () => {
       ...buildUnavailableOptionsChain(NOW),
       instruments: [
         {
-          instrument: { expiry },
+          instrument: { expiry, isActive: true },
         },
       ],
     } as unknown as OptionsChainSnapshot;

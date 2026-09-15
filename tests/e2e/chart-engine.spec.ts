@@ -115,7 +115,9 @@ test("preserves viewport and drawings across repair, history growth, and timefra
   const rangeBeforeLazyLoad = await evaluateChart(page, "getVisibleRange");
   await evaluateChart<void>(page, "loadOlderHistory");
   await expect
-    .poll(async () => Number(await page.getByTestId("candle-count").innerText()))
+    .poll(async () =>
+      Number(await page.getByTestId("candle-count").innerText()),
+    )
     .toBeGreaterThanOrEqual(11_000);
   expect(await evaluateChart(page, "getVisibleRange")).toEqual(
     rangeBeforeLazyLoad,
@@ -183,7 +185,8 @@ test("keeps the chart-first layout stable at required desktop viewports", async 
         toolbarRight: toolbar?.getBoundingClientRect().right ?? 0,
         chartLeft: chart?.getBoundingClientRect().left ?? 0,
         chartRight: chart?.getBoundingClientRect().right ?? 0,
-        railLeft: rail?.getBoundingClientRect().left ?? 0,
+        railLeft: rail?.getBoundingClientRect().left ?? null,
+        railRight: rail?.getBoundingClientRect().right ?? null,
       };
     });
 
@@ -191,7 +194,10 @@ test("keeps the chart-first layout stable at required desktop viewports", async 
     expect(layout.chartWidth).toBeGreaterThan(750);
     expect(layout.chartHeight).toBeGreaterThan(540);
     expect(layout.toolbarRight).toBeLessThanOrEqual(layout.chartLeft);
-    expect(layout.chartRight).toBeLessThanOrEqual(layout.railLeft);
+    if (layout.railLeft !== null && layout.railRight !== null) {
+      expect(layout.railLeft).toBeGreaterThanOrEqual(layout.chartLeft);
+      expect(layout.railRight).toBeLessThanOrEqual(layout.chartRight);
+    }
     await page.screenshot({
       path: testInfo.outputPath(`${viewport.width}x${viewport.height}.png`),
       fullPage: true,

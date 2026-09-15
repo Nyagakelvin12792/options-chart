@@ -28,10 +28,16 @@ import {
   type DeribitRecentOptionTradePayload,
 } from "@options-chart/market-data";
 import {
+  aggregateExposureByStrike,
+  calculateCallPutOpenInterestWeightedMarkIv,
+  calculateContractExposure,
   calculateDeribitInverseGamma,
+  calculateIvTermStructure,
+  calculateNearForwardAtmIv,
   calculateStaticWallSignals,
   filterOptionsByExpiryScope,
   millisecondsPerYear,
+  resolveExpiryScopeExpiries,
   type ExpiryScope,
   type OptionsCalculationResult,
 } from "@options-chart/options-engine";
@@ -41,15 +47,22 @@ import {
   type OptionsCalculationRequest,
 } from "@options-chart/worker-protocol";
 import {
+  ArrowDownRight,
+  ArrowUpRight,
   Eye,
   EyeOff,
   Eraser,
+  History,
   MousePointer2,
   PanelLeftClose,
   PanelLeftOpen,
+  Pause,
+  Play,
+  RotateCcw,
   SeparatorHorizontal,
   SeparatorVertical,
   Settings2,
+  StepForward,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -71,10 +84,25 @@ import {
 } from "@/components/wall-confluence";
 import {
   buildUnavailableOptionsChain,
+  createExactExpiryScope,
+  createExpiryScope,
+  EXPIRY_SCOPE_OPTIONS,
   formatDeribitExpiryDate,
   listActiveExpiries,
   selectMaxPainExpiry,
+  type ExpiryScopeKind,
 } from "@/lib/options-overlay";
+import {
+  createReplaySnapshotStorage,
+  createReplayState,
+  createReplayTimeline,
+  reduceReplay,
+  REPLAY_SPEEDS,
+  selectReplayFrame,
+  type BoundedReplaySnapshotStorage,
+  type ReplaySpeed,
+  type ReplayState,
+} from "@/lib/replay";
 import {
   calculateWallZoneTolerance,
   createWallConfluenceZones,
@@ -164,6 +192,8 @@ const DAY_MS = 86_400_000;
 const OPTIONS_STALE_AFTER_MS = 90_000;
 const DEALER_FLOW_LOOKBACK_MS = 60 * 60_000;
 const DEALER_FLOW_REFRESH_MS = 30_000;
+const REPLAY_SNAPSHOT_INTERVAL_MS = 5 * 60_000;
+const REPLAY_SNAPSHOT_CAPACITY = 288;
 const GAMMA_RECONCILIATION_REFRESH_MS = 60_000;
 const BINANCE_CLOCK_SYNC_STALE_MS = 5 * 60_000;
 const PROFILE_METRICS: readonly {
@@ -174,6 +204,9 @@ const PROFILE_METRICS: readonly {
   { value: "gex", label: "GEX", title: "Gross Gamma concentration" },
   { value: "open-interest", label: "OI", title: "Open Interest concentration" },
 ];
+const DASHBOARD_EXPIRY_SCOPES = EXPIRY_SCOPE_OPTIONS.filter(
+  ({ kind }) => kind !== "custom",
+);
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -198,6 +231,17 @@ const isChartDrawing = (value: unknown): value is ChartDrawing => {
   if (candidate.type === "horizontal-line") {
     return (
       typeof candidate.price === "number" && Number.isFinite(candidate.price)
+    );
+  }
+  if (candidate.type === "position") {
+    return (
+      (candidate.direction === "long" || candidate.direction === "short") &&
+      typeof candidate.entry === "number" &&
+      Number.isFinite(candidate.entry) &&
+      typeof candidate.stopLoss === "number" &&
+      Number.isFinite(candidate.stopLoss) &&
+      typeof candidate.takeProfit === "number" &&
+      Number.isFinite(candidate.takeProfit)
     );
   }
   return (
@@ -244,9 +288,16 @@ export function DashboardClient({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartAdapterRef = useRef<ChartAdapter | null>(null);
   const candleStoreRef = useRef<CandleStore | null>(null);
+  const timeframeHistoryCacheRef = useRef(
+    new Map<CandleInterval, readonly Candle[]>(),
+  );
   const binanceSocketRef = useRef<BinanceKlineSocket | null>(null);
   const restClientRef = useRef<BinanceRestClient | null>(null);
   const latestCandleRef = useRef<Candle | null>(null);
+  const replayStorageRef = useRef<BoundedReplaySnapshotStorage | null>(null);
+  const replayActiveRef = useRef(false);
+  const replayRenderedIndexRef = useRef(-1);
+  const lastReplaySnapshotBucketRef = useRef<number | null>(null);
   const latestInputVersionRef = useRef(0);
   const optionsWorkerRef = useRef<Worker | null>(null);
   const deribitEngineRef = useRef<DeribitOptionsDataEngine | null>(null);
@@ -279,11 +330,11 @@ export function DashboardClient({
     useState<CandleInterval>("1h");
   const [selectedInterval, setSelectedInterval] =
     useState<CandleInterval>("1h");
-  const [customExpiry, setCustomExpiry] = useState<number | null>(null);
+  const [expirySelection, setExpirySelection] = useState("scope:next-expiry");
   const [feedState, setFeedState] = useState<FeedHealthState>("CONNECTING");
   const [candleStatus, setCandleStatus] = useState("Initializing");
   const [candleCount, setCandleCount] = useState(0);
-  const [lastPrice, setLastPrice] = useState<number | null>(null);
+  const [liveLastPrice, setLastPrice] = useState<number | null>(null);
   const [dayChange, setDayChange] = useState<number | null>(null);
   const [drawingMode, setDrawingModeState] =
     useState<ChartDrawingMode>("pointer");
@@ -292,8 +343,13 @@ export function DashboardClient({
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnostics, setDiagnostics] =
     useState<ChartAdapterDiagnostics | null>(null);
-  const [optionsChain, setOptionsChain] = useState<OptionsChainSnapshot>(() =>
-    buildUnavailableOptionsChain(Date.now()),
+  const [liveOptionsChain, setLiveOptionsChain] =
+    useState<OptionsChainSnapshot>(() =>
+      buildUnavailableOptionsChain(Date.now()),
+    );
+  const [replayState, setReplayState] = useState<ReplayState | null>(null);
+  const [replayStorageStatus, setReplayStorageStatus] = useState(
+    "OPTIONS HISTORY RECORDING",
   );
   const [optionsState, setOptionsState] =
     useState<LevelDisplayState>("FALLBACK");
@@ -329,7 +385,7 @@ export function DashboardClient({
   const [profileExpanded, setProfileExpanded] = useState(true);
   const [profileMetric, setProfileMetric] = useState<ProfileMetric>("gex");
   const [chartHeight, setChartHeight] = useState(1);
-  const [auditNow, setAuditNow] = useState(() => Date.now());
+  const [liveAuditNow, setAuditNow] = useState(() => Date.now());
   const [positionedLevels, setPositionedLevels] = useState<
     readonly PositionedLevel[]
   >([]);
@@ -341,6 +397,31 @@ export function DashboardClient({
   const [positionedConfluenceZones, setPositionedConfluenceZones] = useState<
     readonly PositionedWallConfluenceZone[]
   >([]);
+
+  const replayFrame = useMemo(
+    () => (replayState ? selectReplayFrame(replayState) : null),
+    [replayState],
+  );
+  const replayActive = replayState !== null;
+  const replayPlayback = replayState?.playback ?? "paused";
+  const optionsChain = useMemo(() => {
+    if (!replayState) return liveOptionsChain;
+    return replayFrame?.options.status === "available"
+      ? replayFrame.options.snapshot.chain
+      : buildUnavailableOptionsChain(replayFrame?.replayTime ?? liveAuditNow);
+  }, [liveAuditNow, liveOptionsChain, replayFrame, replayState]);
+  const auditNow = replayFrame?.replayTime ?? liveAuditNow;
+  const optionsCalculationNow =
+    replayFrame?.options.status === "available"
+      ? replayFrame.options.snapshot.capturedAt
+      : auditNow;
+  const lastPrice = replayFrame?.candle.close ?? liveLastPrice;
+
+  if (replayStorageRef.current === null) {
+    replayStorageRef.current = createReplaySnapshotStorage(
+      REPLAY_SNAPSHOT_CAPACITY,
+    );
+  }
 
   if (restClientRef.current == null) {
     restClientRef.current = new BinanceRestClient({
@@ -372,24 +453,87 @@ export function DashboardClient({
   }, []);
 
   const activeExpiries = useMemo(
-    () => listActiveExpiries(optionsChain, auditNow),
-    [optionsChain, auditNow],
+    () => listActiveExpiries(optionsChain, optionsCalculationNow),
+    [optionsChain, optionsCalculationNow],
   );
-  const expiryScope = useMemo<ExpiryScope>(
-    () => ({
-      kind: "custom",
-      expiry: customExpiry ?? activeExpiries[0] ?? 0,
-    }),
-    [activeExpiries, customExpiry],
+  const expiryScope = useMemo<ExpiryScope>(() => {
+    if (expirySelection.startsWith("expiry:")) {
+      return createExactExpiryScope(Number(expirySelection.slice(7)));
+    }
+    const selectedKind = DASHBOARD_EXPIRY_SCOPES.find(
+      ({ kind }) => `scope:${kind}` === expirySelection,
+    )?.kind;
+    return createExpiryScope(
+      (selectedKind ?? "next-expiry") as ExpiryScopeKind,
+      null,
+    );
+  }, [expirySelection]);
+  const resolvedExpiries = useMemo(
+    () =>
+      resolveExpiryScopeExpiries(
+        optionsChain.instruments,
+        expiryScope,
+        optionsCalculationNow,
+      ),
+    [expiryScope, optionsCalculationNow, optionsChain.instruments],
   );
-  const selectedExpiry = expiryScope.kind === "custom" ? expiryScope.expiry : 0;
+  const selectedExpiry =
+    selectMaxPainExpiry(optionsChain, expiryScope, optionsCalculationNow) ?? 0;
+  const scopedContracts = useMemo(
+    () =>
+      filterOptionsByExpiryScope(
+        optionsChain.instruments,
+        expiryScope,
+        optionsCalculationNow,
+      ),
+    [expiryScope, optionsCalculationNow, optionsChain.instruments],
+  );
+  const ivSummary = useMemo(() => {
+    const callPut = calculateCallPutOpenInterestWeightedMarkIv(scopedContracts);
+    const atm =
+      selectedExpiry > 0
+        ? calculateNearForwardAtmIv(scopedContracts, selectedExpiry)
+        : null;
+    const termStructure = calculateIvTermStructure(
+      scopedContracts,
+      optionsCalculationNow,
+    );
+    return {
+      callMarkIvDecimal: callPut.call.averageMarkIvDecimal,
+      putMarkIvDecimal: callPut.put.averageMarkIvDecimal,
+      atmMarkIvDecimal: atm?.averageMarkIvDecimal ?? null,
+      expiryCount: resolvedExpiries.length,
+      termStructureLabel:
+        termStructure.length === 0
+          ? "No eligible IV term structure"
+          : termStructure
+              .map((point) => {
+                const iv =
+                  point.nearForwardAtmIv.averageMarkIvDecimal ??
+                  point.openInterestWeightedMarkIv.averageMarkIvDecimal;
+                return `${formatDeribitExpiryDate(point.expiry)} ${iv === null ? "--" : `${(iv * 100).toFixed(1)}%`}`;
+              })
+              .join(" | "),
+    };
+  }, [
+    optionsCalculationNow,
+    resolvedExpiries.length,
+    scopedContracts,
+    selectedExpiry,
+  ]);
   const optionsUnderlyingPrice = useMemo(() => {
-    if (deribitIndexPrice !== null) return deribitIndexPrice;
+    if (!replayActive && deribitIndexPrice !== null) return deribitIndexPrice;
     const expiryReference = optionsChain.instruments.find(
       ({ instrument }) => instrument.expiry === selectedExpiry,
     )?.quote.underlyingPriceUsd;
     return expiryReference ?? lastPrice;
-  }, [deribitIndexPrice, lastPrice, optionsChain.instruments, selectedExpiry]);
+  }, [
+    deribitIndexPrice,
+    lastPrice,
+    optionsChain.instruments,
+    replayActive,
+    selectedExpiry,
+  ]);
   const gammaReconciliationInstruments = useMemo(
     () =>
       optionsUnderlyingPrice === null
@@ -411,6 +555,12 @@ export function DashboardClient({
   const gammaReconciliationInstrumentKey =
     gammaReconciliationInstruments.join(",");
   const effectiveOptionsState = useMemo<LevelDisplayState>(() => {
+    if (replayActive) {
+      if (replayFrame?.options.status !== "available") return "FALLBACK";
+      return replayFrame.options.ageMs > OPTIONS_STALE_AFTER_MS
+        ? "STALE"
+        : "LIVE";
+    }
     if (
       optionsState === "LIVE" &&
       auditNow - optionsChain.metadata.sourceTimestamp > OPTIONS_STALE_AFTER_MS
@@ -418,9 +568,16 @@ export function DashboardClient({
       return "STALE";
     }
     return optionsState;
-  }, [auditNow, optionsChain.metadata.sourceTimestamp, optionsState]);
+  }, [
+    auditNow,
+    optionsChain.metadata.sourceTimestamp,
+    optionsState,
+    replayFrame,
+    replayActive,
+  ]);
   const dealerFlowWall = useMemo(() => {
     if (
+      replayActive ||
       optionsUnderlyingPrice === null ||
       selectedExpiry <= auditNow ||
       recentOptionTrades.length === 0
@@ -458,6 +615,7 @@ export function DashboardClient({
     optionsUnderlyingPrice,
     previousOptionsChain,
     recentOptionTrades,
+    replayActive,
     selectedExpiry,
   ]);
   const staticWallSignals = useMemo(() => {
@@ -467,18 +625,59 @@ export function DashboardClient({
       contracts: filterOptionsByExpiryScope(
         optionsChain.instruments,
         expiryScope,
-        auditNow,
+        optionsCalculationNow,
       ),
       currentSpotPrice: optionsUnderlyingPrice,
       maxPainPrice: optionsResult.maxPain?.price ?? null,
       gammaFlipPrice: optionsResult.gammaFlipPrice,
     });
   }, [
-    auditNow,
+    optionsCalculationNow,
     expiryScope,
     optionsChain.instruments,
     optionsResult,
     optionsUnderlyingPrice,
+  ]);
+  const expiryWallSignals = useMemo(() => {
+    if (
+      !optionsResult ||
+      optionsUnderlyingPrice === null ||
+      resolvedExpiries.length <= 1
+    ) {
+      return [];
+    }
+    const calculatedAt = optionsResult.summary.metadata.calculatedAt;
+    return resolvedExpiries.flatMap((expiry) => {
+      const contracts = scopedContracts.filter(
+        ({ instrument }) => instrument.expiry === expiry,
+      );
+      const exposures = contracts.flatMap((contract) => {
+        try {
+          return [
+            calculateContractExposure(
+              contract,
+              optionsUnderlyingPrice,
+              calculatedAt,
+              0.01,
+            ),
+          ];
+        } catch {
+          return [];
+        }
+      });
+      return calculateStaticWallSignals({
+        strikeExposures: aggregateExposureByStrike(exposures),
+        contracts,
+        currentSpotPrice: optionsUnderlyingPrice,
+        maxPainPrice: null,
+        gammaFlipPrice: null,
+      }).map((signal) => ({ signal, expiry }));
+    });
+  }, [
+    optionsResult,
+    optionsUnderlyingPrice,
+    resolvedExpiries,
+    scopedContracts,
   ]);
   const confluenceSignals = useMemo<readonly WallSignalInput[]>(() => {
     const confidenceByKind = {
@@ -488,24 +687,43 @@ export function DashboardClient({
       "max-pain": 0.9,
       "gamma-flip": 0.75,
     } as const;
-    const staticSignals = staticWallSignals.map((signal): WallSignalInput => ({
-      id: signal.id,
-      kind: signal.kind,
-      label: signal.label,
-      price: signal.price,
-      normalizedConcentration: signal.concentration,
-      confidence: confidenceByKind[signal.kind],
-      expiry: selectedExpiry > 0 ? selectedExpiry : null,
-      direction:
-        signal.optionType === "put"
-          ? "support"
-          : signal.optionType === "call"
-            ? "resistance"
-            : "neutral",
-      detail: `${(signal.concentration * 100).toFixed(1)}% of ${signal.normalizationGroup}`,
-    }));
+    const sourceSignals =
+      expiryWallSignals.length === 0
+        ? staticWallSignals.map((signal) => ({
+            signal,
+            expiry: selectedExpiry > 0 ? selectedExpiry : null,
+          }))
+        : [
+            ...expiryWallSignals,
+            ...staticWallSignals
+              .filter(
+                ({ kind }) => kind === "max-pain" || kind === "gamma-flip",
+              )
+              .map((signal) => ({
+                signal,
+                expiry: selectedExpiry > 0 ? selectedExpiry : null,
+              })),
+          ];
+    const staticSignals = sourceSignals.map(
+      ({ signal, expiry }): WallSignalInput => ({
+        id: `${signal.id}:${expiry ?? "scope"}`,
+        kind: signal.kind,
+        label: signal.label,
+        price: signal.price,
+        normalizedConcentration: signal.concentration,
+        confidence: confidenceByKind[signal.kind],
+        expiry,
+        direction:
+          signal.optionType === "put"
+            ? "support"
+            : signal.optionType === "call"
+              ? "resistance"
+              : "neutral",
+        detail: `${(signal.concentration * 100).toFixed(1)}% of ${signal.normalizationGroup}`,
+      }),
+    );
     return dealerFlowWall ? [...staticSignals, dealerFlowWall] : staticSignals;
-  }, [dealerFlowWall, selectedExpiry, staticWallSignals]);
+  }, [dealerFlowWall, expiryWallSignals, selectedExpiry, staticWallSignals]);
   const confluenceZones = useMemo(() => {
     if (lastPrice === null || confluenceSignals.length === 0) return [];
     return createWallConfluenceZones({
@@ -541,6 +759,8 @@ export function DashboardClient({
           detail: signal.detail ?? signal.label,
         })),
         contributions: zone.components,
+        expiryBreadth: zone.expiryBreadth,
+        reactionClassification: zone.reactionClassification,
       })),
     [confluenceZones, lastPrice],
   );
@@ -795,6 +1015,7 @@ export function DashboardClient({
   }, []);
 
   const handleReconcile = useCallback(async () => {
+    if (replayActiveRef.current) return;
     const store = candleStoreRef.current;
     const client = restClientRef.current;
     const adapter = chartAdapterRef.current;
@@ -820,6 +1041,10 @@ export function DashboardClient({
       latestCandleRef.current = latest;
       if (latest) setLastPrice(latest.close);
     }
+    timeframeHistoryCacheRef.current.set(
+      activeIntervalRef.current,
+      store.getSorted(),
+    );
     setCandleStatus(
       `Reconciled ${result.barsRepaired} bar${result.barsRepaired === 1 ? "" : "s"}`,
     );
@@ -827,6 +1052,7 @@ export function DashboardClient({
   }, [getBinanceNow, refreshDiagnostics]);
 
   const loadOlderHistory = useCallback(async () => {
+    if (replayActiveRef.current) return;
     const store = candleStoreRef.current;
     const client = restClientRef.current;
     const adapter = chartAdapterRef.current;
@@ -857,6 +1083,7 @@ export function DashboardClient({
         return;
       }
       store.mergeHistory(result.candles);
+      timeframeHistoryCacheRef.current.set(intervalAtStart, store.getSorted());
       reachedHistoryBeginningRef.current = result.reachedBeginning;
       adapter.setHistory(store.getSorted(), {
         preserveVisibleRange: true,
@@ -979,18 +1206,31 @@ export function DashboardClient({
     candleStoreRef.current = store;
     const client = restClientRef.current;
     if (!client) return;
+    const cachedHistory =
+      timeframeHistoryCacheRef.current.get(selectedInterval);
 
     let socket: BinanceKlineSocket | null = null;
     setFeedState("CONNECTING");
-    setCandleStatus(`Loading ${HISTORY_TARGET_LABEL} ${selectedInterval} bars`);
+    setCandleStatus(
+      cachedHistory?.length
+        ? `Cached ${selectedInterval} bars · refreshing`
+        : `Loading ${HISTORY_TARGET_LABEL} ${selectedInterval} bars`,
+    );
 
     const applyHistory = (
       historyCandles: readonly Candle[],
       status: string,
+      preserveVisibleRange = false,
     ) => {
       store.setHistory(historyCandles);
+      timeframeHistoryCacheRef.current.set(selectedInterval, historyCandles);
       const adapter = chartAdapterRef.current;
-      adapter?.setHistory(historyCandles, { fitContent: false });
+      if (!replayActiveRef.current) {
+        adapter?.setHistory(historyCandles, {
+          preserveVisibleRange,
+          fitContent: false,
+        });
+      }
       const visibleBarCount =
         (chartContainerRef.current?.clientWidth ?? 1_000) < 600
           ? 64
@@ -998,7 +1238,7 @@ export function DashboardClient({
       const visibleFrom =
         historyCandles[Math.max(historyCandles.length - visibleBarCount, 0)];
       const visibleTo = historyCandles.at(-1);
-      if (adapter && visibleFrom && visibleTo) {
+      if (!preserveVisibleRange && adapter && visibleFrom && visibleTo) {
         adapter.setVisibleRange({
           fromTimestamp: visibleFrom.openTime,
           toTimestamp: visibleTo.openTime,
@@ -1018,6 +1258,13 @@ export function DashboardClient({
       refreshDiagnostics();
     };
 
+    if (cachedHistory?.length) {
+      applyHistory(
+        cachedHistory,
+        `Cached ${selectedInterval} bars · refreshing`,
+      );
+    }
+
     void (async () => {
       try {
         const bootstrap = await bootstrapHistory(client, {
@@ -1031,6 +1278,7 @@ export function DashboardClient({
           bootstrap.completeness === "COMPLETE"
             ? `Binance REST + live ${selectedInterval}`
             : `Binance REST degraded ${selectedInterval}`,
+          Boolean(cachedHistory?.length),
         );
 
         if (bootstrap.candles.length === 0) {
@@ -1043,7 +1291,9 @@ export function DashboardClient({
           onCandle: (candle) => {
             if (feedGenerationRef.current !== generation) return;
             if (store.applyLiveCandle(candle) === null) return;
-            chartAdapterRef.current?.updateCandle(candle);
+            if (!replayActiveRef.current) {
+              chartAdapterRef.current?.updateCandle(candle);
+            }
             latestCandleRef.current = candle;
             setLastPrice(candle.close);
             setCandleCount(store.size);
@@ -1071,6 +1321,12 @@ export function DashboardClient({
 
     return () => {
       socket?.destroy();
+      if (store.size > 0) {
+        timeframeHistoryCacheRef.current.set(
+          selectedInterval,
+          store.getSorted(),
+        );
+      }
       if (binanceSocketRef.current === socket) binanceSocketRef.current = null;
       if (candleStoreRef.current === store) candleStoreRef.current = null;
     };
@@ -1219,23 +1475,13 @@ export function DashboardClient({
   ]);
 
   useEffect(() => {
-    if (customExpiry === null || !activeExpiries.includes(customExpiry)) {
-      const timer = setTimeout(() => {
-        setCustomExpiry(activeExpiries[0] ?? null);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [activeExpiries, customExpiry]);
-
-  useEffect(() => {
     const engine = new DeribitOptionsDataEngine({
       restClient: new DeribitRestClient(),
       visibilityDocument: document,
       onSnapshot: (snapshot) => {
         setPreviousOptionsChain(previousOptionsChainRef.current);
         previousOptionsChainRef.current = snapshot;
-        setOptionsChain(snapshot);
+        setLiveOptionsChain(snapshot);
         setOptionsState("LIVE");
         setMetricStatus("Live Deribit chain calculated in worker");
       },
@@ -1271,6 +1517,33 @@ export function DashboardClient({
   }, []);
 
   useEffect(() => {
+    if (
+      optionsState !== "LIVE" ||
+      liveOptionsChain.instruments.length === 0 ||
+      !Number.isSafeInteger(liveOptionsChain.metadata.sourceTimestamp)
+    ) {
+      return;
+    }
+    const capturedAt = liveOptionsChain.metadata.sourceTimestamp;
+    const bucket = Math.floor(capturedAt / REPLAY_SNAPSHOT_INTERVAL_MS);
+    if (lastReplaySnapshotBucketRef.current === bucket) return;
+    lastReplaySnapshotBucketRef.current = bucket;
+    const storage = replayStorageRef.current;
+    if (!storage) return;
+    void storage
+      .write({
+        schemaVersion: "options-replay-snapshot-v1",
+        snapshotId: `deribit-${bucket}`,
+        capturedAt,
+        chain: liveOptionsChain,
+      })
+      .then(({ size }) =>
+        setReplayStorageStatus(`OPTIONS HISTORY ${size}/${storage.capacity}`),
+      )
+      .catch(() => setReplayStorageStatus("OPTIONS HISTORY UNAVAILABLE"));
+  }, [liveOptionsChain, optionsState]);
+
+  useEffect(() => {
     const worker = new Worker(
       new URL("../workers/options-metric.worker.ts", import.meta.url),
       { type: "module", name: "options-metric" },
@@ -1302,7 +1575,10 @@ export function DashboardClient({
 
   useEffect(() => {
     if (optionsUnderlyingPrice === null || !optionsWorkerRef.current) return;
-    if (optionsState === "FALLBACK" || optionsChain.instruments.length === 0) {
+    if (
+      (!replayActive && optionsState === "FALLBACK") ||
+      optionsChain.instruments.length === 0
+    ) {
       const timer = setTimeout(() => {
         setOptionsResult(null);
         setWorkerDuration(null);
@@ -1310,7 +1586,7 @@ export function DashboardClient({
       return () => clearTimeout(timer);
     }
     const timer = setTimeout(() => {
-      const calculatedAt = Date.now();
+      const calculatedAt = optionsCalculationNow;
       const inputVersion = latestInputVersionRef.current + 1;
       latestInputVersionRef.current = inputVersion;
       const request: OptionsCalculationRequest = {
@@ -1334,7 +1610,14 @@ export function DashboardClient({
       optionsWorkerRef.current?.postMessage(request);
     }, 100);
     return () => clearTimeout(timer);
-  }, [expiryScope, optionsChain, optionsState, optionsUnderlyingPrice]);
+  }, [
+    expiryScope,
+    optionsChain,
+    optionsState,
+    optionsUnderlyingPrice,
+    optionsCalculationNow,
+    replayActive,
+  ]);
 
   useEffect(() => {
     const adapter = chartAdapterRef.current;
@@ -1352,6 +1635,77 @@ export function DashboardClient({
   useEffect(() => {
     refreshOverlayCoordinates();
   }, [refreshOverlayCoordinates]);
+
+  useEffect(() => {
+    replayActiveRef.current = replayState !== null;
+  }, [replayState]);
+
+  useEffect(() => {
+    const adapter = chartAdapterRef.current;
+    if (!adapter) return;
+    if (!replayState || !replayFrame) {
+      if (replayRenderedIndexRef.current >= 0) {
+        const candles = candleStoreRef.current?.getSorted() ?? [];
+        adapter.setHistory(candles, { fitContent: false });
+        const from =
+          candles[Math.max(0, candles.length - INITIAL_VISIBLE_BARS)];
+        const to = candles.at(-1);
+        if (from && to) {
+          adapter.setVisibleRange({
+            fromTimestamp: from.openTime,
+            toTimestamp: to.openTime,
+          });
+        }
+        replayRenderedIndexRef.current = -1;
+      }
+      return;
+    }
+
+    const previousIndex = replayRenderedIndexRef.current;
+    if (previousIndex < 0 || replayFrame.index <= previousIndex) {
+      adapter.setHistory(
+        replayState.timeline.candles.slice(0, replayFrame.index + 1),
+        { fitContent: false },
+      );
+    } else {
+      for (
+        let index = previousIndex + 1;
+        index <= replayFrame.index;
+        index += 1
+      ) {
+        const candle = replayState.timeline.candles[index];
+        if (candle) adapter.updateCandle(candle);
+      }
+    }
+    replayRenderedIndexRef.current = replayFrame.index;
+    const from =
+      replayState.timeline.candles[
+        Math.max(0, replayFrame.index - INITIAL_VISIBLE_BARS + 1)
+      ];
+    if (from) {
+      adapter.setVisibleRange({
+        fromTimestamp: from.openTime,
+        toTimestamp: replayFrame.candle.openTime,
+      });
+    }
+    refreshOverlayCoordinatesRef.current();
+  }, [replayFrame, replayState]);
+
+  useEffect(() => {
+    if (replayPlayback !== "playing") return;
+    let animationFrame = 0;
+    let previousTime = performance.now();
+    const tick = (time: number) => {
+      const elapsedMs = time - previousTime;
+      previousTime = time;
+      setReplayState((current) =>
+        current ? reduceReplay(current, { type: "tick", elapsedMs }) : null,
+      );
+      animationFrame = requestAnimationFrame(tick);
+    };
+    animationFrame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [replayPlayback]);
 
   useEffect(() => {
     if (!diagnosticsOpen) {
@@ -1532,6 +1886,48 @@ export function DashboardClient({
     chartAdapterRef.current?.setDrawingMode(mode);
   };
 
+  const toggleReplay = async () => {
+    if (replayState) {
+      setReplayState(null);
+      setReplayStorageStatus("OPTIONS HISTORY RECORDING");
+      return;
+    }
+    const candles = candleStoreRef.current?.getSorted() ?? [];
+    const storage = replayStorageRef.current;
+    if (candles.length === 0 || !storage) {
+      setReplayStorageStatus("REPLAY DATA UNAVAILABLE");
+      return;
+    }
+    try {
+      const optionsSnapshots = await storage.readRange({
+        limit: storage.capacity,
+      });
+      const timeline = createReplayTimeline({
+        candles,
+        optionsSnapshots,
+        frameDurationMs: 500,
+      });
+      setReplayState(createReplayState(timeline, 5));
+      setReplayStorageStatus(
+        optionsSnapshots.length === 0
+          ? "OPTIONS HISTORY UNAVAILABLE"
+          : `OPTIONS SNAPSHOTS ${optionsSnapshots.length}`,
+      );
+    } catch {
+      setReplayStorageStatus("REPLAY DATA UNAVAILABLE");
+    }
+  };
+
+  const sendReplayCommand = (
+    command:
+      | { readonly type: "play" | "pause" | "step" | "reset" }
+      | { readonly type: "set-speed"; readonly speed: ReplaySpeed },
+  ) => {
+    setReplayState((current) =>
+      current ? reduceReplay(current, command) : null,
+    );
+  };
+
   return (
     <main className="dashboard-shell">
       <header className="command-bar">
@@ -1567,6 +1963,7 @@ export function DashboardClient({
               type="button"
               className={`interval-chip ${timeframe === requestedInterval ? "active" : ""}`}
               aria-pressed={timeframe === requestedInterval}
+              disabled={replayState !== null}
               onClick={() => setRequestedInterval(timeframe)}
             >
               {timeframe}
@@ -1578,18 +1975,26 @@ export function DashboardClient({
           <span>Expiry</span>
           <select
             aria-label="Expiry date"
-            value={customExpiry ?? activeExpiries[0] ?? ""}
-            disabled={activeExpiries.length === 0}
-            onChange={(event) => setCustomExpiry(Number(event.target.value))}
+            value={expirySelection}
+            onChange={(event) => setExpirySelection(event.target.value)}
           >
             {activeExpiries.length === 0 ? (
               <option value="">No active expiries</option>
             ) : null}
-            {activeExpiries.map((expiry) => (
-              <option key={expiry} value={expiry}>
-                {formatDeribitExpiryDate(expiry)}
-              </option>
-            ))}
+            <optgroup label="Scopes">
+              {DASHBOARD_EXPIRY_SCOPES.map(({ kind, label }) => (
+                <option key={kind} value={`scope:${kind}`}>
+                  {label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Exact Deribit expiries">
+              {activeExpiries.map((expiry) => (
+                <option key={expiry} value={`expiry:${expiry}`}>
+                  {formatDeribitExpiryDate(expiry)}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
 
@@ -1754,6 +2159,7 @@ export function DashboardClient({
         state={effectiveOptionsState}
         workerDurationMs={workerDuration}
         now={auditNow}
+        ivSummary={ivSummary}
       />
 
       <div className="workspace-grid">
@@ -1767,6 +2173,86 @@ export function DashboardClient({
               <strong>BTC / USDT · {selectedInterval}</strong>
             </div>
             <div className="chart-heading-actions">
+              <button
+                type="button"
+                className={
+                  replayState ? "active replay-toggle" : "replay-toggle"
+                }
+                aria-pressed={replayState !== null}
+                onClick={() => void toggleReplay()}
+              >
+                <History size={14} />
+                {replayState ? "LIVE" : "REPLAY"}
+              </button>
+              {replayState ? (
+                <div
+                  className="replay-controls"
+                  aria-label="Chart replay controls"
+                >
+                  <button
+                    type="button"
+                    aria-label={
+                      replayState.playback === "playing"
+                        ? "Pause replay"
+                        : "Play replay"
+                    }
+                    title={
+                      replayState.playback === "playing"
+                        ? "Pause replay"
+                        : "Play replay"
+                    }
+                    onClick={() =>
+                      sendReplayCommand({
+                        type:
+                          replayState.playback === "playing" ? "pause" : "play",
+                      })
+                    }
+                  >
+                    {replayState.playback === "playing" ? (
+                      <Pause size={14} />
+                    ) : (
+                      <Play size={14} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Step replay"
+                    title="Step replay"
+                    onClick={() => sendReplayCommand({ type: "step" })}
+                  >
+                    <StepForward size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Reset replay"
+                    title="Reset replay"
+                    onClick={() => sendReplayCommand({ type: "reset" })}
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                  <select
+                    aria-label="Replay speed"
+                    value={replayState.speed}
+                    onChange={(event) =>
+                      sendReplayCommand({
+                        type: "set-speed",
+                        speed: Number(event.target.value) as ReplaySpeed,
+                      })
+                    }
+                  >
+                    {REPLAY_SPEEDS.map((speed) => (
+                      <option key={speed} value={speed}>
+                        {speed}x
+                      </option>
+                    ))}
+                  </select>
+                  <span>
+                    {replayFrame ? replayFrame.index + 1 : 0}/
+                    {replayState.timeline.candles.length} ·{" "}
+                    {replayStorageStatus}
+                  </span>
+                </div>
+              ) : null}
               <span
                 className={`options-source state-${effectiveOptionsState.toLowerCase()}`}
               >
@@ -1817,6 +2303,26 @@ export function DashboardClient({
                 onClick={() => setDrawingMode("vertical-line")}
               >
                 <SeparatorVertical size={18} />
+              </button>
+              <button
+                type="button"
+                className={drawingMode === "long-position" ? "active" : ""}
+                aria-label="Long position"
+                title="Long position"
+                aria-pressed={drawingMode === "long-position"}
+                onClick={() => setDrawingMode("long-position")}
+              >
+                <ArrowUpRight size={18} />
+              </button>
+              <button
+                type="button"
+                className={drawingMode === "short-position" ? "active" : ""}
+                aria-label="Short position"
+                title="Short position"
+                aria-pressed={drawingMode === "short-position"}
+                onClick={() => setDrawingMode("short-position")}
+              >
+                <ArrowDownRight size={18} />
               </button>
               <span className="toolbar-separator" aria-hidden="true" />
               <button

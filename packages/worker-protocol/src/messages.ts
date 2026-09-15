@@ -115,7 +115,7 @@ export const isOptionsCalculationRequest = (
       scope.kind === "less-than-or-equal-7-dte" ||
       scope.kind === "less-than-or-equal-30-dte" ||
       scope.kind === "all" ||
-      (scope.kind === "custom" &&
+      ((scope.kind === "custom" || scope.kind === "exact-expiry") &&
         Number.isFinite((scope as { readonly expiry?: number }).expiry)));
   return (
     !!input.chain &&

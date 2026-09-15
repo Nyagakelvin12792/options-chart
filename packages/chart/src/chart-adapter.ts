@@ -20,7 +20,14 @@ export interface ChartHistoryOptions {
   readonly fitContent?: boolean;
 }
 
-export type ChartDrawingMode = "pointer" | "horizontal-line" | "vertical-line";
+export type ChartDrawingMode =
+  | "pointer"
+  | "horizontal-line"
+  | "vertical-line"
+  | "long-position"
+  | "short-position";
+
+export type PositionDirection = "long" | "short";
 
 interface ChartDrawingBase {
   readonly id: string;
@@ -37,7 +44,18 @@ export interface VerticalLineDrawing extends ChartDrawingBase {
   readonly timestamp: number;
 }
 
-export type ChartDrawing = HorizontalLineDrawing | VerticalLineDrawing;
+export interface PositionDrawing extends ChartDrawingBase {
+  readonly type: "position";
+  readonly direction: PositionDirection;
+  readonly entry: number;
+  readonly stopLoss: number;
+  readonly takeProfit: number;
+}
+
+export type ChartDrawing =
+  | HorizontalLineDrawing
+  | VerticalLineDrawing
+  | PositionDrawing;
 
 export interface ChartViewportState {
   readonly visibleRange: ChartVisibleRange | null;

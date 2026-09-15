@@ -81,6 +81,7 @@ vi.mock("lightweight-charts", () => ({
   CandlestickSeries: "candles",
   HistogramSeries: "volume",
   ColorType: { Solid: "solid" },
+  CrosshairMode: { Normal: "normal" },
   LineStyle: { Solid: 0, Dashed: 2 },
   createChart: mocks.createChart,
 }));
@@ -143,6 +144,12 @@ describe("LightweightChartsAdapter", () => {
     adapter.setHistory(candles);
 
     expect(mocks.createChart).toHaveBeenCalledTimes(1);
+    expect(mocks.createChart).toHaveBeenCalledWith(
+      mocks.container,
+      expect.objectContaining({
+        crosshair: expect.objectContaining({ mode: "normal" }),
+      }),
+    );
     expect(mocks.candleSeries.setData).toHaveBeenCalledTimes(1);
     expect(mocks.volumeSeries.setData).toHaveBeenCalledTimes(1);
     expect(mocks.timeScale.fitContent).toHaveBeenCalledTimes(1);
@@ -235,6 +242,37 @@ describe("LightweightChartsAdapter", () => {
     expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(1);
     adapter.deleteSelectedDrawing();
     expect(adapter.getDrawings()).toHaveLength(1);
+  });
+
+  it("renders long and short position drawings as entry, stop, and target", () => {
+    const adapter = initialize();
+    adapter.addDrawing({
+      id: "long-position",
+      type: "position",
+      direction: "long",
+      entry: 60_000,
+      stopLoss: 59_500,
+      takeProfit: 61_000,
+      createdAt: 1,
+    });
+    adapter.addDrawing({
+      id: "short-position",
+      type: "position",
+      direction: "short",
+      entry: 60_000,
+      stopLoss: 60_500,
+      takeProfit: 59_000,
+      createdAt: 2,
+    });
+
+    expect(adapter.getDrawings()).toHaveLength(2);
+    expect(mocks.candleSeries.createPriceLine).toHaveBeenCalledTimes(6);
+    expect(mocks.candleSeries.createPriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Long Entry", price: 60_000 }),
+    );
+    expect(mocks.candleSeries.createPriceLine).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Short Entry", price: 60_000 }),
+    );
   });
 
   it("reports viewport proximity and removes chart listeners on destroy", () => {

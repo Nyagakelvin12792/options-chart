@@ -2,6 +2,11 @@
 
 import { Info } from "lucide-react";
 
+import type {
+  WallExpiryBreadth,
+  WallReactionClassification,
+} from "../lib/wall-confluence";
+
 export type WallSignalKind =
   | "gamma"
   | "open-interest"
@@ -38,6 +43,8 @@ export interface WallConfluenceZone {
   readonly signals: readonly WallSignal[];
   readonly contributions: WallConfluenceContributions;
   readonly strength?: WallStrength;
+  readonly expiryBreadth?: WallExpiryBreadth;
+  readonly reactionClassification?: WallReactionClassification;
 }
 
 export interface WallConfluenceProps {
@@ -141,6 +148,15 @@ const strengthLabel = (strength: WallStrength): string =>
         ? "Moderate"
         : "Developing";
 
+const reactionLabel = (classification: WallReactionClassification): string =>
+  classification === "rejection"
+    ? "Rejection"
+    : classification === "breakout"
+      ? "Breakout"
+      : classification === "retest"
+        ? "Retest"
+        : "Unconfirmed";
+
 function SignalChip({ signal }: { readonly signal: WallSignal }) {
   const confidence =
     signal.confidence === undefined
@@ -209,6 +225,14 @@ function WallZoneRow({
   const confidence = Math.round(clampScore(zone.confidence));
   const signals = distinctSignals(zone.signals);
   const strength = zone.strength ?? wallStrengthForScore(score);
+  const expiryCount = zone.expiryBreadth?.distinctExpiryCount ?? 0;
+  const expiryLabel =
+    expiryCount > 0
+      ? `${expiryCount} ${expiryCount === 1 ? "expiry" : "expiries"}`
+      : null;
+  const reaction = zone.reactionClassification
+    ? reactionLabel(zone.reactionClassification)
+    : null;
   const low = Math.min(zone.priceLow, zone.priceHigh);
   const high = Math.max(zone.priceLow, zone.priceHigh);
   const rangeLabel =
@@ -219,7 +243,7 @@ function WallZoneRow({
   return (
     <article
       className={`wall-confluence-zone bias-${zone.bias} strength-${strength}`}
-      aria-label={`${strengthLabel(strength)} ${zone.bias} wall zone at ${rangeLabel}, confluence score ${score}`}
+      aria-label={`${strengthLabel(strength)} ${zone.bias} wall zone at ${rangeLabel}, confluence score ${score}${expiryLabel ? `, ${expiryLabel}` : ""}${reaction ? `, ${reaction} reaction` : ""}`}
     >
       <div className="wall-confluence-zone-main">
         <div className="wall-confluence-range">
@@ -237,13 +261,15 @@ function WallZoneRow({
 
         <div className="wall-confluence-strength">
           <strong>{strengthLabel(strength)}</strong>
-          <span>{confidence}% confidence</span>
+          <span>
+            {confidence}% confidence{reaction ? ` · ${reaction}` : ""}
+          </span>
         </div>
 
         <div className="wall-confluence-overlap">
           <Info size={14} aria-hidden="true" />
           <strong>{signals.length} of 6</strong>
-          <span>signals overlap</span>
+          <span>signals overlap{expiryLabel ? ` · ${expiryLabel}` : ""}</span>
         </div>
 
         <div
@@ -339,6 +365,14 @@ export function ConfluenceZoneOverlay({
         const height = Math.max(2, Math.abs(zone.bottom - zone.top));
         const score = Math.round(clampScore(zone.score));
         const signalCount = distinctSignals(zone.signals).length;
+        const expiryCount = zone.expiryBreadth?.distinctExpiryCount ?? 0;
+        const expiryLabel =
+          expiryCount > 0
+            ? `, ${expiryCount} ${expiryCount === 1 ? "expiry" : "expiries"}`
+            : "";
+        const reactionLabelText = zone.reactionClassification
+          ? `, ${reactionLabel(zone.reactionClassification)} reaction`
+          : "";
         const strength = zone.strength ?? wallStrengthForScore(score);
 
         return (
@@ -347,7 +381,7 @@ export function ConfluenceZoneOverlay({
             key={zone.id}
             style={{ top, height }}
             role="img"
-            aria-label={`${strengthLabel(strength)} ${zone.bias} confluence zone, score ${score}, ${signalCount} of 6 signals overlap`}
+            aria-label={`${strengthLabel(strength)} ${zone.bias} confluence zone, score ${score}, ${signalCount} of 6 signals overlap${expiryLabel}${reactionLabelText}`}
           />
         );
       })}

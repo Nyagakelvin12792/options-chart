@@ -18,6 +18,14 @@ import type { WallConfluenceZone, WallSignalKind } from "./wall-confluence";
 export type LevelDisplayState = "LIVE" | "FALLBACK" | "STALE" | "INVALID";
 export type ProfileMetric = "gex" | "open-interest";
 
+export interface OptionsIvSummary {
+  readonly callMarkIvDecimal: number | null;
+  readonly putMarkIvDecimal: number | null;
+  readonly atmMarkIvDecimal: number | null;
+  readonly expiryCount: number;
+  readonly termStructureLabel: string;
+}
+
 export interface LevelConcentrationDetails {
   readonly openInterestBtc: number;
   readonly volumeBtc: number;
@@ -178,11 +186,13 @@ function AuditTooltip({
   state,
   now,
   concentration,
+  workerDurationMs,
 }: {
   readonly metadata: CalculationMetadata;
   readonly state: LevelDisplayState;
   readonly now: number;
   readonly concentration?: LevelConcentrationDetails | null;
+  readonly workerDurationMs?: number | null;
 }) {
   const exclusions = Object.entries(metadata.excludedCountByReason)
     .map(([reason, count]) => `${reason}: ${count}`)
@@ -196,6 +206,14 @@ function AuditTooltip({
         {formatAge(metadata.event.sourceTimestamp, now)}
       </span>
       <span>Calculated: {dateFormatter.format(metadata.calculatedAt)} UTC</span>
+      {workerDurationMs === undefined ? null : (
+        <span>
+          Worker:{" "}
+          {workerDurationMs === null
+            ? "--"
+            : `${workerDurationMs.toFixed(2)} ms`}
+        </span>
+      )}
       <span>
         Contracts: {metadata.contractsIncluded}/{metadata.contractsSeen}
       </span>
@@ -406,11 +424,13 @@ export function OptionsSummaryBar({
   state,
   workerDurationMs,
   now,
+  ivSummary,
 }: {
   readonly summary: OptionsSummaryMetrics | null;
   readonly state: LevelDisplayState;
   readonly workerDurationMs: number | null;
   readonly now: number;
+  readonly ivSummary: OptionsIvSummary;
 }) {
   const metrics = [
     {
@@ -424,12 +444,18 @@ export function OptionsSummaryBar({
       testId: "put-call-ratio",
     },
     {
-      label: "Average IV",
+      label: "OI / ATM IV",
       value:
         summary?.averageMarkIvDecimal === null || !summary
           ? "--"
-          : `${(summary.averageMarkIvDecimal * 100).toFixed(1)}%`,
+          : `${(summary.averageMarkIvDecimal * 100).toFixed(1)} / ${ivSummary.atmMarkIvDecimal === null ? "--" : (ivSummary.atmMarkIvDecimal * 100).toFixed(1)}%`,
       testId: "average-iv",
+    },
+    {
+      label: "Call / Put IV",
+      value: `${ivSummary.callMarkIvDecimal === null ? "--" : (ivSummary.callMarkIvDecimal * 100).toFixed(1)} / ${ivSummary.putMarkIvDecimal === null ? "--" : (ivSummary.putMarkIvDecimal * 100).toFixed(1)}%`,
+      testId: "call-put-iv",
+      title: ivSummary.termStructureLabel,
     },
     {
       label: "Deribit GEX / 1%",
@@ -450,25 +476,17 @@ export function OptionsSummaryBar({
         {state}
       </span>
       {metrics.map((metric) => (
-        <div key={metric.label}>
+        <div key={metric.label} title={metric.title}>
           <span>{metric.label}</span>
           <strong data-testid={metric.testId}>{metric.value}</strong>
         </div>
       ))}
       <div>
-        <span>DTE</span>
+        <span>{ivSummary.expiryCount > 1 ? "Expiries / DTE" : "DTE"}</span>
         <strong>
           {summary?.metadata.nearestIncludedDte === null || !summary
             ? "--"
-            : summary.metadata.nearestIncludedDte.toFixed(2)}
-        </strong>
-      </div>
-      <div>
-        <span>Calc</span>
-        <strong>
-          {workerDurationMs === null
-            ? "--"
-            : `${workerDurationMs.toFixed(2)} ms`}
+            : `${ivSummary.expiryCount > 1 ? `${ivSummary.expiryCount} / ` : ""}${summary.metadata.nearestIncludedDte.toFixed(2)}`}
         </strong>
       </div>
       {summary ? (
@@ -478,7 +496,12 @@ export function OptionsSummaryBar({
           aria-label="Calculation audit"
         >
           <Info size={15} />
-          <AuditTooltip metadata={summary.metadata} state={state} now={now} />
+          <AuditTooltip
+            metadata={summary.metadata}
+            state={state}
+            now={now}
+            workerDurationMs={workerDurationMs}
+          />
         </button>
       ) : null}
     </section>

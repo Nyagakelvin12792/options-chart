@@ -1,9 +1,9 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.6.0
-Status: M10.1 delivered; M9 trading-readiness evidence remains open
-Date: 2026-09-10
+Version: 0.7.0
+Status: M10.2 locally verified; GitHub/Vercel release verification in progress
+Date: 2026-09-15
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
 Production scope: Read-only market analytics. No order execution. No private exchange credentials.
@@ -43,12 +43,12 @@ The dashboard must eventually display:
 - Expiry filters.
 - Data freshness and connection health.
 - Calculation version and audit information.
-- A read-only account risk terminal with long-position sizing and chart-level entry, stop-loss, and take-profit detection.
+- A read-only account risk terminal with long and short sizing plus chart-level entry, stop-loss, and take-profit detection.
 - Separate Gamma, open-interest, 24-hour volume, flow-informed dealer, Max Pain, and Gamma Flip signals.
 - Volatility-aware wall zones with signal overlap counts and transparent confluence scores.
 - Deribit-published gamma reconciliation for representative near-ATM contracts.
 
-Later releases may add Vanna, Charm, volatility surfaces, persistent replay data, and other derivatives metrics without changing the core market-data and chart architecture.
+Later releases may add Vanna, Charm, volatility surfaces, remote replay archives, and other derivatives metrics without changing the core market-data and chart architecture.
 
 ---
 
@@ -243,9 +243,9 @@ Default to the nearest currently active Deribit BTC expiry date.
 
 ## Expiry controls
 
-Use one selector populated from actual currently active Deribit BTC expiry
-dates, formatted in Deribit contract style such as `28 AUG 26`. Do not expose
-relative DTE buckets or synthetic calendar presets in the chart control.
+Use one selector containing strict UTC 0DTE, Next Expiry, Friday, <=7 DTE,
+<=30 DTE, All Expiries, and every actual active Deribit BTC expiry formatted in
+Deribit contract style such as `28 AUG 26`.
 
 Every displayed options metric must carry the selected expiry scope.
 
@@ -257,6 +257,15 @@ When the active scope contains multiple expiries, Max Pain must either:
 2. clearly display the nearest included expiry as `Nearest-expiry Max Pain`.
 
 Do not calculate an unlabeled all-expiries Max Pain.
+
+## M10.2 replay and trading tools
+
+- Long and short position drawings own explicit Entry, SL, and TP levels and remain separate from exchange data.
+- Replay advances authoritative Binance candles at 1x, 2x, 5x, or 10x and aligns only a real options snapshot captured at or before each candle close.
+- The browser stores a bounded 24-hour rolling window of five-minute Deribit snapshots in IndexedDB. Retention starts when the dashboard receives this release; unavailable historical options data is labeled explicitly.
+- OI-weighted IV, Call IV, Put IV, near-forward ATM IV, and per-expiry term structure remain separately identifiable calculations.
+- Multi-expiry confluence retains each expiry's Gamma, OI, and volume signal before combining them into a total zone score and expiry-breadth score.
+- Anchored VWAP and Volume Profile are parallel indicator branches governed by `docs/indicator-integration-contract.md`; they are not part of M10.2 until independently reviewed and merged.
 
 ## Historical Gamma
 

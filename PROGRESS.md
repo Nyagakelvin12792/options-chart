@@ -1,11 +1,11 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.6.0
-Last updated: 2026-09-10
-Overall status: M0-M8 complete; M10.1 delivered; M9 trading-readiness evidence remains open
-Current milestone: M9 Trading-Readiness Validation with post-M10.1 production refinement
-Production status: DEPLOYED ON VERCEL AT `ed071d2`
+Version: 0.7.0
+Last updated: 2026-09-15
+Overall status: M0-M8 complete; M10.2 locally verified; M9 observation evidence remains open
+Current milestone: M10.2 GitHub/Vercel release verification alongside M9 Trading-Readiness Validation
+Production status: LAST VERIFIED VERCEL DEPLOYMENT `9a773ff`; M10.2 DEPLOYMENT PENDING
 
 ---
 
@@ -34,14 +34,16 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Deribit options data | COMPLETE | Live chain, index, ticker, recent-trade, and reconnect paths implemented |
 | Options engine | COMPLETE | Versioned Gamma, walls, Gamma Flip, Max Pain, OI, IV, and profile calculations |
 | Mathematical validation | COMPLETE | Independent parity, golden fixtures, live Deribit audit, and gamma reconciliation implemented |
-| Primary chart | COMPLETE | Candles, drawings, regimes, compact structure profile, zones, and minimal level markers delivered |
+| Primary chart | COMPLETE | 10,000 candles, cached timeframe switching, normal crosshair, position drawings, compact structure profile, and replay delivered |
 | Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
 | Vercel deployment | COMPLETE | Production deployment verified through commit `ed071d2` |
 | Private authentication | COMPLETE | Google login with one exact allowlisted account |
-| Account risk terminal | COMPLETE | Read-only long sizing and chart-level entry/SL/TP detection; no execution |
-| Wall confluence | COMPLETE | Six independent signals, overlap strength, ranked zones, and flow confidence delivered |
+| Account risk terminal | COMPLETE | Read-only long/short sizing and explicit position-tool entry/SL/TP detection; no execution |
+| Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
+| Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
+| External indicators | IN PARALLEL | Anchored VWAP and Volume Profile have an integration contract; external feature branches are not yet merged |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -96,6 +98,12 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-044 | the production dashboard omits the candle-volume pane and selectable options-volume profile while retaining volume as a wall signal | ACCEPTED |
 | ADR-045 | confluence health and strongest zones live inside the compact left options-structure profile, not in a standalone page row | ACCEPTED |
 | ADR-046 | price-aligned HTML overlays follow chart viewport and pointer movement through animation-frame scheduling | ACCEPTED |
+| ADR-047 | expiry control supports strict UTC 0DTE, relative scopes, All Expiries, and exact active Deribit dates | ACCEPTED |
+| ADR-048 | nearest included expiry is the explicitly labeled Max Pain anchor for multi-expiry scopes | ACCEPTED |
+| ADR-049 | Average IV remains OI-weighted mark IV; Call/Put, near-forward ATM IV, and term structure are separately displayed | ACCEPTED |
+| ADR-050 | chart replay uses only recorded options snapshots at or before candle close and never fabricates missing history | ACCEPTED |
+| ADR-051 | long and short position tools own draggable Entry, SL, and TP levels behind ChartAdapter | ACCEPTED |
+| ADR-052 | multi-expiry wall confluence preserves per-expiry signals and adds expiry breadth without replacing validated aggregate walls | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -111,14 +119,14 @@ All architecture-blocking product decisions are resolved.
 - [x] 1m, 5m, 15m, 1h, 4h, 1d, 1w.
 - [x] Up to 10,000 validated real Binance candles through paginated bootstrap.
 - [x] No candle-volume pane or selectable volume profile; 24-hour options volume remains a wall-confluence signal.
-- [x] Horizontal and vertical drawing tools.
+- [x] Horizontal, vertical, long-position, and short-position drawing tools.
 - [x] Nearest eligible active Deribit expiry by default.
-- [x] One exact active Deribit expiry date at a time.
-- [x] Expiry selector lists currently active Deribit dates.
+- [x] Strict UTC 0DTE, Next, Friday, <=7, <=30, All, and exact active Deribit expiry scopes.
+- [x] Multi-expiry Max Pain is labeled and anchored to the nearest included expiry.
 - [x] Three secondary GEX levels by default.
 - [x] Subtle positive/negative Gamma shading.
 - [x] Compact collapsible Gamma profile.
-- [x] No user-facing historical Gamma snapshots.
+- [x] Bounded local replay snapshots with explicit unavailable history and no future leakage.
 - [x] Full profile coalesced to maximum once every 2 seconds while dirty.
 - [x] Desktop-first.
 - [x] Google authentication.
@@ -571,6 +579,30 @@ Evidence:
 - M10.1 journal: `docs/progress/M10/M10.1.md`.
 - 241 unit and integration tests, production build, Gamma-overlay browser tests, reliability/workflow browser tests, and desktop/mobile alignment checks passed at milestone delivery.
 - Production refinements deployed in `1995ed3` and `ed071d2`.
+
+---
+
+## M10.2 Multi-Expiry, Bidirectional Risk, and Replay
+
+Status: LOCALLY VERIFIED - GITHUB/VERCEL RELEASE VERIFICATION IN PROGRESS
+
+- [x] Strict UTC 0DTE, relative, All Expiries, and exact Deribit expiry scopes.
+- [x] OI-weighted Average IV with separate Call, Put, near-forward ATM IV, and term-structure calculations.
+- [x] Per-expiry Gamma/OI/volume signals retained in multi-expiry confluence scoring.
+- [x] Expiry breadth, rejection/breakout/retest classification, and wall-movement audit fields.
+- [x] Long and short position drawings with draggable Entry, SL, and TP levels.
+- [x] Risk terminal detection prefers the latest matching position tool and preserves horizontal-line compatibility.
+- [x] Bounded IndexedDB options snapshot retention with an in-memory fallback.
+- [x] Deterministic 1x, 2x, 5x, and 10x candle replay with no future options leakage.
+- [x] Normal free-moving crosshair and cached timeframe transitions.
+- [x] Shared integration contract for external Anchored VWAP and Volume Profile branches.
+
+Evidence:
+
+- M10.2 journal: `docs/progress/M10/M10.2.md`.
+- 49 test files and 292 tests passed in the final unit/integration run.
+- Production build passed, and fixture-backed 1366x768, 1920x1080, and 390x844 layout checks passed.
+- Final commit, GitHub push, and Vercel deployment verification remain pending in this delivery run.
 
 ---
 
