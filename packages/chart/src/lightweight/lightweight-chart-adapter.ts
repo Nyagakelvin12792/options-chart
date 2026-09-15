@@ -24,6 +24,8 @@ import type {
   ChartVisibleRange,
   ChartViewportState,
 } from "../chart-adapter";
+import type { AnchoredVwapRenderInput } from "../anchored-vwap/types";
+import { AnchoredVwapPrimitive } from "../anchored-vwap/anchored-vwap-primitive";
 import { VerticalLinePrimitive } from "./vertical-line-primitive";
 
 const LEVEL_COLORS: Readonly<Record<GammaLevel["kind"], string>> = {
@@ -73,6 +75,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
   private readonly verticalDrawingPrimitives = new Map<
     string,
     VerticalLinePrimitive
+  >();
+  private readonly anchoredVwapPrimitives = new Map<
+    string,
+    AnchoredVwapPrimitive
   >();
   private readonly viewportListeners = new Set<
     (state: ChartViewportState) => void
@@ -233,6 +239,27 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.levelLines.delete(id);
   }
 
+  setAnchoredVwap(id: string, renderInput: AnchoredVwapRenderInput): void {
+    const series = this.requireSeries();
+    const existing = this.anchoredVwapPrimitives.get(id);
+    if (existing) {
+      existing.update(renderInput);
+      return;
+    }
+    const primitive = new AnchoredVwapPrimitive(renderInput);
+    series.attachPrimitive(primitive);
+    this.anchoredVwapPrimitives.set(id, primitive);
+  }
+
+  removeAnchoredVwap(id: string): void {
+    const primitive = this.anchoredVwapPrimitives.get(id);
+    if (!primitive) return;
+    if (this.series) {
+      this.series.detachPrimitive(primitive);
+    }
+    this.anchoredVwapPrimitives.delete(id);
+  }
+
   setVisibleRange(range: ChartVisibleRange): void {
     this.requireChart()
       .timeScale()
@@ -364,6 +391,12 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.drawings.clear();
     this.horizontalDrawingLines.clear();
     this.verticalDrawingPrimitives.clear();
+    if (this.series) {
+      for (const primitive of this.anchoredVwapPrimitives.values()) {
+        this.series.detachPrimitive(primitive);
+      }
+    }
+    this.anchoredVwapPrimitives.clear();
     this.viewportListeners.clear();
     this.drawingsChangeListeners.clear();
     this.chart?.remove();

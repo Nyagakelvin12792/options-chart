@@ -1,4 +1,5 @@
 import type { Candle, GammaLevel } from "@options-chart/domain";
+import type { AnchoredVwapRenderInput } from "./anchored-vwap/types";
 
 export interface ChartVisibleRange {
   readonly fromTimestamp: number;
@@ -87,4 +88,6 @@ export interface ChartAdapter {
   getDiagnostics(): ChartAdapterDiagnostics;
   resize(width: number, height: number): void;
   destroy(): void;
+  setAnchoredVwap?(id: string, renderInput: AnchoredVwapRenderInput): void;
+  removeAnchoredVwap?(id: string): void;
 }
