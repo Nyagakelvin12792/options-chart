@@ -1,8 +1,8 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.9.2
-Status: M10.6 fixed-range Volume Profile, risk/reward position tools, and fast timeframe previews delivered and deployed; M9 observation evidence remains open
+Version: 0.9.3
+Status: M10.7 shift-aware level segments, collision-managed rail, and staged timeframe loading integrated and locally verified; deployment pending; M9 observation evidence remains open
 Date: 2026-09-16
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
@@ -293,6 +293,16 @@ Do not calculate an unlabeled all-expiries Max Pain.
 - Place Anchored VWAP and Volume Profile inside one compact Indicators panel with persistent, validated Inputs and Style settings.
 - Keep both indicators isolated from Deribit options-volume, GEX, wall selection, confluence scoring, risk calculations, and order execution.
 - Preserve the single-screen desktop dashboard and avoid chart recreation while indicators are configured.
+
+## M10.7 Shift-aware levels, professional rail, and staged timeframe loading
+
+- Render options levels and confluence zones from their most recent locally observed and persisted shift timestamp toward the right edge only.
+- Preserve the existing wall, GEX, Max Pain, Gamma Flip, confluence, replay, Volume Profile, AVWAP, position, and risk calculations without changing their formulas.
+- Treat shift history as observation-based evidence: the dashboard cannot infer an earlier historical shift that occurred before tracking began.
+- Snap persisted shift timestamps to a valid candle on the active timeframe so segments remain visible across interval changes.
+- Resolve level-label collisions in a compact in-chart rail with SPOT first, walls second, Gamma Flip and Max Pain third, and secondary GEX last.
+- Paint cached or initial 1,000-bar history immediately, refresh the latest page, stream older candles toward 10,000 in the background, cancel stale generations, and restore each timeframe viewport.
+- Keep staged loading and level rendering behind the existing data and chart adapters; do not create another chart or duplicate confluence bands.
 
 ## Historical Gamma
 
@@ -4261,7 +4271,7 @@ OI snapshot: 30 seconds
 Historical gamma persistence: no
 Wall signals: Gamma, open interest, 24-hour volume, flow-informed dealer, Max Pain, Gamma Flip
 Wall strength: overlap-count band first; concentration, persistence, spot distance, expiry importance, and recent reactions second
-Level presentation: compact transparent line labels beside the left options-structure profile; no dedicated right-side rail
+Level presentation: compact collision-managed in-chart rail inside the chart boundary; labels never occupy a separate dashboard column or obstruct the price scale
 Wall confluence placement: integrated into the left options-structure profile; no standalone dashboard row
 Dealer flow window: rolling 60 minutes, explicitly labeled as an inferred proxy with confidence
 Gamma reconciliation: six representative near-ATM Deribit contracts

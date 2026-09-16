@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.2
+Version: 0.9.3
 Last updated: 2026-09-16
-Overall status: M0-M8 and M10.2-M10.6 complete; M9 observation evidence remains open
-Current milestone: M9 Trading-Readiness Validation after M10.6 delivery
+Overall status: M0-M8 and M10.2-M10.7 complete; M10.7 deployment and M9 observation evidence remain open
+Current milestone: M10.7 deployment review, then M9 Trading-Readiness Validation
 Production status: DEPLOYED ON VERCEL AT `2ea42ca`
 
 ---
@@ -34,7 +34,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Deribit options data | COMPLETE | Live chain, index, ticker, recent-trade, and reconnect paths implemented |
 | Options engine | COMPLETE | Versioned Gamma, walls, Gamma Flip, Max Pain, OI, IV, and profile calculations |
 | Mathematical validation | COMPLETE | Independent parity, golden fixtures, live Deribit audit, and gamma reconciliation implemented |
-| Primary chart | COMPLETE | Fast 1,000-bar timeframe previews with 10,000-bar background history, normal crosshair, fixed-range VP, explicit position drawings, compact structure profile, and replay delivered |
+| Primary chart | COMPLETE | Cached or 1,000-bar initial timeframe paint, refreshed 10,000-bar background history, restored per-timeframe viewports, normal crosshair, fixed-range VP, explicit position drawings, shift-aware level segments, compact structure profile, and replay delivered |
 | Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
@@ -45,6 +45,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
 | Volume Profile | COMPLETE | Persistent settings plus a user-drawn, draggable fixed range deployed through `2ea42ca` |
 | External indicators | COMPLETE | Anchored VWAP is deployed through `740c66c` with persistent settings and a unified VP/AVWAP panel |
+| Chart refinement M10.7 | COMPLETE - NOT DEPLOYED | Antigravity `b06593d` reviewed and integrated at `33af499`; local validation passed and production deployment remains pending |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -707,6 +708,33 @@ Evidence:
 
 ---
 
+## M10.7 Shift-Aware Level Segments, Level Rail, and Staged Timeframes
+
+Status: COMPLETE - LOCALLY VERIFIED, NOT DEPLOYED
+
+- [x] Review Antigravity commit `b06593d` and integrate it on top of the deployed AVWAP, fixed-range VP, position, replay, and risk-terminal work.
+- [x] Add persistent level-shift tracking with Gamma Flip anti-jitter and expiry-scoped confluence records.
+- [x] Render level lines and confluence zones as right-extending chart primitives with activation pips and no autoscale influence.
+- [x] Snap activation timestamps to real candles across timeframe changes and persist observed shifts in browser storage.
+- [x] Add collision-managed in-chart labels with stable priority and boundary clamping.
+- [x] Replace the blocking history bootstrap with cached/initial paint, latest-page refresh, cancellable background pagination, and per-timeframe viewport restoration.
+- [x] Prevent the legacy HTML confluence bands from duplicating the new canvas primitive.
+- [x] Preserve all existing Volume Profile, AVWAP, position, risk, wall, confluence, replay, and options-calculation behavior.
+- [x] Pass 31 focused integration tests, typecheck, lint, isolated performance tests, and the production build.
+- [ ] Push the reviewed integration to GitHub `main` and deploy it to Vercel.
+
+Evidence:
+
+- Antigravity source commit: `b06593d38b93f1883255f61e9aa202ccd11bd730`.
+- Reviewed integration commit: `33af499` on `codex/integrate-chart-refinement`.
+- Focused validation: 6 files and 31 tests passed.
+- Full functional run: 60 files and 366 tests passed; two timing assertions failed only while test, lint, and typecheck competed concurrently.
+- Contention-free performance rerun: 2 files and 7 tests passed; 10,000-candle AVWAP measured 82.30 ms.
+- TypeScript, workspace lint, and the Next.js production build passed.
+- Known limitation: activation history begins with the earliest locally persisted observation; the dashboard does not reconstruct options-level shifts from before tracking began.
+
+---
+
 # 6. Validation Scoreboard
 
 Do not change a status to PASS without test evidence.
@@ -958,6 +986,27 @@ Mitigation:
 Use newest entries first.
 
 ## 2026-09-16
+
+### M10.7-SHIFT-AWARE-LEVELS-AND-STAGED-TIMEFRAMES
+
+Status: COMPLETE - LOCALLY VERIFIED, NOT DEPLOYED
+
+Implementation:
+
+- Integrated Antigravity `b06593d` onto the current dashboard without replacing AVWAP, fixed-range VP, replay, risk/reward positions, or the Risk Terminal.
+- Added observed-shift level segments, expiry-scoped confluence persistence, candle-aligned activation times, collision-managed rail labels, and cancellable staged timeframe history.
+- Corrected missing viewport persistence, incomplete cached-load resumption, stale-cache refresh, and duplicate confluence rendering found during review.
+
+Validation:
+
+- 31 focused tests, typecheck, lint, isolated performance checks, and production build passed.
+- The full functional run passed 366 tests; two performance thresholds affected by concurrent process contention passed on their isolated rerun.
+
+Deployment:
+
+- Not deployed. GitHub `main` and the production Vercel deployment remain unchanged pending approval.
+
+---
 
 ### M10.6-FIXED-RANGE-VP-AND-RISK-REWARD-POSITIONS
 

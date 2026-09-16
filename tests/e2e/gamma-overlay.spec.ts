@@ -54,8 +54,7 @@ test("renders the audited Gamma hierarchy, profile, and compact chart levels", a
     structureBrief.locator(".structure-zone-signals").first(),
   ).not.toBeEmpty();
   await expect(page.locator(".wall-confluence")).toHaveCount(0);
-  await expect(page.locator(".confluence-zone-band").first()).toBeVisible();
-  await expect(page.locator(".confluence-zone-band > span")).toHaveCount(0);
+  await expect(page.locator(".confluence-zone-band")).toHaveCount(0);
 
   const callWall = page.getByTestId("level-tag-call-wall");
   await callWall.hover();

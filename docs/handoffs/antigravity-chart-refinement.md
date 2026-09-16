@@ -8,6 +8,8 @@ This engineering handoff documents the implementation of three coordinated chart
 2. **Professional Level Rail**: A sleek, collision-managed level rail embedded inside chart boundaries with tabular monospace prices, non-overlapping label layout, subtle leader connector lines, priority ordering (`SPOT` > `Walls` > `Gamma Flip`/`Max Pain` > `Secondary GEX`), and boundary clamping.
 3. **Fast Staged Timeframe Loading**: Immediate (~200ms) rendering of the initial 1,000 candles and live WebSocket connection, while streaming remaining history toward 10,000 candles in the background with cooperative cancellation and per-timeframe viewport restoration.
 
+> Integration note: shift timestamps represent the earliest locally observed and persisted activation. The dashboard does not reconstruct options-level history from before tracking began. Codex integration also added candle-time snapping, expiry-scoped confluence persistence, cache refresh/resumption, viewport writes, and duplicate-band prevention.
+
 ---
 
 ## Architectural Changes
