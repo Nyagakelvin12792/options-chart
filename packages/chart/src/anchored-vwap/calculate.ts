@@ -6,10 +6,58 @@ import type {
   AnchoredVwapPoint,
   AnchoredVwapPriceSource,
   AnchoredVwapResult,
+  PreparedCandleSeries,
 } from "./types";
 
 export const DEFAULT_PRICE_SOURCE: AnchoredVwapPriceSource = "typical";
 export const DEFAULT_BAND_MULTIPLIERS: readonly number[] = [1, 2, 3];
+
+const preparedSeriesCache = new WeakMap<readonly Candle[], PreparedCandleSeries>();
+
+export function prepareCandleSeries(candles: readonly Candle[]): PreparedCandleSeries {
+  const cached = preparedSeriesCache.get(candles);
+  if (cached) {
+    return cached;
+  }
+  const count = candles.length;
+  const openTimes = new Float64Array(count);
+  const closeTimes = new Float64Array(count);
+  const opens = new Float64Array(count);
+  const highs = new Float64Array(count);
+  const lows = new Float64Array(count);
+  const closes = new Float64Array(count);
+  const volumes = new Float64Array(count);
+  const quoteVolumes = new Float64Array(count);
+  const isClosed = new Uint8Array(count);
+
+  for (let i = 0; i < count; i++) {
+    const c = candles[i]!;
+    openTimes[i] = c.openTime;
+    closeTimes[i] = c.closeTime;
+    opens[i] = c.open;
+    highs[i] = c.high;
+    lows[i] = c.low;
+    closes[i] = c.close;
+    volumes[i] = c.volume;
+    quoteVolumes[i] = c.quoteVolume;
+    isClosed[i] = c.isClosed ? 1 : 0;
+  }
+
+  const series: PreparedCandleSeries = {
+    count,
+    openTimes,
+    closeTimes,
+    opens,
+    highs,
+    lows,
+    closes,
+    volumes,
+    quoteVolumes,
+    isClosed,
+  };
+  preparedSeriesCache.set(candles, series);
+  return series;
+}
 
 export function extractCandlePrice(
   candle: Candle,
@@ -105,7 +153,8 @@ export function calculateAnchoredVwap(
 
   // Ensure candles are sorted ascending by openTime
   let isSorted = true;
-  for (let i = 1; i < input.candles.length; i++) {
+  const candleCount = input.candles.length;
+  for (let i = 1; i < candleCount; i++) {
     if (input.candles[i]!.openTime < input.candles[i - 1]!.openTime) {
       isSorted = false;
       break;
@@ -149,21 +198,30 @@ export function calculateAnchoredVwap(
     });
   }
 
-  const points: AnchoredVwapPoint[] = [];
+  const remainingCandles = sortedCandles.length - anchorIndex;
+  const points: AnchoredVwapPoint[] = new Array(remainingCandles);
+  let pointCount = 0;
+
+  const numBands = bandMultipliers.length;
+  const isTypical = priceSource === "typical" || priceSource === "hlc3";
+  const isClose = priceSource === "close";
+  const isHl2 = priceSource === "hl2";
+  const isOhlc4 = priceSource === "ohlc4";
 
   let cumVolume = 0;
   let cumPriceVolume = 0;
   let runningVwap = 0;
-  let runningM2 = 0; // Sum of squared differences weighted: sum(w_i * (x_i - mean_i)^2)
+  let runningM2 = 0;
   let runningVariance = 0;
   let runningStdDev = 0;
+
+  const hasReplay = replayCutoff !== undefined;
 
   for (let i = anchorIndex; i < sortedCandles.length; i++) {
     const candle = sortedCandles[i]!;
 
-    // Replay filtering
-    if (replayCutoff !== undefined) {
-      if (candle.closeTime > replayCutoff) {
+    if (hasReplay) {
+      if (candle.closeTime > replayCutoff!) {
         exclusions.push({
           candleOpenTime: candle.openTime,
           reason: "after_replay_cutoff",
@@ -181,7 +239,91 @@ export function calculateAnchoredVwap(
       }
     }
 
-    // Validate prices
+    const open = candle.open;
+    const high = candle.high;
+    const low = candle.low;
+    const close = candle.close;
+    const volume = candle.volume;
+
+    // Fast path: valid positive numbers, non-zero span
+    if (
+      open > 0 &&
+      high >= low &&
+      low > 0 &&
+      close > 0 &&
+      volume >= 0 &&
+      Number.isFinite(high) &&
+      Number.isFinite(volume)
+    ) {
+      // Calculate price fast
+      let price: number;
+      if (isTypical) {
+        price = (high + low + close) / 3;
+      } else if (isClose) {
+        price = close;
+      } else if (isHl2) {
+        price = (high + low) * 0.5;
+      } else if (isOhlc4) {
+        price = (open + high + low + close) * 0.25;
+      } else {
+        price = (high + low + 2 * close) * 0.25;
+      }
+
+      if (volume === 0) {
+        if (cumVolume === 0) {
+          exclusions.push({
+            candleOpenTime: candle.openTime,
+            reason: "zero_volume",
+            detail: "Candle volume is 0 before VWAP accumulation begins",
+          });
+          continue;
+        }
+      } else {
+        const prevCumVolume = cumVolume;
+        const prevVwap = runningVwap;
+
+        cumVolume += volume;
+        cumPriceVolume += price * volume;
+
+        if (prevCumVolume === 0) {
+          runningVwap = price;
+          runningM2 = 0;
+          runningVariance = 0;
+          runningStdDev = 0;
+        } else {
+          const delta = price - prevVwap;
+          const r = delta * (volume / cumVolume);
+          runningVwap = prevVwap + r;
+          runningM2 += prevCumVolume * delta * r;
+          runningVariance =
+            cumVolume > 0 ? Math.max(0, runningM2 / cumVolume) : 0;
+          runningStdDev = Math.sqrt(runningVariance);
+        }
+      }
+
+      const bands: AnchoredVwapBandPoint[] = new Array(numBands);
+      for (let b = 0; b < numBands; b++) {
+        const mult = bandMultipliers[b]!;
+        bands[b] = {
+          multiplier: mult,
+          upper: runningVwap + mult * runningStdDev,
+          lower: runningVwap - mult * runningStdDev,
+        };
+      }
+
+      points[pointCount++] = {
+        timestamp: candle.openTime,
+        vwap: runningVwap,
+        variance: runningVariance,
+        standardDeviation: runningStdDev,
+        cumulativeVolume: cumVolume,
+        cumulativeTypicalPriceVolume: cumPriceVolume,
+        bands,
+      };
+      continue;
+    }
+
+    // Slow path for invalid / edge-case candles
     if (
       candle.open <= 0 ||
       candle.high <= 0 ||
@@ -211,9 +353,6 @@ export function calculateAnchoredVwap(
       continue;
     }
 
-    const price = extractCandlePrice(candle, priceSource);
-    const volume = candle.volume;
-
     if (volume < 0) {
       exclusions.push({
         candleOpenTime: candle.openTime,
@@ -223,6 +362,8 @@ export function calculateAnchoredVwap(
       continue;
     }
 
+    // Handle remaining case if any
+    const price = extractCandlePrice(candle, priceSource);
     if (volume === 0) {
       if (cumVolume === 0) {
         exclusions.push({
@@ -255,16 +396,17 @@ export function calculateAnchoredVwap(
       }
     }
 
-    const bands: AnchoredVwapBandPoint[] = [];
-    for (const mult of bandMultipliers) {
-      bands.push({
+    const bands: AnchoredVwapBandPoint[] = new Array(numBands);
+    for (let b = 0; b < numBands; b++) {
+      const mult = bandMultipliers[b]!;
+      bands[b] = {
         multiplier: mult,
         upper: runningVwap + mult * runningStdDev,
         lower: runningVwap - mult * runningStdDev,
-      });
+      };
     }
 
-    points.push({
+    points[pointCount++] = {
       timestamp: candle.openTime,
       vwap: runningVwap,
       variance: runningVariance,
@@ -272,7 +414,11 @@ export function calculateAnchoredVwap(
       cumulativeVolume: cumVolume,
       cumulativeTypicalPriceVolume: cumPriceVolume,
       bands,
-    });
+    };
+  }
+
+  if (pointCount < points.length) {
+    points.length = pointCount;
   }
 
   const durationMs = performance.now() - startedAt;

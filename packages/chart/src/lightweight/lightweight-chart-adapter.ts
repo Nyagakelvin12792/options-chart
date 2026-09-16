@@ -27,8 +27,9 @@ import type {
   PositionDrawing,
   PositionDirection,
   VolumeProfileRangeDrawing,
+  AnchoredVwapDrawing,
 } from "../chart-adapter";
-import type { AnchoredVwapRenderInput } from "../anchored-vwap/types";
+import type { AnchoredVwapRenderInput, AnchoredVwapResult } from "../anchored-vwap/types";
 import { AnchoredVwapPrimitive } from "../anchored-vwap/anchored-vwap-primitive";
 import {
   createPositionDrawing,
@@ -36,8 +37,10 @@ import {
   movePositionDrawingLevel,
   type PositionDrawingLevel,
 } from "../position-drawing";
-import type { VolumeProfileRenderInput } from "../volume-profile/types";
+import type { VolumeProfileRenderInput, VolumeProfileResult } from "../volume-profile/types";
 import { VolumeProfilePrimitive } from "../volume-profile/volume-profile-primitive";
+import { VolumeProfileDrawingPrimitive } from "../volume-profile/volume-profile-drawing-primitive";
+import { DrawingInteractionController } from "../drawing-controller/drawing-interaction-controller";
 import { PositionDrawingPrimitive } from "./position-drawing-primitive";
 import { VerticalLinePrimitive } from "./vertical-line-primitive";
 
@@ -103,6 +106,14 @@ export class LightweightChartsAdapter implements ChartAdapter {
     string,
     readonly VerticalLinePrimitive[]
   >();
+  private readonly volumeProfileDrawingPrimitives = new Map<
+    string,
+    VolumeProfileDrawingPrimitive
+  >();
+  private readonly cachedVpResults = new Map<string, VolumeProfileResult>();
+  private readonly cachedVwapResults = new Map<string, AnchoredVwapResult>();
+  private currentCandles: readonly Candle[] = [];
+  private drawingController: DrawingInteractionController | null = null;
   private readonly volumeProfilePrimitives = new Map<
     string,
     VolumeProfilePrimitive
@@ -117,8 +128,14 @@ export class LightweightChartsAdapter implements ChartAdapter {
   private readonly drawingsChangeListeners = new Set<
     (drawings: readonly ChartDrawing[]) => void
   >();
+  private readonly liveDrawingChangeListeners = new Set<
+    (drawing: ChartDrawing) => void
+  >();
   private readonly timeSelectionListeners = new Set<
     (timestamp: number) => void
+  >();
+  private readonly drawingModeListeners = new Set<
+    (mode: ChartDrawingMode) => void
   >();
 
   private drawingMode: ChartDrawingMode = "pointer";
@@ -239,12 +256,48 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.chart
       .timeScale()
       .subscribeVisibleLogicalRangeChange(this.handleLogicalRangeChange);
+
+    this.drawingController = new DrawingInteractionController({
+      getContainer: () => this.container,
+      getChart: () => this.chart,
+      getSeries: () => this.series,
+      getCandles: () => this.currentCandles,
+      getDrawings: () => this.getDrawings(),
+      getVpPrimitive: (id) => this.volumeProfileDrawingPrimitives.get(id),
+      getAvwapPrimitive: (id) => this.anchoredVwapPrimitives.get(id),
+      onDrawingAdd: (drawing) => {
+        this.addDrawing(drawing);
+      },
+      onDrawingUpdate: (drawing, commit) => {
+        this.updateDrawing(drawing);
+        if (commit) {
+          this.notifyDrawingsChange();
+        } else {
+          for (const listener of this.liveDrawingChangeListeners) {
+            listener(drawing);
+          }
+        }
+      },
+      onDrawingDelete: (id) => {
+        this.removeDrawing(id);
+      },
+      onDrawingSelect: (id) => {
+        this.selectDrawing(id);
+      },
+      onDrawingModeChange: (mode) => {
+        this.drawingMode = mode;
+        for (const listener of this.drawingModeListeners) {
+          listener(mode);
+        }
+      },
+    });
   }
 
   setHistory(
     candles: readonly Candle[],
     options: ChartHistoryOptions = {},
   ): void {
+    this.currentCandles = candles;
     const preservedRange = options.preserveVisibleRange
       ? this.getVisibleRange()
       : null;
@@ -264,6 +317,17 @@ export class LightweightChartsAdapter implements ChartAdapter {
   }
 
   updateCandle(candle: Candle): void {
+    const existingIdx = this.currentCandles.findIndex(
+      (c) => c.openTime === candle.openTime,
+    );
+    if (existingIdx >= 0) {
+      const copy = [...this.currentCandles];
+      copy[existingIdx] = candle;
+      this.currentCandles = copy;
+    } else {
+      this.currentCandles = [...this.currentCandles, candle];
+    }
+
     this.measureOperation(() => {
       this.requireSeries().update(toChartCandle(candle));
       this.volumeSeries?.update(toChartVolume(candle));
@@ -384,25 +448,34 @@ export class LightweightChartsAdapter implements ChartAdapter {
       this.pendingVolumeProfileRange = null;
     }
     this.drawingMode = mode;
+    this.drawingController?.setDrawingMode(mode);
+    for (const listener of this.drawingModeListeners) {
+      listener(mode);
+    }
   }
 
   addDrawing(drawing: ChartDrawing): void {
     if (!drawing.id || !Number.isFinite(drawing.createdAt)) {
       throw new Error("Chart drawing requires a stable id and timestamp");
     }
+    const fromTime = (drawing as any).from ?? (drawing as any).fromTimestamp;
+    const toTime = (drawing as any).to ?? (drawing as any).toTimestamp;
+
     if (
       (drawing.type === "horizontal-line" && !Number.isFinite(drawing.price)) ||
       (drawing.type === "vertical-line" &&
         !Number.isFinite(drawing.timestamp)) ||
+      (drawing.type === "anchored-vwap" &&
+        !Number.isFinite(drawing.anchorTimestamp)) ||
       (drawing.type === "position" &&
         (!Number.isFinite(drawing.entry) ||
           !Number.isFinite(drawing.stopLoss) ||
           !Number.isFinite(drawing.takeProfit) ||
           !isPositionDrawingOrderValid(drawing))) ||
       (drawing.type === "volume-profile-range" &&
-        (!Number.isFinite(drawing.fromTimestamp) ||
-          !Number.isFinite(drawing.toTimestamp) ||
-          drawing.fromTimestamp === drawing.toTimestamp))
+        (!Number.isFinite(fromTime) ||
+          !Number.isFinite(toTime) ||
+          fromTime === toTime))
     ) {
       throw new Error("Chart drawing coordinate must be finite");
     }
@@ -412,6 +485,76 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.renderDrawing(drawing);
     this.selectedDrawingId = drawing.id;
     this.notifyDrawingsChange();
+  }
+
+  updateDrawing(
+    idOrDrawing: string | ChartDrawing,
+    updates?: Partial<ChartDrawing>,
+  ): void {
+    let drawing: ChartDrawing;
+    if (typeof idOrDrawing === "string") {
+      const existing = this.drawings.get(idOrDrawing);
+      if (!existing) return;
+      drawing = { ...existing, ...updates } as ChartDrawing;
+    } else {
+      drawing = idOrDrawing;
+    }
+    this.drawings.set(drawing.id, drawing);
+    if (drawing.type === "volume-profile-range") {
+      const prim = this.volumeProfileDrawingPrimitives.get(drawing.id);
+      if (prim) {
+        prim.update(drawing, this.cachedVpResults.get(drawing.id) ?? null);
+      } else {
+        this.renderDrawing(drawing);
+      }
+    } else if (drawing.type === "anchored-vwap") {
+      const prim = this.anchoredVwapPrimitives.get(drawing.id);
+      if (prim) {
+        prim.update(this.buildVwapRenderInput(drawing));
+      } else {
+        this.renderDrawing(drawing);
+      }
+    } else {
+      this.removeRenderedDrawing(drawing.id);
+      this.renderDrawing(drawing);
+    }
+  }
+
+  selectDrawing(id: string | null): void {
+    this.selectedDrawingId = id;
+    for (const [dId, d] of this.drawings.entries()) {
+      const isSelected = dId === id;
+      if (Boolean((d as any).isSelected) !== isSelected) {
+        const next = { ...d, isSelected };
+        this.drawings.set(dId, next as ChartDrawing);
+        if (next.type === "volume-profile-range") {
+          this.volumeProfileDrawingPrimitives.get(dId)?.update(next);
+        } else if (next.type === "anchored-vwap") {
+          this.anchoredVwapPrimitives.get(dId)?.update(this.buildVwapRenderInput(next));
+        }
+      }
+    }
+    this.notifyDrawingsChange();
+  }
+
+  getSelectedDrawingId(): string | null {
+    return this.selectedDrawingId;
+  }
+
+  setVolumeProfileDrawingResult(id: string, result: VolumeProfileResult): void {
+    this.cachedVpResults.set(id, result);
+    const drawing = this.drawings.get(id);
+    if (drawing && drawing.type === "volume-profile-range") {
+      this.volumeProfileDrawingPrimitives.get(id)?.update(drawing, result);
+    }
+  }
+
+  setAnchoredVwapDrawingResult(id: string, result: AnchoredVwapResult): void {
+    this.cachedVwapResults.set(id, result);
+    const drawing = this.drawings.get(id);
+    if (drawing && drawing.type === "anchored-vwap") {
+      this.anchoredVwapPrimitives.get(id)?.update(this.buildVwapRenderInput(drawing, result));
+    }
   }
 
   removeDrawing(id: string): void {
@@ -444,9 +587,23 @@ export class LightweightChartsAdapter implements ChartAdapter {
     return () => this.drawingsChangeListeners.delete(listener);
   }
 
+  subscribeLiveDrawingUpdate(
+    listener: (drawing: ChartDrawing) => void,
+  ): () => void {
+    this.liveDrawingChangeListeners.add(listener);
+    return () => this.liveDrawingChangeListeners.delete(listener);
+  }
+
   subscribeTimeSelection(listener: (timestamp: number) => void): () => void {
     this.timeSelectionListeners.add(listener);
     return () => this.timeSelectionListeners.delete(listener);
+  }
+
+  subscribeDrawingModeChange(
+    listener: (mode: ChartDrawingMode) => void,
+  ): () => void {
+    this.drawingModeListeners.add(listener);
+    return () => this.drawingModeListeners.delete(listener);
   }
 
   getDiagnostics(): ChartAdapterDiagnostics {
@@ -509,6 +666,8 @@ export class LightweightChartsAdapter implements ChartAdapter {
       this.handlePointerUp,
       true,
     );
+    this.drawingController?.destroy();
+    this.drawingController = null;
     this.levelLines.clear();
     this.drawings.clear();
     this.horizontalDrawingLines.clear();
@@ -519,15 +678,22 @@ export class LightweightChartsAdapter implements ChartAdapter {
       for (const primitive of this.volumeProfilePrimitives.values()) {
         this.series.detachPrimitive(primitive);
       }
+      for (const primitive of this.volumeProfileDrawingPrimitives.values()) {
+        this.series.detachPrimitive(primitive);
+      }
       for (const primitive of this.anchoredVwapPrimitives.values()) {
         this.series.detachPrimitive(primitive);
       }
     }
     this.volumeProfilePrimitives.clear();
+    this.volumeProfileDrawingPrimitives.clear();
     this.anchoredVwapPrimitives.clear();
+    this.cachedVpResults.clear();
+    this.cachedVwapResults.clear();
     this.viewportListeners.clear();
     this.drawingsChangeListeners.clear();
     this.timeSelectionListeners.clear();
+    this.drawingModeListeners.clear();
     this.chart?.remove();
     this.chart = null;
     this.container = null;
@@ -541,7 +707,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
   }
 
   private readonly handleContainerClick = (event: MouseEvent): void => {
-    if (this.drawingMode === "pointer" || !this.container) return;
+    if (this.drawingController || this.drawingMode === "pointer" || !this.container) return;
     if (event.target instanceof Element && event.target.closest("a")) return;
 
     const bounds = this.container.getBoundingClientRect();
@@ -598,7 +764,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
   };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
-    if (!this.container) return;
+    if (this.drawingController || !this.container) return;
     const bounds = this.container.getBoundingClientRect();
     const x = event.clientX - bounds.left;
     const y = event.clientY - bounds.top;
@@ -684,6 +850,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
+    if (this.drawingController) return;
     if (this.draggedRangeBoundary && this.container) {
       const drawing = this.drawings.get(this.draggedRangeBoundary.drawingId);
       if (!drawing || drawing.type !== "volume-profile-range") {
@@ -741,6 +908,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
   };
 
   private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (this.drawingController) return;
     if (this.pendingVolumeProfileRange && this.container) {
       const bounds = this.container.getBoundingClientRect();
       const chartTime = this.timeAtCoordinate(
@@ -801,22 +969,30 @@ export class LightweightChartsAdapter implements ChartAdapter {
     }
 
     if (drawing.type === "volume-profile-range") {
-      const primitives = [
-        new VerticalLinePrimitive({
-          id: `${drawing.id}-from`,
-          timestamp: drawing.fromTimestamp,
-          color: "#e7b84b",
-          label: "VP FROM",
-        }),
-        new VerticalLinePrimitive({
-          id: `${drawing.id}-to`,
-          timestamp: drawing.toTimestamp,
-          color: "#e7b84b",
-          label: "VP TO",
-        }),
-      ];
-      for (const primitive of primitives) series.attachPrimitive(primitive);
-      this.volumeProfileRangePrimitives.set(drawing.id, primitives);
+      let primitive = this.volumeProfileDrawingPrimitives.get(drawing.id);
+      if (primitive) {
+        primitive.update(drawing, this.cachedVpResults.get(drawing.id) ?? null);
+      } else {
+        primitive = new VolumeProfileDrawingPrimitive(
+          drawing,
+          this.cachedVpResults.get(drawing.id) ?? null,
+        );
+        series.attachPrimitive(primitive);
+        this.volumeProfileDrawingPrimitives.set(drawing.id, primitive);
+      }
+      return;
+    }
+
+    if (drawing.type === "anchored-vwap") {
+      let primitive = this.anchoredVwapPrimitives.get(drawing.id);
+      const renderInput = this.buildVwapRenderInput(drawing);
+      if (primitive) {
+        primitive.update(renderInput);
+      } else {
+        primitive = new AnchoredVwapPrimitive(renderInput);
+        series.attachPrimitive(primitive);
+        this.anchoredVwapPrimitives.set(drawing.id, primitive);
+      }
       return;
     }
 
@@ -828,6 +1004,44 @@ export class LightweightChartsAdapter implements ChartAdapter {
     });
     series.attachPrimitive(primitive);
     this.verticalDrawingPrimitives.set(drawing.id, primitive);
+  }
+
+  private buildVwapRenderInput(
+    drawing: AnchoredVwapDrawing,
+    result?: AnchoredVwapResult,
+  ): AnchoredVwapRenderInput {
+    return {
+      vwapId: drawing.id,
+      result:
+        result ??
+        this.cachedVwapResults.get(drawing.id) ?? {
+          anchorTimestamp: drawing.anchorTimestamp,
+          resolvedAnchorIndex: null,
+          points: [],
+          latestPoint: null,
+          totalCandlesConsidered: 0,
+          candlesIncluded: 0,
+          candlesExcluded: 0,
+          exclusions: [],
+          calculationDurationMs: 0,
+          priceSource: drawing.priceSource ?? "typical",
+          bandMultipliers: drawing.bandMultipliers ?? [1, 2, 3],
+        },
+      presentation: {
+        vwapColor: drawing.lineColor ?? USER_DRAWING_COLOR,
+        vwapLineWidth: drawing.lineWidth ?? 2,
+        vwapLineStyle: drawing.lineStyle ?? LineStyle.Solid,
+        showBands: drawing.showBands ?? true,
+        bandColors: drawing.bandColors,
+        bandLineWidth: drawing.bandLineWidth,
+        showFill: drawing.showFill ?? false,
+        bandFillColor: drawing.bandFillColor,
+        showAnchorLine: drawing.showAnchorLine ?? true,
+        showLabels: drawing.showPriceAxisLabel ?? true,
+        isSelected: (drawing as any).isSelected,
+        isHovered: (drawing as any).isHovered,
+      },
+    };
   }
 
   private removeRenderedDrawing(id: string): void {
@@ -846,6 +1060,16 @@ export class LightweightChartsAdapter implements ChartAdapter {
     if (positionPrimitive) {
       series.detachPrimitive(positionPrimitive);
       this.positionDrawingPrimitives.delete(id);
+    }
+    const vpDrawingPrimitive = this.volumeProfileDrawingPrimitives.get(id);
+    if (vpDrawingPrimitive) {
+      series.detachPrimitive(vpDrawingPrimitive);
+      this.volumeProfileDrawingPrimitives.delete(id);
+    }
+    const avwapPrimitive = this.anchoredVwapPrimitives.get(id);
+    if (avwapPrimitive) {
+      series.detachPrimitive(avwapPrimitive);
+      this.anchoredVwapPrimitives.delete(id);
     }
     const rangePrimitives = this.volumeProfileRangePrimitives.get(id);
     if (rangePrimitives) {

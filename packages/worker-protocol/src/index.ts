@@ -9,4 +9,21 @@ export {
   type TotalOpenInterestRequest,
   type TotalOpenInterestSuccess,
 } from "./messages";
-export { OPTIONS_WORKER_PROTOCOL_VERSION } from "./versions";
+export {
+  isDrawingCalculationRequest,
+  isDrawingCalculationResponse,
+  type DrawingCalculationFailure,
+  type DrawingCalculationRequest,
+  type DrawingCalculationResponse,
+  type DrawingCandleSyncRequest,
+  type DrawingCandleSyncSuccess,
+  type VpDrawingCalculationRequest,
+  type VpDrawingCalculationSuccess,
+  type VwapDrawingCalculationRequest,
+  type VwapDrawingCalculationSuccess,
+} from "./drawing-messages";
+export {
+  OPTIONS_WORKER_PROTOCOL_VERSION,
+  DRAWING_WORKER_PROTOCOL_VERSION,
+} from "./versions";
+

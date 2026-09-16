@@ -1,6 +1,17 @@
 import type { Candle, GammaLevel } from "@options-chart/domain";
-import type { AnchoredVwapRenderInput } from "./anchored-vwap/types";
-import type { VolumeProfileRenderInput } from "./volume-profile/types";
+import type {
+  AnchoredVwapPriceSource,
+  AnchoredVwapRenderInput,
+  AnchoredVwapResult,
+} from "./anchored-vwap/types";
+import type {
+  VolumeProfileDirectionMode,
+  VolumeProfilePlacement,
+  VolumeProfileQualityMetadata,
+  VolumeProfileRenderInput,
+  VolumeProfileResult,
+  VolumeProfileVolumeUnit,
+} from "./volume-profile/types";
 
 export interface ChartVisibleRange {
   readonly fromTimestamp: number;
@@ -36,6 +47,8 @@ export type PositionDirection = "long" | "short";
 interface ChartDrawingBase {
   readonly id: string;
   readonly createdAt: number;
+  readonly isSelected?: boolean;
+  readonly isHovered?: boolean;
 }
 
 export interface HorizontalLineDrawing extends ChartDrawingBase {
@@ -60,15 +73,56 @@ export interface PositionDrawing extends ChartDrawingBase {
 
 export interface VolumeProfileRangeDrawing extends ChartDrawingBase {
   readonly type: "volume-profile-range";
+  readonly symbol?: string;
   readonly fromTimestamp: number;
   readonly toTimestamp: number;
+  readonly from?: number;
+  readonly to?: number;
+  readonly updatedAt?: number;
+  readonly extendRight?: boolean;
+  readonly rowCount?: number;
+  readonly volumeMode?: VolumeProfileDirectionMode;
+  readonly volumeUnit?: VolumeProfileVolumeUnit;
+  readonly valueAreaPercent?: number;
+  readonly placement?: VolumeProfilePlacement;
+  readonly widthPercent?: number;
+  readonly opacityPercent?: number;
+  readonly showPOC?: boolean;
+  readonly showVAH?: boolean;
+  readonly showVAL?: boolean;
+  readonly showValueAreaShading?: boolean;
+  readonly showLabels?: boolean;
+  readonly calculationSourceTimeframe?: string;
+  readonly qualityMetadata?: VolumeProfileQualityMetadata;
+}
+
+export interface AnchoredVwapDrawing extends ChartDrawingBase {
+  readonly type: "anchored-vwap";
+  readonly symbol?: string;
+  readonly anchorTimestamp: number;
+  readonly updatedAt?: number;
+  readonly priceSource?: AnchoredVwapPriceSource;
+  readonly bandMultipliers?: readonly number[];
+  readonly lineColor?: string;
+  readonly lineWidth?: number;
+  readonly lineStyle?: number;
+  readonly bandColors?: readonly string[];
+  readonly bandLineWidth?: number;
+  readonly showBands?: boolean;
+  readonly bandFillColor?: string;
+  readonly showFill?: boolean;
+  readonly fillOpacityPercent?: number;
+  readonly showPriceAxisLabel?: boolean;
+  readonly showAnchorLine?: boolean;
+  readonly showLabels?: boolean;
 }
 
 export type ChartDrawing =
   | HorizontalLineDrawing
   | VerticalLineDrawing
   | PositionDrawing
-  | VolumeProfileRangeDrawing;
+  | VolumeProfileRangeDrawing
+  | AnchoredVwapDrawing;
 
 export interface ChartViewportState {
   readonly visibleRange: ChartVisibleRange | null;
@@ -110,16 +164,30 @@ export interface ChartAdapter {
   addDrawing(drawing: ChartDrawing): void;
   removeDrawing(id: string): void;
   deleteSelectedDrawing(): void;
+  selectDrawing?(id: string | null): void;
+  getSelectedDrawingId?(): string | null;
+  updateDrawing?(
+    idOrDrawing: string | ChartDrawing,
+    updates?: Partial<ChartDrawing>,
+  ): void;
   clearDrawings(): void;
   getDrawings(): readonly ChartDrawing[];
   subscribeDrawingsChange(
     listener: (drawings: readonly ChartDrawing[]) => void,
   ): () => void;
+  subscribeLiveDrawingUpdate?(
+    listener: (drawing: ChartDrawing) => void,
+  ): () => void;
+  subscribeDrawingModeChange?(
+    listener: (mode: ChartDrawingMode) => void,
+  ): () => void;
   subscribeTimeSelection(listener: (timestamp: number) => void): () => void;
   setVolumeProfile?(id: string, renderInput: VolumeProfileRenderInput): void;
   removeVolumeProfile?(id: string): void;
+  setVolumeProfileDrawingResult?(id: string, result: VolumeProfileResult): void;
   setAnchoredVwap?(id: string, renderInput: AnchoredVwapRenderInput): void;
   removeAnchoredVwap?(id: string): void;
+  setAnchoredVwapDrawingResult?(id: string, result: AnchoredVwapResult): void;
   getDiagnostics(): ChartAdapterDiagnostics;
   resize(width: number, height: number): void;
   destroy(): void;

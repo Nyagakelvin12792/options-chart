@@ -38,9 +38,23 @@ export interface AnchoredVwapExclusion {
   readonly detail?: string | undefined;
 }
 
+export interface PreparedCandleSeries {
+  readonly count: number;
+  readonly openTimes: Float64Array;
+  readonly closeTimes: Float64Array;
+  readonly opens: Float64Array;
+  readonly highs: Float64Array;
+  readonly lows: Float64Array;
+  readonly closes: Float64Array;
+  readonly volumes: Float64Array;
+  readonly quoteVolumes: Float64Array;
+  readonly isClosed: Uint8Array;
+}
+
 export interface AnchoredVwapInput {
   readonly anchorTimestamp: number;
   readonly candles: readonly Candle[];
+  readonly preparedSeries?: PreparedCandleSeries | undefined;
   readonly priceSource?: AnchoredVwapPriceSource | undefined;
   readonly bandMultipliers?: readonly number[] | undefined;
   readonly replayCutoff?: number | undefined;
@@ -77,6 +91,8 @@ export interface AnchoredVwapPresentationOptions {
   readonly anchorLineStyle?: number | undefined;
   readonly showLabels?: boolean | undefined;
   readonly labelPrecision?: number | undefined;
+  readonly isSelected?: boolean | undefined;
+  readonly isHovered?: boolean | undefined;
 }
 
 export interface AnchoredVwapRenderInput {

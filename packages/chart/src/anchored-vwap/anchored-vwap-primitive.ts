@@ -3,6 +3,7 @@ import type {
   IPrimitivePaneView,
   ISeriesPrimitive,
   ISeriesPrimitiveAxisView,
+  PrimitiveHoveredItem,
   SeriesAttachedParameter,
   Time,
   UTCTimestamp,
@@ -210,22 +211,45 @@ class AnchoredVwapPaneRenderer implements IPrimitivePaneRenderer {
           }
           context.stroke();
 
-          // Anchor point bullseye/circle
+          // Anchor point bullseye/handle
           const anchorPoint = coords[0]!;
           const ax = Math.round(anchorPoint.x * horizontalPixelRatio);
           const ay = Math.round(anchorPoint.yVwap * verticalPixelRatio);
-          const radius = Math.max(3, 3 * horizontalPixelRatio);
+          const isSelected = Boolean(presentation.isSelected);
+          const isHovered = Boolean(presentation.isHovered);
 
-          context.fillStyle = vwapColor;
-          context.beginPath();
-          context.arc(ax, ay, radius, 0, Math.PI * 2);
-          context.fill();
+          if (isSelected || isHovered) {
+            const handleRadius = Math.max(5, 5 * horizontalPixelRatio);
 
-          context.strokeStyle = "#ffffff";
-          context.lineWidth = Math.max(1, horizontalPixelRatio);
-          context.beginPath();
-          context.arc(ax, ay, radius, 0, Math.PI * 2);
-          context.stroke();
+            if (isHovered) {
+              context.beginPath();
+              context.arc(ax, ay, handleRadius + 4 * horizontalPixelRatio, 0, Math.PI * 2);
+              context.fillStyle = "rgba(41, 98, 255, 0.2)";
+              context.fill();
+            }
+
+            context.beginPath();
+            context.arc(ax, ay, handleRadius, 0, Math.PI * 2);
+            context.fillStyle = "#ffffff";
+            context.fill();
+
+            context.strokeStyle = isSelected ? "#1d4ed8" : vwapColor;
+            context.lineWidth = Math.max(2, 2 * horizontalPixelRatio);
+            context.stroke();
+          } else {
+            const radius = Math.max(3, 3 * horizontalPixelRatio);
+
+            context.fillStyle = vwapColor;
+            context.beginPath();
+            context.arc(ax, ay, radius, 0, Math.PI * 2);
+            context.fill();
+
+            context.strokeStyle = "#ffffff";
+            context.lineWidth = Math.max(1, horizontalPixelRatio);
+            context.beginPath();
+            context.arc(ax, ay, radius, 0, Math.PI * 2);
+            context.stroke();
+          }
         }
 
         context.restore();
@@ -428,4 +452,46 @@ export class AnchoredVwapPrimitive implements ISeriesPrimitive<Time> {
   autoscaleInfo(): null {
     return null;
   }
+
+  /**
+   * Hit test against the anchor handle or the VWAP line.
+   */
+  hitTestTarget(
+    x: number,
+    y: number,
+    tolerancePx = 10,
+  ): "anchor" | "line" | null {
+    if (this.computedCoords.length === 0) return null;
+    const first = this.computedCoords[0]!;
+    if (Math.hypot(x - first.x, y - first.yVwap) <= tolerancePx + 4) {
+      return "anchor";
+    }
+    // Check if near VWAP curve
+    for (let i = 0; i < this.computedCoords.length; i += 2) {
+      const pt = this.computedCoords[i]!;
+      if (Math.hypot(x - pt.x, y - pt.yVwap) <= tolerancePx) {
+        return "line";
+      }
+    }
+    return null;
+  }
+
+  hitTest(x: number, y: number): PrimitiveHoveredItem | null {
+    const target = this.hitTestTarget(x, y);
+    if (!target) return null;
+    return {
+      cursorStyle: target === "anchor" ? "grab" : "pointer",
+      externalId: this.id,
+      zOrder: "top",
+    };
+  }
+
+  getAnchorCoordinates(): { x: number | null; y: number | null } {
+    if (this.computedCoords.length === 0) {
+      return { x: this.anchorX, y: null };
+    }
+    return { x: this.computedCoords[0]!.x, y: this.computedCoords[0]!.yVwap };
+  }
 }
+
+export { AnchoredVwapPrimitive as AnchoredVwapDrawingPrimitive };

@@ -59,6 +59,18 @@ export { BinanceKlineSocket } from "./websocket";
 export type { BinanceWsOptions } from "./websocket";
 
 export {
+  RESOLVER_SUPPORTED_INTERVALS,
+  DEFAULT_MAX_SOURCE_BARS,
+  resolveLowerTimeframe,
+  classifyCandleVolume,
+} from "./lower-timeframe-resolver";
+export type {
+  LowerTimeframeResolution,
+  VolumeDirection,
+  ClassifiedCandleVolume,
+} from "./lower-timeframe-resolver";
+
+export {
   BinanceWsKlineDataSchema,
   BinanceWsKlineEventSchema,
   type BinanceWsKlineData,

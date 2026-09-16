@@ -7,6 +7,7 @@ export type {
   ChartInitializeOptions,
   ChartVisibleRange,
   ChartViewportState,
+  AnchoredVwapDrawing,
   HorizontalLineDrawing,
   PositionDirection,
   PositionDrawing,
@@ -15,6 +16,7 @@ export type {
 } from "./chart-adapter";
 export { LightweightChartsAdapter } from "./lightweight/lightweight-chart-adapter";
 export { PositionDrawingPrimitive } from "./lightweight/position-drawing-primitive";
+export { VolumeProfileDrawingPrimitive } from "./volume-profile/volume-profile-drawing-primitive";
 export {
   createPositionDrawing,
   isPositionDrawingOrderValid,

@@ -1,8 +1,8 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.9.2
-Status: M10.6 fixed-range Volume Profile, risk/reward position tools, and fast timeframe previews delivered and deployed; M9 observation evidence remains open
+Version: 0.9.3
+Status: TradingView-quality interactive Fixed Range Volume Profile and Anchored VWAP delivered on feature branch; M9 observation evidence remains open
 Date: 2026-09-16
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
@@ -4304,3 +4304,32 @@ A task is done only when all applicable items are true.
 A milestone is done only when its exit criteria pass.
 
 A visual feature is never allowed to declare a data milestone complete.
+
+---
+
+# 41. TradingView-Quality Interactive Drawing Tools Architecture
+
+## 41.1 Objectives & Design Principles
+The interactive drawing suite provides TradingView-grade Fixed Range Volume Profile (FRVP) and Anchored VWAP (AVWAP) tools designed for extreme responsiveness and precision:
+1. **Interactive Manipulation**:
+   - Fixed Range Volume Profile can be created by dragging across any candle interval.
+   - Start and end boundary lines feature draggable midpoint handles with `ew-resize` cursor feedback.
+   - The entire range body can be grabbed and dragged horizontally, preserving the exact bar span.
+   - Anchored VWAP can be placed with a single click on any candle and dragged along the time axis.
+2. **Chart-Native Rendering**:
+   - Spatially associated drawings attach directly to chart series primitives and scroll/zoom synchronously with price and time scales.
+   - Fixed Range Volume Profile displays histogram bars bounded inside the range (not pinned to canvas edges), Value Area shading, and POC/VAH/VAL lines with crisp right-hand badges.
+   - Anchored VWAP renders standard deviation bands (±1σ, ±2σ, ±3σ) and real-time price axis badges.
+3. **Off-Main-Thread Worker Architecture**:
+   - All heavy mathematical calculations (profile row aggregation, cumulative volume-weighted price and variance sums) execute off-main-thread in `drawing-calculation.worker.ts`.
+   - Protocol messages are strictly typed and versioned (`DRAWING_WORKER_PROTOCOL_VERSION = "drawing-worker-v1"`).
+   - In-flight calculations feature request generation tokens enabling immediate cancellation of stale requests during interactive drag.
+   - Calculations are cached via LRU caches (`VolumeProfileCache`, `AnchoredVwapCache`) to ensure sub-millisecond retrieval on repeat inspections.
+4. **Performance & Interaction Integrity**:
+   - Interactions maintain 60 FPS across 10,000 displayed candles through `requestAnimationFrame` batching.
+   - Chart scrolling and scaling are cleanly suppressed during active drawing drag operations.
+   - Drawing mode state cleanly synchronizes between adapter listeners, `DrawingInteractionController`, and React toolbar buttons.
+5. **Persistence & Coexistence**:
+   - User drawings persist across browser reloads via `localStorage`, timeframe switching, and replay scrubbing.
+   - Existing options levels, Call/Put walls, GEX concentration, confluence zones, and risk terminal calculations remain completely intact.
+

@@ -51,6 +51,7 @@ import {
   type OptionsCalculationRequest,
 } from "@options-chart/worker-protocol";
 import {
+  Anchor,
   ArrowDownRight,
   ArrowUpRight,
   BarChart3,
@@ -133,6 +134,7 @@ import {
   serializeVolumeProfileSettings,
   VOLUME_PROFILE_SETTINGS_STORAGE_KEY,
 } from "@/lib/volume-profile-settings";
+import { DrawingCalculationManager } from "@/lib/drawing-calculation-manager";
 
 interface DashboardClientProps {
   readonly accessLabel: string;
@@ -184,6 +186,11 @@ interface ChartTestApi {
   loadOlderHistory(): Promise<void>;
   addHorizontalDrawing(price: number): void;
   addVerticalDrawing(timestamp: number): void;
+  addVpDrawing?(fromTimestamp: number, toTimestamp: number): void;
+  addVwapDrawing?(anchorTimestamp: number): void;
+  selectDrawing?(id: string | null): void;
+  getSelectedDrawingId?(): string | null;
+  deleteSelectedDrawing?(): void;
   runConflationBenchmark(): ConflationBenchmarkResult;
   runSoak(updates?: number): ChartSoakResult;
 }
@@ -267,12 +274,26 @@ const isChartDrawing = (value: unknown): value is ChartDrawing => {
     );
   }
   if (candidate.type === "volume-profile-range") {
+    const from =
+      typeof candidate.fromTimestamp === "number"
+        ? candidate.fromTimestamp
+        : candidate.from;
+    const to =
+      typeof candidate.toTimestamp === "number"
+        ? candidate.toTimestamp
+        : candidate.to;
     return (
-      typeof candidate.fromTimestamp === "number" &&
-      Number.isFinite(candidate.fromTimestamp) &&
-      typeof candidate.toTimestamp === "number" &&
-      Number.isFinite(candidate.toTimestamp) &&
-      candidate.fromTimestamp !== candidate.toTimestamp
+      typeof from === "number" &&
+      Number.isFinite(from) &&
+      typeof to === "number" &&
+      Number.isFinite(to) &&
+      from !== to
+    );
+  }
+  if (candidate.type === "anchored-vwap") {
+    return (
+      typeof candidate.anchorTimestamp === "number" &&
+      Number.isFinite(candidate.anchorTimestamp)
     );
   }
   return (
@@ -318,6 +339,8 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartAdapterRef = useRef<ChartAdapter | null>(null);
+  const drawingCalculationManagerRef =
+    useRef<DrawingCalculationManager | null>(null);
   const volumeProfileControllerRef = useRef<VolumeProfileController | null>(
     null,
   );
@@ -1261,6 +1284,22 @@ export function DashboardClient({
     });
     anchoredVwapControllerRef.current = anchoredVwapController;
 
+    const drawingCalculationManager = new DrawingCalculationManager({
+      onVwapResult: (drawingId, result) => {
+        chartAdapterRef.current?.setAnchoredVwapDrawingResult?.(
+          drawingId,
+          result,
+        );
+      },
+      onVpResult: (drawingId, result) => {
+        chartAdapterRef.current?.setVolumeProfileDrawingResult?.(
+          drawingId,
+          result,
+        );
+      },
+    });
+    drawingCalculationManagerRef.current = drawingCalculationManager;
+
     for (const drawing of readStoredDrawings()) adapter.addDrawing(drawing);
     setDrawingCount(adapter.getDrawings().length);
     setDrawings(adapter.getDrawings());
@@ -1271,6 +1310,65 @@ export function DashboardClient({
       setDrawings(drawings);
       setDiagnostics(adapter.getDiagnostics());
     });
+    let lastLiveCalcTime = 0;
+    const unsubscribeLiveDrawings = adapter.subscribeLiveDrawingUpdate?.(
+      (drawing) => {
+        const now = performance.now();
+        if (now - lastLiveCalcTime < 80) return;
+        lastLiveCalcTime = now;
+
+        const candles =
+          replayTimeline && replayIndex >= 0
+            ? replayTimeline.candles.slice(0, replayIndex + 1)
+            : (candleStoreRef.current?.getSorted() ?? []);
+        if (candles.length === 0) return;
+
+        const revision = `${activeIntervalRef.current}:${candles.length}:${candles.at(-1)?.openTime ?? 0}:${replayIndex}`;
+
+        if (drawing.type === "volume-profile-range") {
+          const fromTimestamp = Math.min(
+            drawing.fromTimestamp ?? (drawing as any).from,
+            drawing.toTimestamp ?? (drawing as any).to,
+          );
+          const toTimestamp = Math.max(
+            drawing.fromTimestamp ?? (drawing as any).from,
+            drawing.toTimestamp ?? (drawing as any).to,
+          );
+          drawingCalculationManager.requestVolumeProfile({
+            drawingId: drawing.id,
+            fromTimestamp,
+            toTimestamp,
+            candles,
+            symbol: "BTCUSDT",
+            timeframe: activeIntervalRef.current,
+            rowCount: drawing.rowCount ?? 70,
+            volumeMode: drawing.volumeMode ?? "up-down",
+            volumeUnit: drawing.volumeUnit ?? "base",
+            valueAreaPercent: drawing.valueAreaPercent ?? 70,
+            replayCutoff:
+              replayTimeline && replayIndex >= 0
+                ? candles.at(-1)?.closeTime
+                : undefined,
+            dataRevision: revision,
+          });
+        } else if (drawing.type === "anchored-vwap") {
+          drawingCalculationManager.requestVwap({
+            drawingId: drawing.id,
+            anchorTimestamp: drawing.anchorTimestamp,
+            candles,
+            symbol: "BTCUSDT",
+            timeframe: activeIntervalRef.current,
+            priceSource: drawing.priceSource ?? "typical",
+            bandMultipliers: drawing.bandMultipliers ?? [1, 2, 3],
+            replayCutoff:
+              replayTimeline && replayIndex >= 0
+                ? candles.at(-1)?.closeTime
+                : undefined,
+            dataRevision: revision,
+          });
+        }
+      },
+    );
     const unsubscribeTimeSelection = adapter.subscribeTimeSelection(
       (timestamp) => {
         setAnchoredVwapSettings((current) =>
@@ -1283,6 +1381,11 @@ export function DashboardClient({
         );
         adapter.setDrawingMode("pointer");
         setDrawingModeState("pointer");
+      },
+    );
+    const unsubscribeDrawingMode = adapter.subscribeDrawingModeChange?.(
+      (mode) => {
+        setDrawingModeState(mode);
       },
     );
     const scheduleOverlayRefresh = () => {
@@ -1331,11 +1434,15 @@ export function DashboardClient({
       }
       unsubscribeViewport();
       unsubscribeDrawings();
+      unsubscribeLiveDrawings?.();
+      unsubscribeDrawingMode?.();
       unsubscribeTimeSelection();
       volumeProfileController.dispose();
       adapter.removeVolumeProfile?.("dashboard-volume-profile");
       anchoredVwapController.dispose();
       adapter.removeAnchoredVwap?.("dashboard-anchored-vwap");
+      drawingCalculationManager.destroy();
+      drawingCalculationManagerRef.current = null;
       adapter.destroy();
       chartAdapterRef.current = null;
       volumeProfileControllerRef.current = null;
@@ -1491,6 +1598,65 @@ export function DashboardClient({
     selectedInterval,
     volumeProfileRevision,
   ]);
+
+  useEffect(() => {
+    const manager = drawingCalculationManagerRef.current;
+    if (!manager) return;
+
+    const candles =
+      replayTimeline && replayIndex >= 0
+        ? replayTimeline.candles.slice(0, replayIndex + 1)
+        : (candleStoreRef.current?.getSorted() ?? []);
+    if (candles.length === 0) return;
+
+    const revision = `${selectedInterval}:${candles.length}:${candles.at(-1)?.openTime ?? 0}:${replayIndex}`;
+    manager.syncCandles("BTCUSDT", selectedInterval, candles, revision);
+
+    for (const drawing of drawings) {
+      if (drawing.type === "volume-profile-range") {
+        const fromTimestamp = Math.min(
+          drawing.fromTimestamp ?? (drawing as any).from,
+          drawing.toTimestamp ?? (drawing as any).to,
+        );
+        const toTimestamp = Math.max(
+          drawing.fromTimestamp ?? (drawing as any).from,
+          drawing.toTimestamp ?? (drawing as any).to,
+        );
+        manager.requestVolumeProfile({
+          drawingId: drawing.id,
+          fromTimestamp,
+          toTimestamp,
+          candles,
+          symbol: "BTCUSDT",
+          timeframe: selectedInterval,
+          rowCount: drawing.rowCount ?? 70,
+          volumeMode: drawing.volumeMode ?? "up-down",
+          volumeUnit: drawing.volumeUnit ?? "base",
+          valueAreaPercent: drawing.valueAreaPercent ?? 70,
+          replayCutoff:
+            replayTimeline && replayIndex >= 0
+              ? candles.at(-1)?.closeTime
+              : undefined,
+          dataRevision: revision,
+        });
+      } else if (drawing.type === "anchored-vwap") {
+        manager.requestVwap({
+          drawingId: drawing.id,
+          anchorTimestamp: drawing.anchorTimestamp,
+          candles,
+          symbol: "BTCUSDT",
+          timeframe: selectedInterval,
+          priceSource: drawing.priceSource ?? "typical",
+          bandMultipliers: drawing.bandMultipliers ?? [1, 2, 3],
+          replayCutoff:
+            replayTimeline && replayIndex >= 0
+              ? candles.at(-1)?.closeTime
+              : undefined,
+          dataRevision: revision,
+        });
+      }
+    }
+  }, [drawings, selectedInterval, candleCount, replayIndex, replayTimeline]);
 
   useEffect(() => {
     if (requestedInterval === selectedInterval) return;
@@ -2169,6 +2335,50 @@ export function DashboardClient({
           createdAt: Date.now(),
         });
       },
+      addVpDrawing: (fromTimestamp, toTimestamp) => {
+        chartAdapterRef.current?.addDrawing({
+          id: `test-vp-${Date.now()}`,
+          type: "volume-profile-range",
+          fromTimestamp,
+          toTimestamp,
+          from: fromTimestamp,
+          to: toTimestamp,
+          rowCount: 70,
+          volumeMode: "candle-direction",
+          volumeUnit: "base",
+          valueAreaPercent: 70,
+          placement: "left",
+          widthPercent: 30,
+          opacityPercent: 70,
+          showPOC: true,
+          showVAH: true,
+          showVAL: true,
+          showValueAreaShading: true,
+          showLabels: true,
+          isSelected: true,
+          createdAt: Date.now(),
+        });
+      },
+      addVwapDrawing: (anchorTimestamp) => {
+        chartAdapterRef.current?.addDrawing({
+          id: `test-vwap-${Date.now()}`,
+          type: "anchored-vwap",
+          anchorTimestamp,
+          priceSource: "typical",
+          bandMultipliers: [1, 2, 3],
+          showBands: true,
+          showFill: false,
+          showAnchorLine: true,
+          showLabels: true,
+          isSelected: true,
+          createdAt: Date.now(),
+        });
+      },
+      selectDrawing: (id) => chartAdapterRef.current?.selectDrawing?.(id),
+      getSelectedDrawingId: () =>
+        chartAdapterRef.current?.getSelectedDrawingId?.() ?? null,
+      deleteSelectedDrawing: () =>
+        chartAdapterRef.current?.deleteSelectedDrawing(),
       runConflationBenchmark: () => {
         const candles = candleStoreRef.current?.getSorted() ?? [];
         if (candles.length === 0) throw new Error("History is unavailable");
@@ -2650,6 +2860,16 @@ export function DashboardClient({
                 onClick={() => setDrawingMode("fixed-range-volume-profile")}
               >
                 <BarChart3 size={18} />
+              </button>
+              <button
+                type="button"
+                className={drawingMode === "anchored-vwap" ? "active" : ""}
+                aria-label="Anchored VWAP"
+                title="Anchored VWAP"
+                aria-pressed={drawingMode === "anchored-vwap"}
+                onClick={() => setDrawingMode("anchored-vwap")}
+              >
+                <Anchor size={18} />
               </button>
               <button
                 type="button"

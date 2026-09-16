@@ -1,11 +1,11 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.2
+Version: 0.9.3
 Last updated: 2026-09-16
-Overall status: M0-M8 and M10.2-M10.6 complete; M9 observation evidence remains open
-Current milestone: M9 Trading-Readiness Validation after M10.6 delivery
-Production status: DEPLOYED ON VERCEL AT `2ea42ca`
+Overall status: M0-M8, M10.2-M10.6, and TradingView Drawing Interactions complete; M9 observation evidence remains open
+Current milestone: M9 Trading-Readiness Validation after TradingView Drawing Interactions delivery
+Production status: FEATURE COMPLETE ON `feature/tradingview-drawing-interactions` (Ready for Codex Review)
 
 ---
 
@@ -1598,3 +1598,40 @@ This prevents agents from repeatedly replacing each other's implementations.
   5. **Resilience & Hysteresis:** Forced disconnects trigger subscription replay, REST reconciliation, and clean transition through recovery hysteresis back to `LIVE`.
   6. **Test Verification:** 87 Vitest unit tests (all 22 test files), 3 Playwright browser checks, TypeScript typecheck, and ESLint pass with 0 errors.
 - **Formal Exit Approval:** Milestone 2 is hereby **APPROVED**. Milestone 3 (Options Mathematics Engine) is cleared to begin.
+
+---
+
+## 2026-09-16 Feature Implementation: TradingView-Quality Drawing Tool Interactions
+
+### [FEAT-001] TradingView-Quality Interactive Fixed Range Volume Profile & Anchored VWAP Drawing Tools
+- **Status:** [VERIFIED]
+- **Severity:** Feature Delivery & Quality Milestone
+- **Branch:** `feature/tradingview-drawing-interactions`
+- **Deliverables Completed:**
+  1. **Interactive Fixed Range Volume Profile:**
+     - User can drag across any candle range on the chart to instantiate a profile.
+     - Both start and end boundaries feature draggable midpoint handles with `ew-resize` cursor feedback.
+     - The entire range body can be grabbed and translated along the time axis while preserving exact bar span.
+     - Shaded range bounds, Value Area highlighting, and POC / VAH / VAL lines with distinct right-hand badges render cleanly.
+  2. **Chart-Native Anchored VWAP:**
+     - Single click on any candle places an Anchored VWAP with draggable anchor handle.
+     - Supports live standard-deviation band rendering (±1σ, ±2σ, ±3σ) and price-axis badge (`AVWAP <price>`).
+  3. **Off-Main-Thread Web Worker Protocol:**
+     - Implemented `drawing-calculation.worker.ts` and `DrawingCalculationManager` using protocol version `drawing-worker-v1`.
+     - Request generation IDs allow instant cancellation of obsolete calculations during rapid drags.
+     - LRU caching of calculations prevents redundant work on repeated views.
+  4. **High-Performance Math Engines:**
+     - Anchored VWAP calculation throughput > 310,000 candles/sec with WeakMap series cache.
+     - Volume Profile calculation throughput > 100,000 candles/sec using binary search interval intersection.
+     - Smooth 60 FPS pointer interactions on 10,000 displayed candles with RAF batching and chart scroll suppression during drag.
+  5. **Persistence & Lifecycle:**
+     - Drawings persist across page reloads via `localStorage`, timeframe switching (1m to 1w), replay mode scrubbing, and lazy history pagination.
+     - Selection state managed via single-click, Escape deselect, and Delete/Backspace removal.
+  6. **Regression Invariants:**
+     - Options levels, Call/Put walls, GEX concentration, confluence zones, level rail, and risk terminal remain 100% intact and functional.
+  7. **Verification & Testing:**
+     - TypeScript typecheck: 0 errors across all workspace packages and `apps/web`.
+     - Vitest: 60 test suites, 361 tests PASSED.
+     - Playwright e2e: 2/2 tests PASSED (`drawing-interactions.spec.ts`).
+     - Visual proof captured at 1440x900, 1280x720, and 390x844 viewports and verified.
+

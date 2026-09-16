@@ -15,6 +15,7 @@ declare module "lucide-react" {
     Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
   >;
 
+  export const Anchor: LucideIcon;
   export const Eraser: LucideIcon;
   export const ArrowDownRight: LucideIcon;
   export const ArrowUpRight: LucideIcon;

@@ -346,6 +346,43 @@ export function calculateVolumeProfile(
   // 6. Allocate Volume to Bins
   const lastRowIdx = rows.length - 1;
 
+  function findFirstIntersectingRowIndex(low: number): number {
+    let l = 0;
+    let r = lastRowIdx;
+    let ans = 0;
+    while (l <= r) {
+      const mid = (l + r) >> 1;
+      if (rows[mid]!.high > low) {
+        ans = mid;
+        r = mid - 1;
+      } else {
+        l = mid + 1;
+      }
+    }
+    return ans;
+  }
+
+  function findPointBinIndex(point: number): number {
+    if (point <= rows[0]!.low) return 0;
+    if (point >= rows[lastRowIdx]!.high) return lastRowIdx;
+    let l = 0;
+    let r = lastRowIdx;
+    while (l <= r) {
+      const mid = (l + r) >> 1;
+      const row = rows[mid]!;
+      const isLast = mid === lastRowIdx;
+      if (isLast ? point >= row.low && point <= row.high : point >= row.low && point < row.high) {
+        return mid;
+      }
+      if (point < row.low) {
+        r = mid - 1;
+      } else {
+        l = mid + 1;
+      }
+    }
+    return Math.max(0, Math.min(lastRowIdx, l));
+  }
+
   for (const candle of eligibleCandles) {
     const vol = volumeUnit === "quote" ? candle.quoteVolume : candle.volume;
     if (vol === 0) continue;
@@ -354,24 +391,7 @@ export function calculateVolumeProfile(
     const isBearish = candle.close < candle.open;
 
     if (candle.high === candle.low) {
-      let allocatedIdx = -1;
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i]!;
-        const isLast = i === lastRowIdx;
-        const inBin = isLast
-          ? candle.low >= row.low && candle.low <= row.high
-          : candle.low >= row.low && candle.low < row.high;
-        if (inBin) {
-          allocatedIdx = i;
-          break;
-        }
-      }
-
-      if (allocatedIdx === -1) {
-        if (candle.low <= rows[0]!.low) allocatedIdx = 0;
-        else allocatedIdx = lastRowIdx;
-      }
-
+      const allocatedIdx = findPointBinIndex(candle.low);
       const targetRow = rows[allocatedIdx]!;
       targetRow.totalVolume += vol;
       if (directionMode === "candle-direction") {
@@ -386,9 +406,14 @@ export function calculateVolumeProfile(
     let accumulatedVol = 0;
     let lastIntersectedIdx = -1;
 
-    for (let i = 0; i < rows.length; i++) {
+    const startIdx = findFirstIntersectingRowIndex(candle.low);
+
+    for (let i = startIdx; i < rows.length; i++) {
       const row = rows[i]!;
-      if (row.high <= candle.low || row.low >= candle.high) {
+      if (row.low >= candle.high) {
+        break;
+      }
+      if (row.high <= candle.low) {
         continue;
       }
 

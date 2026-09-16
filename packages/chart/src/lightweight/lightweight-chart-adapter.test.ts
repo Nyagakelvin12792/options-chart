@@ -287,9 +287,30 @@ describe("LightweightChartsAdapter", () => {
         toTimestamp: 1_700_003_600_000,
       }),
     ]);
-    expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(2);
+    expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(1);
     adapter.removeDrawing("vp-range");
-    expect(mocks.candleSeries.detachPrimitive).toHaveBeenCalledTimes(2);
+    expect(mocks.candleSeries.detachPrimitive).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders an Anchored VWAP drawing as a chart-native primitive", () => {
+    const adapter = initialize();
+    adapter.addDrawing({
+      id: "avwap-1",
+      type: "anchored-vwap",
+      anchorTimestamp: 1_700_000_000_000,
+      createdAt: 1,
+    });
+
+    expect(adapter.getDrawings()).toEqual([
+      expect.objectContaining({
+        id: "avwap-1",
+        type: "anchored-vwap",
+        anchorTimestamp: 1_700_000_000_000,
+      }),
+    ]);
+    expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(1);
+    adapter.removeDrawing("avwap-1");
+    expect(mocks.candleSeries.detachPrimitive).toHaveBeenCalledTimes(1);
   });
 
   it("reports viewport proximity and removes chart listeners on destroy", () => {
