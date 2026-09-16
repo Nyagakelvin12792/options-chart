@@ -3,9 +3,9 @@
 
 Version: 0.9.2
 Last updated: 2026-09-16
-Overall status: M0-M8 and M10.2-M10.5 complete; M10.6 implementation complete; deployment and M9 observation evidence remain open
-Current milestone: M10.6 deployment verification, then M9 Trading-Readiness Validation
-Production status: DEPLOYED ON VERCEL AT `740c66c`
+Overall status: M0-M8 and M10.2-M10.6 complete; M9 observation evidence remains open
+Current milestone: M9 Trading-Readiness Validation after M10.6 delivery
+Production status: DEPLOYED ON VERCEL AT `2ea42ca`
 
 ---
 
@@ -38,12 +38,12 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
-| Vercel deployment | COMPLETE | Production deployment verified through commit `740c66c` |
+| Vercel deployment | COMPLETE | Production deployment verified through commit `2ea42ca` |
 | Private authentication | COMPLETE | Google login with one exact allowlisted account |
 | Account risk terminal | COMPLETE | Live chart-synchronized long/short sizing capped by account risk, daily loss, drawdown, leverage, and margin; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
-| Volume Profile | IMPLEMENTED | Persistent settings plus a user-drawn, draggable fixed range; M10.6 deployment pending |
+| Volume Profile | COMPLETE | Persistent settings plus a user-drawn, draggable fixed range deployed through `2ea42ca` |
 | External indicators | COMPLETE | Anchored VWAP is deployed through `740c66c` with persistent settings and a unified VP/AVWAP panel |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
@@ -683,7 +683,7 @@ Evidence:
 
 ## M10.6 Fixed-Range Volume Profile and Risk/Reward Position Tools
 
-Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
+Status: COMPLETE - DEPLOYED AND VERIFIED AT `2ea42ca`
 
 - [x] Add a click-drag fixed-range Volume Profile tool with persistent, draggable boundaries.
 - [x] Use the newest fixed range as the VP calculation interval without changing VP rows, style, or options-volume semantics.
@@ -694,8 +694,8 @@ Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
 - [x] Cap position size by the tightest of risk-per-trade, daily loss, maximum drawdown, and leveraged margin.
 - [x] Reduce the timeframe debounce to 120 ms and render a 1,000-bar preview while 10,000-bar history loads in the background.
 - [x] Pass typecheck, production build, focused lint, 28 focused tests, and five chart-engine Chromium workflows.
-- [ ] Push the implementation and documentation commits to GitHub.
-- [ ] Verify the Vercel production deployment.
+- [x] Push the implementation and documentation commits to GitHub.
+- [x] Verify the Vercel production deployment.
 
 Evidence:
 
@@ -703,6 +703,7 @@ Evidence:
 - Fixed-range VP, explicit long positioning, live risk synchronization, rapid timeframe switching, chart layout, and soak browser checks: 5 passed.
 - Visual check at 1440x900: fixed VP anchors, R/R zones, price badges, and Risk Terminal metrics rendered without overlap.
 - Full Vitest correctness: 56 files and 345 tests passed; the unchanged AVWAP performance test exceeded its 100 ms threshold by 2-11 ms on this run.
+- GitHub `main` returned feature commit `2ea42ca`; Vercel reported `success` for its production deployment.
 
 ---
 
@@ -960,7 +961,7 @@ Use newest entries first.
 
 ### M10.6-FIXED-RANGE-VP-AND-RISK-REWARD-POSITIONS
 
-Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
+Status: COMPLETE - DEPLOYED AND VERIFIED AT `2ea42ca`
 
 Implementation:
 
@@ -976,7 +977,8 @@ Validation:
 
 Deployment:
 
-- Pending commit, push, and Vercel verification.
+- Feature commit `2ea42ca` was pushed to GitHub `main`.
+- Vercel reported `success` for the associated production deployment.
 
 ---
 

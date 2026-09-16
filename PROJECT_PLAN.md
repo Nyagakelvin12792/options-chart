@@ -2,7 +2,7 @@
 ## PROJECT_PLAN.md
 
 Version: 0.9.2
-Status: M10.6 fixed-range Volume Profile, risk/reward position tools, and fast timeframe previews implemented; deployment and M9 observation evidence remain open
+Status: M10.6 fixed-range Volume Profile, risk/reward position tools, and fast timeframe previews delivered and deployed; M9 observation evidence remains open
 Date: 2026-09-16
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
