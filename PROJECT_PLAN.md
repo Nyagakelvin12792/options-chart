@@ -2,7 +2,7 @@
 ## PROJECT_PLAN.md
 
 Version: 0.9.3
-Status: M10.7 shift-aware level segments, collision-managed rail, and staged timeframe loading integrated and locally verified; deployment pending; M9 observation evidence remains open
+Status: M10.7 shift-aware level segments, collision-managed rail, and staged timeframe loading integrated, locally verified, and pushed to main; Vercel verification pending; M9 observation evidence remains open
 Date: 2026-09-16
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  

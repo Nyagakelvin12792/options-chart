@@ -3,8 +3,8 @@
 
 Version: 0.9.3
 Last updated: 2026-09-16
-Overall status: M0-M8 and M10.2-M10.7 complete; M10.7 deployment and M9 observation evidence remain open
-Current milestone: M10.7 deployment review, then M9 Trading-Readiness Validation
+Overall status: M0-M8 and M10.2-M10.7 complete; M10.7 Vercel verification and M9 observation evidence remain open
+Current milestone: M10.7 Vercel verification, then M9 Trading-Readiness Validation
 Production status: DEPLOYED ON VERCEL AT `2ea42ca`
 
 ---
@@ -45,7 +45,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
 | Volume Profile | COMPLETE | Persistent settings plus a user-drawn, draggable fixed range deployed through `2ea42ca` |
 | External indicators | COMPLETE | Anchored VWAP is deployed through `740c66c` with persistent settings and a unified VP/AVWAP panel |
-| Chart refinement M10.7 | COMPLETE - NOT DEPLOYED | Antigravity `b06593d` reviewed and integrated at `33af499`; local validation passed and production deployment remains pending |
+| Chart refinement M10.7 | COMPLETE - VERCEL VERIFICATION PENDING | Antigravity `b06593d` reviewed and integrated at `33af499`; main was pushed at `5df1a5a`, triggering the configured Vercel integration |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -710,7 +710,7 @@ Evidence:
 
 ## M10.7 Shift-Aware Level Segments, Level Rail, and Staged Timeframes
 
-Status: COMPLETE - LOCALLY VERIFIED, NOT DEPLOYED
+Status: COMPLETE - PUSHED TO MAIN, VERCEL VERIFICATION PENDING
 
 - [x] Review Antigravity commit `b06593d` and integrate it on top of the deployed AVWAP, fixed-range VP, position, replay, and risk-terminal work.
 - [x] Add persistent level-shift tracking with Gamma Flip anti-jitter and expiry-scoped confluence records.
@@ -721,7 +721,8 @@ Status: COMPLETE - LOCALLY VERIFIED, NOT DEPLOYED
 - [x] Prevent the legacy HTML confluence bands from duplicating the new canvas primitive.
 - [x] Preserve all existing Volume Profile, AVWAP, position, risk, wall, confluence, replay, and options-calculation behavior.
 - [x] Pass 31 focused integration tests, typecheck, lint, isolated performance tests, and the production build.
-- [ ] Push the reviewed integration to GitHub `main` and deploy it to Vercel.
+- [x] Push the reviewed integration to GitHub `main` at `5df1a5a` and trigger the configured Vercel integration.
+- [ ] Verify the resulting Vercel production deployment when network access to the deployment/status endpoints is available.
 
 Evidence:
 
@@ -989,7 +990,7 @@ Use newest entries first.
 
 ### M10.7-SHIFT-AWARE-LEVELS-AND-STAGED-TIMEFRAMES
 
-Status: COMPLETE - LOCALLY VERIFIED, NOT DEPLOYED
+Status: COMPLETE - PUSHED TO MAIN, VERCEL VERIFICATION PENDING
 
 Implementation:
 
@@ -1004,7 +1005,8 @@ Validation:
 
 Deployment:
 
-- Not deployed. GitHub `main` and the production Vercel deployment remain unchanged pending approval.
+- GitHub `main` was fast-forwarded and pushed at `5df1a5a`, triggering the configured Vercel integration.
+- Production verification remains pending because this session could not reach the GitHub deployment-status API or the Vercel hostname after its network permission request was denied.
 
 ---
 
