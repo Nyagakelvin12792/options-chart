@@ -10,9 +10,11 @@ export type {
   HorizontalLineDrawing,
   PositionDirection,
   PositionDrawing,
+  VolumeProfileRangeDrawing,
   VerticalLineDrawing,
 } from "./chart-adapter";
 export { LightweightChartsAdapter } from "./lightweight/lightweight-chart-adapter";
+export { PositionDrawingPrimitive } from "./lightweight/position-drawing-primitive";
 export {
   createPositionDrawing,
   isPositionDrawingOrderValid,

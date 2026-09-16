@@ -9,17 +9,23 @@ import {
 
 describe("position drawing", () => {
   it.each(["long", "short"] as const)(
-    "creates a valid %s position with a two-to-one target",
+    "preserves user-selected levels for a %s position",
     (direction) => {
+      const stopLoss = direction === "long" ? 59_500 : 60_500;
+      const takeProfit = direction === "long" ? 61_250 : 58_750;
       const drawing = createPositionDrawing({
         id: direction,
         direction,
         entry: 60_000,
+        stopLoss,
+        takeProfit,
         createdAt: 1,
       });
 
       expect(isPositionDrawingOrderValid(drawing)).toBe(true);
-      expect(positionRewardRiskRatio(drawing)).toBeCloseTo(2);
+      expect(drawing.stopLoss).toBe(stopLoss);
+      expect(drawing.takeProfit).toBe(takeProfit);
+      expect(positionRewardRiskRatio(drawing)).toBeCloseTo(2.5);
     },
   );
 
@@ -28,6 +34,8 @@ describe("position drawing", () => {
       id: "long",
       direction: "long",
       entry: 60_000,
+      stopLoss: 59_500,
+      takeProfit: 61_000,
       createdAt: 1,
     });
     const movedStop = movePositionDrawingLevel(drawing, "stopLoss", 70_000);

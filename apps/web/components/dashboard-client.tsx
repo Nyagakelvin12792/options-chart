@@ -26,6 +26,7 @@ import {
   DeribitOptionsDataEngine,
   DeribitRestClient,
   fetchOlderHistory,
+  parseBinanceKlines,
   syncBinanceClock,
   TIMEFRAME_DEBOUNCE_MS,
   type DeribitRecentOptionTradePayload,
@@ -52,6 +53,7 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
+  BarChart3,
   Eye,
   EyeOff,
   Eraser,
@@ -262,6 +264,15 @@ const isChartDrawing = (value: unknown): value is ChartDrawing => {
       Number.isFinite(candidate.stopLoss) &&
       typeof candidate.takeProfit === "number" &&
       Number.isFinite(candidate.takeProfit)
+    );
+  }
+  if (candidate.type === "volume-profile-range") {
+    return (
+      typeof candidate.fromTimestamp === "number" &&
+      Number.isFinite(candidate.fromTimestamp) &&
+      typeof candidate.toTimestamp === "number" &&
+      Number.isFinite(candidate.toTimestamp) &&
+      candidate.fromTimestamp !== candidate.toTimestamp
     );
   }
   return (
@@ -1283,12 +1294,6 @@ export function DashboardClient({
     };
     const unsubscribeViewport = adapter.subscribeViewportChange((viewport) => {
       scheduleOverlayRefresh();
-      if (viewport.visibleRange) {
-        volumeProfileController.updateViewportRange(
-          viewport.visibleRange.fromTimestamp,
-          viewport.visibleRange.toTimestamp,
-        );
-      }
       if (
         viewportReadyRef.current &&
         viewport.barsBefore < LAZY_HISTORY_THRESHOLD_BARS
@@ -1354,13 +1359,29 @@ export function DashboardClient({
     const first = candles[0];
     const last = candles.at(-1);
     if (!first || !last) return;
+    const selectedRange = drawings
+      .filter(
+        (
+          drawing,
+        ): drawing is Extract<ChartDrawing, { type: "volume-profile-range" }> =>
+          drawing.type === "volume-profile-range",
+      )
+      .sort((left, right) => right.createdAt - left.createdAt)[0];
     const visibleRange = adapter.getVisibleRange();
-    const range = visibleRange
+    const range = selectedRange
       ? {
-          from: visibleRange.fromTimestamp,
-          to: visibleRange.toTimestamp,
+          from: Math.min(
+            selectedRange.fromTimestamp,
+            selectedRange.toTimestamp,
+          ),
+          to: Math.max(selectedRange.fromTimestamp, selectedRange.toTimestamp),
         }
-      : { from: first.openTime, to: last.closeTime };
+      : visibleRange
+        ? {
+            from: visibleRange.fromTimestamp,
+            to: visibleRange.toTimestamp,
+          }
+        : { from: first.openTime, to: last.closeTime };
 
     const opacity = volumeProfileSettings.opacityPercent / 100;
     controller.setPresentation({
@@ -1400,6 +1421,7 @@ export function DashboardClient({
   }, [
     replayIndex,
     replayTimeline,
+    drawings,
     selectedInterval,
     volumeProfileSettings,
     volumeProfileRevision,
@@ -1551,6 +1573,27 @@ export function DashboardClient({
       );
     }
 
+    if (!cachedHistory?.length) {
+      void client
+        .fetchKlines({ interval: selectedInterval, limit: 1_000 })
+        .then((payload) => {
+          if (feedGenerationRef.current !== generation || store.size > 0)
+            return;
+          const preview = parseBinanceKlines(
+            payload,
+            Date.now(),
+            selectedInterval,
+          );
+          if (preview.length > 0) {
+            applyHistory(
+              preview,
+              `Live ${selectedInterval} preview · loading full history`,
+            );
+          }
+        })
+        .catch(() => undefined);
+    }
+
     void (async () => {
       try {
         const bootstrap = await bootstrapHistory(client, {
@@ -1559,12 +1602,14 @@ export function DashboardClient({
         });
         if (feedGenerationRef.current !== generation) return;
 
+        const preserveCurrentRange =
+          Boolean(cachedHistory?.length) || store.size > 0;
         applyHistory(
           bootstrap.candles,
           bootstrap.completeness === "COMPLETE"
             ? `Binance REST + live ${selectedInterval}`
             : `Binance REST degraded ${selectedInterval}`,
-          Boolean(cachedHistory?.length),
+          preserveCurrentRange,
         );
 
         if (bootstrap.candles.length === 0) {
@@ -1602,7 +1647,9 @@ export function DashboardClient({
         socket.connect();
       } catch (error) {
         if (feedGenerationRef.current !== generation) return;
-        applyHistory([], "Binance candle data unavailable");
+        if (store.size === 0) {
+          applyHistory([], "Binance candle data unavailable");
+        }
         setFeedState("DEGRADED");
         setCandleStatus(
           error instanceof Error ? error.message : "History load failed",
@@ -2594,6 +2641,18 @@ export function DashboardClient({
               </button>
               <button
                 type="button"
+                className={
+                  drawingMode === "fixed-range-volume-profile" ? "active" : ""
+                }
+                aria-label="Fixed range Volume Profile"
+                title="Fixed range Volume Profile"
+                aria-pressed={drawingMode === "fixed-range-volume-profile"}
+                onClick={() => setDrawingMode("fixed-range-volume-profile")}
+              >
+                <BarChart3 size={18} />
+              </button>
+              <button
+                type="button"
                 className={drawingMode === "horizontal-line" ? "active" : ""}
                 aria-label="Horizontal line"
                 title="Horizontal line"
@@ -2689,7 +2748,7 @@ export function DashboardClient({
             </div>
           </div>
         </section>
-        <RiskTerminal lastPrice={lastPrice} drawings={drawings} />
+        <RiskTerminal drawings={drawings} />
       </div>
 
       <footer className="status-bar">

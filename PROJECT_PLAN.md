@@ -1,8 +1,8 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.9.1
-Status: M10.5 Anchored VWAP and unified indicator settings delivered and deployed; M9 observation evidence remains open
+Version: 0.9.2
+Status: M10.6 fixed-range Volume Profile, risk/reward position tools, and fast timeframe previews implemented; deployment and M9 observation evidence remain open
 Date: 2026-09-16
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
@@ -43,7 +43,7 @@ The dashboard must eventually display:
 - Expiry filters.
 - Data freshness and connection health.
 - Calculation version and audit information.
-- A read-only account risk terminal with long and short sizing plus chart-level entry, stop-loss, and take-profit detection.
+- A read-only account risk terminal synchronized with user-placed long and short entry, stop-loss, and take-profit drawings.
 - Separate Gamma, open-interest, 24-hour volume, flow-informed dealer, Max Pain, and Gamma Flip signals.
 - Volatility-aware wall zones with signal overlap counts and transparent confluence scores.
 - Deribit-published gamma reconciliation for representative near-ATM contracts.
@@ -4248,7 +4248,7 @@ Initial history: up to 10,000 validated real candles
 History transport: REST pagination at no more than 1,000 bars per request
 Synthetic market fallback: prohibited
 Volume pane: no; preserve vertical space for price action
-Drawing tools: horizontal line + vertical line
+Drawing tools: horizontal line, vertical line, fixed-range Volume Profile, Anchored VWAP, and explicit three-point long/short risk-reward drawings
 Chart engine: Lightweight Charts
 Fallback chart interface: retained
 Fallback implementation: post-v0 unless required
@@ -4265,7 +4265,7 @@ Level presentation: compact transparent line labels beside the left options-stru
 Wall confluence placement: integrated into the left options-structure profile; no standalone dashboard row
 Dealer flow window: rolling 60 minutes, explicitly labeled as an inferred proxy with confidence
 Gamma reconciliation: six representative near-ATM Deribit contracts
-Account risk terminal: read-only long sizing plus chart-level entry, stop-loss, and take-profit detection
+Account risk terminal: read-only long/short sizing synchronized live with chart entry, stop-loss, and take-profit; position size is capped by risk, daily loss, drawdown, and margin limits
 Desktop: primary launch target
 Mobile: responsive where practical, not a launch gate
 Theme: dark first

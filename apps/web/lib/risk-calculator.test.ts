@@ -100,6 +100,27 @@ describe("risk calculator", () => {
     expect(result.dailyLossShare).toBeCloseTo(1 / 6, 6);
     expect(result.maxDrawdownShare).toBeCloseTo(0.1, 6);
     expect(result.profitTargetShare).toBeCloseTo(1 / 12, 6);
+    expect(result.sizingConstraint).toBe("risk");
+  });
+
+  it("caps position size at the tightest account rule", () => {
+    const result = calculatePositionRisk({
+      side: "long",
+      balanceUsd: 10_000,
+      dailyLossLimitUsd: 300,
+      maxDrawdownUsd: 500,
+      profitTargetUsd: 1_200,
+      leverage: 10,
+      riskPercent: 5,
+      entryPriceUsd: 10_000,
+      stopLossPriceUsd: 9_900,
+      takeProfitPriceUsd: 10_200,
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.riskAmountUsd).toBe(300);
+    expect(result.positionSizeBtc).toBe(3);
+    expect(result.sizingConstraint).toBe("daily-loss");
   });
 
   it.each([

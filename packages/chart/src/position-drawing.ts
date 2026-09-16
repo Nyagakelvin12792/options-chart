@@ -1,12 +1,7 @@
-import type {
-  PositionDirection,
-  PositionDrawing,
-} from "./chart-adapter";
+import type { PositionDirection, PositionDrawing } from "./chart-adapter";
 
 export type PositionDrawingLevel = "entry" | "stopLoss" | "takeProfit";
 
-const DEFAULT_RISK_FRACTION = 0.005;
-const DEFAULT_REWARD_RISK_RATIO = 2;
 const MINIMUM_ABSOLUTE_GAP = 1e-8;
 
 const requestedGap = (drawing: PositionDrawing): number =>
@@ -40,27 +35,15 @@ export const createPositionDrawing = (options: {
   readonly id: string;
   readonly direction: PositionDirection;
   readonly entry: number;
+  readonly stopLoss: number;
+  readonly takeProfit: number;
   readonly createdAt: number;
+  readonly fromTimestamp?: number;
+  readonly toTimestamp?: number;
 }): PositionDrawing => {
-  const risk = Math.max(
-    Math.abs(options.entry) * DEFAULT_RISK_FRACTION,
-    MINIMUM_ABSOLUTE_GAP,
-  );
-
-  if (options.direction === "long") {
-    return {
-      ...options,
-      type: "position",
-      stopLoss: options.entry - risk,
-      takeProfit: options.entry + risk * DEFAULT_REWARD_RISK_RATIO,
-    };
-  }
-
   return {
     ...options,
     type: "position",
-    stopLoss: options.entry + risk,
-    takeProfit: options.entry - risk * DEFAULT_REWARD_RISK_RATIO,
   };
 };
 
@@ -98,11 +81,7 @@ export const movePositionDrawingLevel = (
   if (level === "entry") {
     return {
       ...drawing,
-      entry: clamp(
-        nextPrice,
-        drawing.takeProfit + gap,
-        drawing.stopLoss - gap,
-      ),
+      entry: clamp(nextPrice, drawing.takeProfit + gap, drawing.stopLoss - gap),
     };
   }
   if (level === "stopLoss") {
@@ -117,8 +96,6 @@ export const movePositionDrawingLevel = (
   };
 };
 
-export const positionRewardRiskRatio = (
-  drawing: PositionDrawing,
-): number =>
+export const positionRewardRiskRatio = (drawing: PositionDrawing): number =>
   Math.abs(drawing.takeProfit - drawing.entry) /
   Math.abs(drawing.entry - drawing.stopLoss);

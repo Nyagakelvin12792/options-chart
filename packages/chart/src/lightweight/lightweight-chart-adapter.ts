@@ -25,6 +25,8 @@ import type {
   ChartVisibleRange,
   ChartViewportState,
   PositionDrawing,
+  PositionDirection,
+  VolumeProfileRangeDrawing,
 } from "../chart-adapter";
 import type { AnchoredVwapRenderInput } from "../anchored-vwap/types";
 import { AnchoredVwapPrimitive } from "../anchored-vwap/anchored-vwap-primitive";
@@ -36,6 +38,7 @@ import {
 } from "../position-drawing";
 import type { VolumeProfileRenderInput } from "../volume-profile/types";
 import { VolumeProfilePrimitive } from "../volume-profile/volume-profile-primitive";
+import { PositionDrawingPrimitive } from "./position-drawing-primitive";
 import { VerticalLinePrimitive } from "./vertical-line-primitive";
 
 const LEVEL_COLORS: Readonly<Record<GammaLevel["kind"], string>> = {
@@ -88,13 +91,17 @@ export class LightweightChartsAdapter implements ChartAdapter {
   private readonly levelLines = new Map<string, IPriceLine>();
   private readonly drawings = new Map<string, ChartDrawing>();
   private readonly horizontalDrawingLines = new Map<string, IPriceLine>();
-  private readonly positionDrawingLines = new Map<
+  private readonly positionDrawingPrimitives = new Map<
     string,
-    readonly IPriceLine[]
+    PositionDrawingPrimitive
   >();
   private readonly verticalDrawingPrimitives = new Map<
     string,
     VerticalLinePrimitive
+  >();
+  private readonly volumeProfileRangePrimitives = new Map<
+    string,
+    readonly VerticalLinePrimitive[]
   >();
   private readonly volumeProfilePrimitives = new Map<
     string,
@@ -121,6 +128,24 @@ export class LightweightChartsAdapter implements ChartAdapter {
     readonly drawingId: string;
     readonly level: PositionDrawingLevel;
   } | null = null;
+  private draggedRangeBoundary: {
+    readonly drawingId: string;
+    readonly boundary: "fromTimestamp" | "toTimestamp";
+  } | null = null;
+  private pendingVolumeProfileRange: {
+    readonly id: string;
+    readonly createdAt: number;
+    readonly fromTimestamp: number;
+  } | null = null;
+  private pendingPosition: {
+    readonly id: string;
+    readonly direction: PositionDirection;
+    readonly entry: number;
+    readonly stopLoss?: number;
+    readonly createdAt: number;
+    readonly fromTimestamp: number;
+  } | null = null;
+  private pendingPositionLines: IPriceLine[] = [];
   private initializedAt = 0;
   private chartCreateCount = 0;
   private historyReplacementCount = 0;
@@ -354,6 +379,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
   }
 
   setDrawingMode(mode: ChartDrawingMode): void {
+    if (mode !== this.drawingMode) {
+      this.clearPendingPosition();
+      this.pendingVolumeProfileRange = null;
+    }
     this.drawingMode = mode;
   }
 
@@ -369,7 +398,11 @@ export class LightweightChartsAdapter implements ChartAdapter {
         (!Number.isFinite(drawing.entry) ||
           !Number.isFinite(drawing.stopLoss) ||
           !Number.isFinite(drawing.takeProfit) ||
-          !isPositionDrawingOrderValid(drawing)))
+          !isPositionDrawingOrderValid(drawing))) ||
+      (drawing.type === "volume-profile-range" &&
+        (!Number.isFinite(drawing.fromTimestamp) ||
+          !Number.isFinite(drawing.toTimestamp) ||
+          drawing.fromTimestamp === drawing.toTimestamp))
     ) {
       throw new Error("Chart drawing coordinate must be finite");
     }
@@ -479,7 +512,8 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.levelLines.clear();
     this.drawings.clear();
     this.horizontalDrawingLines.clear();
-    this.positionDrawingLines.clear();
+    this.positionDrawingPrimitives.clear();
+    this.volumeProfileRangePrimitives.clear();
     this.verticalDrawingPrimitives.clear();
     if (this.series) {
       for (const primitive of this.volumeProfilePrimitives.values()) {
@@ -501,6 +535,9 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.volumeSeries = null;
     this.selectedDrawingId = null;
     this.draggedPositionLevel = null;
+    this.draggedRangeBoundary = null;
+    this.pendingVolumeProfileRange = null;
+    this.clearPendingPosition();
   }
 
   private readonly handleContainerClick = (event: MouseEvent): void => {
@@ -522,38 +559,29 @@ export class LightweightChartsAdapter implements ChartAdapter {
       return;
     }
 
+    if (this.drawingMode === "fixed-range-volume-profile") return;
+
+    const chartTime = this.timeAtCoordinate(x, bounds.width);
     if (
       this.drawingMode === "long-position" ||
       this.drawingMode === "short-position"
     ) {
-      const entry = this.requireSeries().coordinateToPrice(y);
-      if (entry !== null && Number.isFinite(entry) && entry > 0) {
-        this.addDrawing(
-          createPositionDrawing({
-            id,
-            direction: this.drawingMode === "long-position" ? "long" : "short",
-            entry,
-            createdAt,
-          }),
+      const price = this.requireSeries().coordinateToPrice(y);
+      if (
+        price !== null &&
+        Number.isFinite(price) &&
+        price > 0 &&
+        chartTime !== null
+      ) {
+        this.advancePositionCreation(
+          this.drawingMode === "long-position" ? "long" : "short",
+          price,
+          chartTime * 1_000,
         );
       }
       return;
     }
 
-    const timeScale = this.requireChart().timeScale();
-    let chartTime = timeScale.coordinateToTime(x);
-    const visibleRange = timeScale.getVisibleRange();
-    if (
-      chartTime === null &&
-      visibleRange &&
-      typeof visibleRange.from === "number" &&
-      typeof visibleRange.to === "number" &&
-      bounds.width > 0
-    ) {
-      const ratio = Math.min(Math.max(x / bounds.width, 0), 1);
-      chartTime = (visibleRange.from +
-        (visibleRange.to - visibleRange.from) * ratio) as UTCTimestamp;
-    }
     if (typeof chartTime === "number") {
       if (this.drawingMode === "anchored-vwap") {
         const timestamp = chartTime * 1_000;
@@ -570,9 +598,57 @@ export class LightweightChartsAdapter implements ChartAdapter {
   };
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
-    if (this.drawingMode !== "pointer" || !this.container) return;
+    if (!this.container) return;
     const bounds = this.container.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
     const y = event.clientY - bounds.top;
+
+    if (this.drawingMode === "fixed-range-volume-profile") {
+      const chartTime = this.timeAtCoordinate(x, bounds.width);
+      if (chartTime === null) return;
+      this.pendingVolumeProfileRange = {
+        id: `drawing-${Date.now()}-${this.drawingSequence++}`,
+        createdAt: Date.now(),
+        fromTimestamp: chartTime * 1_000,
+      };
+      this.container.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+      return;
+    }
+    if (this.drawingMode !== "pointer") return;
+
+    let closestRange:
+      | {
+          readonly drawingId: string;
+          readonly boundary: "fromTimestamp" | "toTimestamp";
+          readonly distance: number;
+        }
+      | undefined;
+    for (const drawing of this.drawings.values()) {
+      if (drawing.type !== "volume-profile-range") continue;
+      for (const boundary of ["fromTimestamp", "toTimestamp"] as const) {
+        const coordinate = this.requireChart()
+          .timeScale()
+          .timeToCoordinate(toChartTimestamp(drawing[boundary]));
+        if (coordinate === null) continue;
+        const distance = Math.abs(coordinate - x);
+        if (
+          distance <= POSITION_DRAG_TOLERANCE_PX &&
+          (!closestRange || distance < closestRange.distance)
+        ) {
+          closestRange = { drawingId: drawing.id, boundary, distance };
+        }
+      }
+    }
+    if (closestRange) {
+      this.draggedRangeBoundary = {
+        drawingId: closestRange.drawingId,
+        boundary: closestRange.boundary,
+      };
+      this.selectedDrawingId = closestRange.drawingId;
+      event.preventDefault();
+      return;
+    }
     let closest:
       | {
           readonly drawingId: string;
@@ -608,6 +684,35 @@ export class LightweightChartsAdapter implements ChartAdapter {
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
+    if (this.draggedRangeBoundary && this.container) {
+      const drawing = this.drawings.get(this.draggedRangeBoundary.drawingId);
+      if (!drawing || drawing.type !== "volume-profile-range") {
+        this.draggedRangeBoundary = null;
+        return;
+      }
+      const bounds = this.container.getBoundingClientRect();
+      const chartTime = this.timeAtCoordinate(
+        event.clientX - bounds.left,
+        bounds.width,
+      );
+      if (chartTime === null) return;
+      const timestamp = chartTime * 1_000;
+      const opposite =
+        this.draggedRangeBoundary.boundary === "fromTimestamp"
+          ? drawing.toTimestamp
+          : drawing.fromTimestamp;
+      if (timestamp === opposite) return;
+      const nextDrawing: VolumeProfileRangeDrawing = {
+        ...drawing,
+        [this.draggedRangeBoundary.boundary]: timestamp,
+      };
+      this.removeRenderedDrawing(drawing.id);
+      this.drawings.set(drawing.id, nextDrawing);
+      this.renderDrawing(nextDrawing);
+      this.notifyDrawingsChange();
+      event.preventDefault();
+      return;
+    }
     if (!this.draggedPositionLevel || !this.container) return;
     const drawing = this.drawings.get(this.draggedPositionLevel.drawingId);
     if (!drawing || drawing.type !== "position") {
@@ -635,8 +740,31 @@ export class LightweightChartsAdapter implements ChartAdapter {
     event.preventDefault();
   };
 
-  private readonly handlePointerUp = (): void => {
+  private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (this.pendingVolumeProfileRange && this.container) {
+      const bounds = this.container.getBoundingClientRect();
+      const chartTime = this.timeAtCoordinate(
+        event.clientX - bounds.left,
+        bounds.width,
+      );
+      const pending = this.pendingVolumeProfileRange;
+      this.pendingVolumeProfileRange = null;
+      if (chartTime !== null) {
+        const toTimestamp = chartTime * 1_000;
+        if (toTimestamp !== pending.fromTimestamp) {
+          this.addDrawing({
+            ...pending,
+            type: "volume-profile-range",
+            fromTimestamp: Math.min(pending.fromTimestamp, toTimestamp),
+            toTimestamp: Math.max(pending.fromTimestamp, toTimestamp),
+          });
+        }
+      }
+      this.container.releasePointerCapture?.(event.pointerId);
+      event.preventDefault();
+    }
     this.draggedPositionLevel = null;
+    this.draggedRangeBoundary = null;
   };
 
   private readonly handleLogicalRangeChange = (
@@ -672,6 +800,26 @@ export class LightweightChartsAdapter implements ChartAdapter {
       return;
     }
 
+    if (drawing.type === "volume-profile-range") {
+      const primitives = [
+        new VerticalLinePrimitive({
+          id: `${drawing.id}-from`,
+          timestamp: drawing.fromTimestamp,
+          color: "#e7b84b",
+          label: "VP FROM",
+        }),
+        new VerticalLinePrimitive({
+          id: `${drawing.id}-to`,
+          timestamp: drawing.toTimestamp,
+          color: "#e7b84b",
+          label: "VP TO",
+        }),
+      ];
+      for (const primitive of primitives) series.attachPrimitive(primitive);
+      this.volumeProfileRangePrimitives.set(drawing.id, primitives);
+      return;
+    }
+
     const primitive = new VerticalLinePrimitive({
       id: drawing.id,
       timestamp: drawing.timestamp,
@@ -694,32 +842,115 @@ export class LightweightChartsAdapter implements ChartAdapter {
       series.detachPrimitive(verticalPrimitive);
       this.verticalDrawingPrimitives.delete(id);
     }
-    const positionLines = this.positionDrawingLines.get(id);
-    if (positionLines) {
-      for (const line of positionLines) series.removePriceLine(line);
-      this.positionDrawingLines.delete(id);
+    const positionPrimitive = this.positionDrawingPrimitives.get(id);
+    if (positionPrimitive) {
+      series.detachPrimitive(positionPrimitive);
+      this.positionDrawingPrimitives.delete(id);
+    }
+    const rangePrimitives = this.volumeProfileRangePrimitives.get(id);
+    if (rangePrimitives) {
+      for (const primitive of rangePrimitives)
+        series.detachPrimitive(primitive);
+      this.volumeProfileRangePrimitives.delete(id);
     }
   }
 
   private renderPositionDrawing(drawing: PositionDrawing): void {
     const series = this.requireSeries();
-    const side = drawing.direction === "long" ? "Long" : "Short";
-    const lines = (["entry", "stopLoss", "takeProfit"] as const).map((level) =>
-      series.createPriceLine({
-        price: drawing[level],
-        color: POSITION_COLORS[level],
-        lineWidth: level === "entry" ? 2 : 1,
-        lineStyle: level === "entry" ? LineStyle.Solid : LineStyle.Dashed,
-        axisLabelVisible: true,
-        title:
-          level === "entry"
-            ? `${side} Entry`
-            : level === "stopLoss"
-              ? "SL"
-              : "TP",
-      }),
-    );
-    this.positionDrawingLines.set(drawing.id, lines);
+    const primitive = new PositionDrawingPrimitive(drawing);
+    series.attachPrimitive(primitive);
+    this.positionDrawingPrimitives.set(drawing.id, primitive);
+  }
+
+  private timeAtCoordinate(x: number, width: number): UTCTimestamp | null {
+    const timeScale = this.requireChart().timeScale();
+    const direct = timeScale.coordinateToTime(x);
+    if (typeof direct === "number") return direct;
+    const visibleRange = timeScale.getVisibleRange();
+    if (
+      !visibleRange ||
+      typeof visibleRange.from !== "number" ||
+      typeof visibleRange.to !== "number" ||
+      width <= 0
+    ) {
+      return null;
+    }
+    const ratio = Math.min(Math.max(x / width, 0), 1);
+    return (visibleRange.from +
+      (visibleRange.to - visibleRange.from) * ratio) as UTCTimestamp;
+  }
+
+  private advancePositionCreation(
+    direction: PositionDirection,
+    price: number,
+    timestamp: number,
+  ): void {
+    const pending = this.pendingPosition;
+    if (!pending || pending.direction !== direction) {
+      this.clearPendingPosition();
+      this.pendingPosition = {
+        id: `drawing-${Date.now()}-${this.drawingSequence++}`,
+        direction,
+        entry: price,
+        createdAt: Date.now(),
+        fromTimestamp: timestamp,
+      };
+      this.pendingPositionLines.push(
+        this.requireSeries().createPriceLine({
+          price,
+          color: POSITION_COLORS.entry,
+          lineWidth: 2,
+          lineStyle: LineStyle.Solid,
+          axisLabelVisible: true,
+          title: `${direction.toUpperCase()} ENTRY · select SL`,
+        }),
+      );
+      return;
+    }
+
+    if (pending.stopLoss === undefined) {
+      const validStop =
+        direction === "long" ? price < pending.entry : price > pending.entry;
+      if (!validStop) return;
+      this.pendingPosition = { ...pending, stopLoss: price };
+      this.pendingPositionLines.push(
+        this.requireSeries().createPriceLine({
+          price,
+          color: POSITION_COLORS.stopLoss,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: "SL · select TP",
+        }),
+      );
+      return;
+    }
+
+    const validTarget =
+      direction === "long" ? price > pending.entry : price < pending.entry;
+    if (!validTarget) return;
+    const drawing = createPositionDrawing({
+      id: pending.id,
+      direction,
+      entry: pending.entry,
+      stopLoss: pending.stopLoss,
+      takeProfit: price,
+      createdAt: pending.createdAt,
+      fromTimestamp: pending.fromTimestamp,
+      toTimestamp: timestamp,
+    });
+    this.clearPendingPosition();
+    this.addDrawing(drawing);
+  }
+
+  private clearPendingPosition(): void {
+    if (this.series) {
+      for (const line of this.pendingPositionLines) {
+        this.series.removePriceLine(line);
+      }
+    }
+    this.pendingPositionLines = [];
+    this.pendingPosition = null;
   }
 
   private notifyDrawingsChange(): void {

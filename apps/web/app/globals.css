@@ -1190,6 +1190,13 @@ h1 {
   outline: none;
 }
 
+.risk-input-wrap input[readonly] {
+  border-color: #315263;
+  background: #101a22;
+  color: #b9d9e8;
+  cursor: default;
+}
+
 .risk-input-wrap small {
   position: absolute;
   top: 50%;
@@ -1276,7 +1283,6 @@ h1 {
   border-top: 1px solid #26323d;
 }
 
-.risk-result-list > div,
 .risk-budget-row,
 .risk-balance-line {
   display: grid;
@@ -1286,7 +1292,15 @@ h1 {
   gap: 9px;
 }
 
-.risk-result-list > div:nth-child(5) {
+.risk-result-list > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.risk-result-list > div:nth-child(6) {
   grid-column: 1 / -1;
 }
 
@@ -1301,13 +1315,21 @@ h1 {
   white-space: nowrap;
 }
 
+.risk-result-list dd {
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+
 .risk-result-list .risk-loss {
   color: #ff5f86;
 }
 
 .risk-result-list .risk-size {
   color: #5d8cff;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .risk-result-list .risk-reward {

@@ -106,7 +106,7 @@ export const MAX_RECONNECT_ATTEMPTS = 10;
 // ---------------------------------------------------------------------------
 
 /** Minimum milliseconds between applied timeframe switches. */
-export const TIMEFRAME_DEBOUNCE_MS = 350;
+export const TIMEFRAME_DEBOUNCE_MS = 120;
 
 /** Maximum applied timeframe changes per second. */
 export const MAX_TIMEFRAME_CHANGES_PER_SECOND = 2;

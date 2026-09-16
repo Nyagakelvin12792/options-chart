@@ -27,6 +27,7 @@ export type ChartDrawingMode =
   | "horizontal-line"
   | "vertical-line"
   | "anchored-vwap"
+  | "fixed-range-volume-profile"
   | "long-position"
   | "short-position";
 
@@ -53,10 +54,21 @@ export interface PositionDrawing extends ChartDrawingBase {
   readonly entry: number;
   readonly stopLoss: number;
   readonly takeProfit: number;
+  readonly fromTimestamp?: number;
+  readonly toTimestamp?: number;
+}
+
+export interface VolumeProfileRangeDrawing extends ChartDrawingBase {
+  readonly type: "volume-profile-range";
+  readonly fromTimestamp: number;
+  readonly toTimestamp: number;
 }
 
 export type ChartDrawing =
-  HorizontalLineDrawing | VerticalLineDrawing | PositionDrawing;
+  | HorizontalLineDrawing
+  | VerticalLineDrawing
+  | PositionDrawing
+  | VolumeProfileRangeDrawing;
 
 export interface ChartViewportState {
   readonly visibleRange: ChartVisibleRange | null;

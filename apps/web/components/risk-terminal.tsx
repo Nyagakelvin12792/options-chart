@@ -1,18 +1,16 @@
 "use client";
 
 import type { ChartDrawing } from "@options-chart/chart";
-import { SeparatorHorizontal, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
   calculatePositionRisk,
-  detectPositionSetupFromDrawings,
   type PositionRiskResult,
   type PositionSide,
 } from "@/lib/risk-calculator";
 
 interface RiskTerminalProps {
-  readonly lastPrice: number | null;
   readonly drawings: readonly ChartDrawing[];
 }
 
@@ -71,11 +69,13 @@ function NumericField({
   value,
   onChange,
   suffix,
+  readOnly = false,
 }: {
   readonly label: string;
   readonly value: string;
   readonly onChange: (value: string) => void;
   readonly suffix?: string;
+  readonly readOnly?: boolean;
 }) {
   return (
     <label className="risk-field">
@@ -85,6 +85,7 @@ function NumericField({
           type="number"
           inputMode="decimal"
           value={value}
+          readOnly={readOnly}
           onChange={(event) => onChange(event.target.value)}
         />
         {suffix ? <small>{suffix}</small> : null}
@@ -119,7 +120,7 @@ function BudgetRow({
   );
 }
 
-export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
+export function RiskTerminal({ drawings }: RiskTerminalProps) {
   const [positionSide, setPositionSide] = useState<PositionSide>("long");
   const [balanceUsd, setBalanceUsd] = useState("10000");
   const [dailyLossLimitUsd, setDailyLossLimitUsd] = useState("300");
@@ -130,73 +131,61 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
   const [entryPriceUsd, setEntryPriceUsd] = useState("68296.8");
   const [stopLossPriceUsd, setStopLossPriceUsd] = useState("67800");
   const [takeProfitPriceUsd, setTakeProfitPriceUsd] = useState("69300");
-  const [detectionState, setDetectionState] = useState<
-    "idle" | "detected" | "missing"
-  >("idle");
+  const latestPosition = useMemo(
+    () =>
+      drawings
+        .filter(
+          (drawing): drawing is Extract<ChartDrawing, { type: "position" }> =>
+            drawing.type === "position",
+        )
+        .sort((left, right) => right.createdAt - left.createdAt)[0],
+    [drawings],
+  );
+  const effectiveSide = latestPosition?.direction ?? positionSide;
+  const effectiveEntry = latestPosition
+    ? toInputValue(latestPosition.entry)
+    : entryPriceUsd;
+  const effectiveStop = latestPosition
+    ? toInputValue(latestPosition.stopLoss)
+    : stopLossPriceUsd;
+  const effectiveTarget = latestPosition
+    ? toInputValue(latestPosition.takeProfit)
+    : takeProfitPriceUsd;
 
   const riskResult = useMemo(
     () =>
       calculatePositionRisk({
-        side: positionSide,
+        side: effectiveSide,
         balanceUsd: numberFromInput(balanceUsd),
         dailyLossLimitUsd: numberFromInput(dailyLossLimitUsd),
         maxDrawdownUsd: numberFromInput(maxDrawdownUsd),
         profitTargetUsd: numberFromInput(profitTargetUsd),
         leverage: numberFromInput(leverage),
         riskPercent: numberFromInput(riskPercent),
-        entryPriceUsd: numberFromInput(entryPriceUsd),
-        stopLossPriceUsd: numberFromInput(stopLossPriceUsd),
+        entryPriceUsd: numberFromInput(effectiveEntry),
+        stopLossPriceUsd: numberFromInput(effectiveStop),
         takeProfitPriceUsd:
-          takeProfitPriceUsd.trim() === ""
+          effectiveTarget.trim() === ""
             ? null
-            : numberFromInput(takeProfitPriceUsd),
+            : numberFromInput(effectiveTarget),
       }),
     [
       balanceUsd,
       dailyLossLimitUsd,
-      entryPriceUsd,
+      effectiveEntry,
+      effectiveSide,
+      effectiveStop,
+      effectiveTarget,
       leverage,
       maxDrawdownUsd,
-      positionSide,
       profitTargetUsd,
       riskPercent,
-      stopLossPriceUsd,
-      takeProfitPriceUsd,
     ],
   );
 
-  const detectFromChart = () => {
-    const detected = detectPositionSetupFromDrawings(
-      drawings,
-      lastPrice,
-      positionSide,
-    );
-    if (!detected) {
-      setDetectionState("missing");
-      return;
-    }
-    setEntryPriceUsd(toInputValue(detected.entryPriceUsd));
-    setStopLossPriceUsd(toInputValue(detected.stopLossPriceUsd));
-    setTakeProfitPriceUsd(toInputValue(detected.takeProfitPriceUsd));
-    setDetectionState("detected");
-  };
-
   const selectPositionSide = (nextSide: PositionSide) => {
     if (nextSide === positionSide) return;
-
-    const entry = numberFromInput(entryPriceUsd);
-    const stop = numberFromInput(stopLossPriceUsd);
-    const target = numberFromInput(takeProfitPriceUsd);
-    if (Number.isFinite(entry)) {
-      if (Number.isFinite(stop)) {
-        setStopLossPriceUsd(toInputValue(2 * entry - stop));
-      }
-      if (Number.isFinite(target)) {
-        setTakeProfitPriceUsd(toInputValue(2 * entry - target));
-      }
-    }
     setPositionSide(nextSide);
-    setDetectionState("idle");
   };
 
   return (
@@ -257,8 +246,8 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
               <button
                 key={side}
                 type="button"
-                className={positionSide === side ? "active" : ""}
-                aria-pressed={positionSide === side}
+                className={effectiveSide === side ? "active" : ""}
+                aria-pressed={effectiveSide === side}
                 onClick={() => selectPositionSide(side)}
               >
                 {side}
@@ -289,41 +278,34 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
         <div className="risk-field-grid risk-trade-grid">
           <NumericField
             label="Entry"
-            value={entryPriceUsd}
+            value={effectiveEntry}
             onChange={setEntryPriceUsd}
             suffix="$"
+            readOnly={Boolean(latestPosition)}
           />
           <NumericField
             label="Stop-loss"
-            value={stopLossPriceUsd}
+            value={effectiveStop}
             onChange={setStopLossPriceUsd}
             suffix="$"
+            readOnly={Boolean(latestPosition)}
           />
           <NumericField
             label="Take-profit"
-            value={takeProfitPriceUsd}
+            value={effectiveTarget}
             onChange={setTakeProfitPriceUsd}
             suffix="$"
+            readOnly={Boolean(latestPosition)}
           />
         </div>
 
-        <button
-          type="button"
-          className="risk-detect-command"
-          onClick={detectFromChart}
-        >
-          <SeparatorHorizontal size={15} />
-          <span>Detect From Chart</span>
-        </button>
         <p
-          className={`risk-detection-state state-${detectionState}`}
+          className={`risk-detection-state state-${latestPosition ? "detected" : "idle"}`}
           aria-live="polite"
         >
-          {detectionState === "detected"
-            ? `${positionSide === "long" ? "Long" : "Short"} chart levels detected`
-            : detectionState === "missing"
-              ? "Need stop and target lines"
-              : resultMessage(riskResult)}
+          {latestPosition
+            ? `${effectiveSide === "long" ? "Long" : "Short"} chart position synced`
+            : resultMessage(riskResult)}
         </p>
 
         <dl className="risk-result-list">
@@ -338,6 +320,10 @@ export function RiskTerminal({ lastPrice, drawings }: RiskTerminalProps) {
             <dd className="risk-size">
               {btcFormatter.format(riskResult.positionSizeBtc)} BTC
             </dd>
+          </div>
+          <div>
+            <dt>Size limited by</dt>
+            <dd>{riskResult.sizingConstraint.replace("-", " ")}</dd>
           </div>
           <div>
             <dt>Notional value</dt>

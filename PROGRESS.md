@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.1
+Version: 0.9.2
 Last updated: 2026-09-16
-Overall status: M0-M8 and M10.2-M10.5 complete; M9 observation evidence remains open
-Current milestone: M9 Trading-Readiness Validation after M10.5 delivery
+Overall status: M0-M8 and M10.2-M10.5 complete; M10.6 implementation complete; deployment and M9 observation evidence remain open
+Current milestone: M10.6 deployment verification, then M9 Trading-Readiness Validation
 Production status: DEPLOYED ON VERCEL AT `740c66c`
 
 ---
@@ -34,16 +34,16 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Deribit options data | COMPLETE | Live chain, index, ticker, recent-trade, and reconnect paths implemented |
 | Options engine | COMPLETE | Versioned Gamma, walls, Gamma Flip, Max Pain, OI, IV, and profile calculations |
 | Mathematical validation | COMPLETE | Independent parity, golden fixtures, live Deribit audit, and gamma reconciliation implemented |
-| Primary chart | COMPLETE | 10,000 candles, cached timeframe switching, normal crosshair, position drawings, compact structure profile, and replay delivered |
+| Primary chart | COMPLETE | Fast 1,000-bar timeframe previews with 10,000-bar background history, normal crosshair, fixed-range VP, explicit position drawings, compact structure profile, and replay delivered |
 | Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
 | Vercel deployment | COMPLETE | Production deployment verified through commit `740c66c` |
 | Private authentication | COMPLETE | Google login with one exact allowlisted account |
-| Account risk terminal | COMPLETE | Read-only long/short sizing and explicit position-tool entry/SL/TP detection; no execution |
+| Account risk terminal | COMPLETE | Live chart-synchronized long/short sizing capped by account risk, daily loss, drawdown, leverage, and margin; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
-| Volume Profile | COMPLETE | Persistent TradingView-aligned settings deployed through commit `c096097` |
+| Volume Profile | IMPLEMENTED | Persistent settings plus a user-drawn, draggable fixed range; M10.6 deployment pending |
 | External indicators | COMPLETE | Anchored VWAP is deployed through `740c66c` with persistent settings and a unified VP/AVWAP panel |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
@@ -681,6 +681,31 @@ Evidence:
 
 ---
 
+## M10.6 Fixed-Range Volume Profile and Risk/Reward Position Tools
+
+Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
+
+- [x] Add a click-drag fixed-range Volume Profile tool with persistent, draggable boundaries.
+- [x] Use the newest fixed range as the VP calculation interval without changing VP rows, style, or options-volume semantics.
+- [x] Remove generated SL/TP defaults and require explicit entry, stop-loss, and take-profit placement for both long and short positions.
+- [x] Render compact profit/loss zones, entry/SL/TP badges, percentages, and R-multiple on the chart.
+- [x] Keep all three position levels independently draggable after placement.
+- [x] Synchronize the newest position drawing directly into the Risk Terminal.
+- [x] Cap position size by the tightest of risk-per-trade, daily loss, maximum drawdown, and leveraged margin.
+- [x] Reduce the timeframe debounce to 120 ms and render a 1,000-bar preview while 10,000-bar history loads in the background.
+- [x] Pass typecheck, production build, focused lint, 28 focused tests, and five chart-engine Chromium workflows.
+- [ ] Push the implementation and documentation commits to GitHub.
+- [ ] Verify the Vercel production deployment.
+
+Evidence:
+
+- M10.6 journal: `docs/progress/M10/M10.6.md`.
+- Fixed-range VP, explicit long positioning, live risk synchronization, rapid timeframe switching, chart layout, and soak browser checks: 5 passed.
+- Visual check at 1440x900: fixed VP anchors, R/R zones, price badges, and Risk Terminal metrics rendered without overlap.
+- Full Vitest correctness: 56 files and 345 tests passed; the unchanged AVWAP performance test exceeded its 100 ms threshold by 2-11 ms on this run.
+
+---
+
 # 6. Validation Scoreboard
 
 Do not change a status to PASS without test evidence.
@@ -906,7 +931,7 @@ Status: MITIGATED BY DESIGN
 
 Mitigation:
 
-- 350 ms UI debounce.
+- 120 ms UI debounce plus immediate cached or 1,000-bar preview rendering.
 - maximum 2 applied timeframe changes per second.
 - queue/coalesce controls.
 - keep JSON control traffic below 4 messages per rolling second.
@@ -930,6 +955,30 @@ Mitigation:
 # 10. Change Log
 
 Use newest entries first.
+
+## 2026-09-16
+
+### M10.6-FIXED-RANGE-VP-AND-RISK-REWARD-POSITIONS
+
+Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
+
+Implementation:
+
+- Added user-drawn fixed-range VP anchors with draggable boundaries.
+- Replaced one-click generated positions with explicit entry, stop, and target placement plus compact R/R zones.
+- Connected chart positions live to account-aware Risk Terminal sizing.
+- Added fast timeframe previews before the full 10,000-bar background bootstrap finishes.
+
+Validation:
+
+- Typecheck, focused lint, production build, 28 focused tests, and all five chart-engine Chromium tests passed.
+- The full suite passed 345 correctness tests; one unchanged AVWAP micro-benchmark measured slightly above its 100 ms threshold.
+
+Deployment:
+
+- Pending commit, push, and Vercel verification.
+
+---
 
 ## 2026-09-15
 

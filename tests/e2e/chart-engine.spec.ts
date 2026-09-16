@@ -125,7 +125,11 @@ test("preserves viewport and drawings across repair, history growth, and timefra
 
   await page.getByRole("button", { name: "5m", exact: true }).click();
   await expect(page.getByText("BTC / USDT · 5m")).toBeVisible();
-  await expect(page.getByTestId("candle-count")).toHaveText("10000");
+  await expect
+    .poll(async () =>
+      Number(await page.getByTestId("candle-count").innerText()),
+    )
+    .toBeGreaterThanOrEqual(1_000);
   expect(
     (await evaluateChart<readonly unknown[]>(page, "getDrawings")).length,
   ).toBe(2);
@@ -148,13 +152,96 @@ test("debounces rapid timeframe changes and requests Binance weekly candles dire
   }
 
   await expect(page.getByText("BTC / USDT · 1w")).toBeVisible();
-  await expect(page.getByTestId("candle-count")).toHaveText("10000");
+  await expect
+    .poll(async () =>
+      Number(await page.getByTestId("candle-count").innerText()),
+    )
+    .toBeGreaterThanOrEqual(1_000);
   expect(await evaluateChart(page, "getSelectedInterval")).toBe("1w");
   expect(mock.requests.some((request) => request.interval === "1w")).toBe(true);
   expect(
     (await evaluateChart<BrowserChartDiagnostics>(page, "getDiagnostics"))
       .chartCreateCount,
   ).toBe(1);
+});
+
+test("anchors Volume Profile by drag and syncs explicit position levels to risk", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await installBinanceKlineMock(page);
+  await installDeribitFixtureMock(page);
+  await page.goto("/");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
+
+  const chart = page.getByTestId("candlestick-chart");
+  const bounds = await chart.boundingBox();
+  if (!bounds) throw new Error("Chart plot bounds are unavailable");
+
+  await page
+    .getByRole("button", { name: "Fixed range Volume Profile" })
+    .click();
+  await page.mouse.move(bounds.x + bounds.width * 0.25, bounds.y + 220);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.65, bounds.y + 220);
+  await page.mouse.up();
+
+  await expect
+    .poll(
+      async () =>
+        (
+          await evaluateChart<readonly { type?: string }[]>(page, "getDrawings")
+        ).filter((drawing) => drawing.type === "volume-profile-range").length,
+    )
+    .toBe(1);
+
+  await page.getByRole("button", { name: "Long position" }).click();
+  await chart.click({
+    position: { x: bounds.width * 0.42, y: bounds.height * 0.5 },
+  });
+  expect(
+    (
+      await evaluateChart<readonly { type?: string }[]>(page, "getDrawings")
+    ).filter((drawing) => drawing.type === "position").length,
+  ).toBe(0);
+  await chart.click({
+    position: { x: bounds.width * 0.52, y: bounds.height * 0.66 },
+  });
+  await chart.click({
+    position: { x: bounds.width * 0.68, y: bounds.height * 0.3 },
+  });
+
+  await expect(page.getByText("Long chart position synced")).toBeVisible();
+  await expect
+    .poll(
+      async () =>
+        (
+          await evaluateChart<readonly { type?: string }[]>(page, "getDrawings")
+        ).filter((drawing) => drawing.type === "position").length,
+    )
+    .toBe(1);
+  await expect(page.getByText("Size limited by")).toBeVisible();
+
+  await page.getByRole("button", { name: "Short position" }).click();
+  await chart.click({
+    position: { x: bounds.width * 0.44, y: bounds.height * 0.5 },
+  });
+  await chart.click({
+    position: { x: bounds.width * 0.54, y: bounds.height * 0.32 },
+  });
+  await chart.click({
+    position: { x: bounds.width * 0.72, y: bounds.height * 0.74 },
+  });
+
+  await expect(page.getByText("Short chart position synced")).toBeVisible();
+  await expect
+    .poll(
+      async () =>
+        (
+          await evaluateChart<readonly { type?: string }[]>(page, "getDrawings")
+        ).filter((drawing) => drawing.type === "position").length,
+    )
+    .toBe(2);
 });
 
 test("keeps the chart-first layout stable at required desktop viewports", async ({

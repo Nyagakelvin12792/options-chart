@@ -43,6 +43,7 @@ export interface PositionRiskResult {
   readonly maxDrawdownShare: number | null;
   readonly profitTargetShare: number | null;
   readonly reason: PositionRiskReason;
+  readonly sizingConstraint: "risk" | "daily-loss" | "drawdown" | "margin";
 }
 
 export type LongRiskResult = PositionRiskResult;
@@ -66,13 +67,13 @@ const isPositiveFinite = (value: number): boolean =>
 export const calculatePositionRisk = (
   inputs: PositionRiskInputs,
 ): PositionRiskResult => {
-  const riskAmountUsd = inputs.balanceUsd * (inputs.riskPercent / 100);
+  const requestedRiskAmountUsd = inputs.balanceUsd * (inputs.riskPercent / 100);
   const invalidResult = (
     reason: PositionRiskResult["reason"],
   ): PositionRiskResult => ({
     valid: false,
-    riskAmountUsd: Number.isFinite(riskAmountUsd)
-      ? Math.max(0, riskAmountUsd)
+    riskAmountUsd: Number.isFinite(requestedRiskAmountUsd)
+      ? Math.max(0, requestedRiskAmountUsd)
       : 0,
     riskPerBtcUsd: 0,
     positionSizeBtc: 0,
@@ -85,6 +86,7 @@ export const calculatePositionRisk = (
     maxDrawdownShare: null,
     profitTargetShare: null,
     reason,
+    sizingConstraint: "risk",
   });
 
   if (
@@ -95,7 +97,9 @@ export const calculatePositionRisk = (
   ) {
     return invalidResult("invalid-account");
   }
-  if (!isPositiveFinite(riskAmountUsd)) return invalidResult("invalid-risk");
+  if (!isPositiveFinite(requestedRiskAmountUsd)) {
+    return invalidResult("invalid-risk");
+  }
   if (!isPositiveFinite(inputs.entryPriceUsd)) {
     return invalidResult("invalid-entry");
   }
@@ -128,7 +132,19 @@ export const calculatePositionRisk = (
   const riskPerBtcUsd = Math.abs(
     inputs.entryPriceUsd - inputs.stopLossPriceUsd,
   );
-  const positionSizeBtc = riskAmountUsd / riskPerBtcUsd;
+  const riskBudgetUsd = Math.min(
+    requestedRiskAmountUsd,
+    inputs.dailyLossLimitUsd,
+    inputs.maxDrawdownUsd,
+  );
+  const riskSizedPositionBtc = riskBudgetUsd / riskPerBtcUsd;
+  const marginSizedPositionBtc =
+    (inputs.balanceUsd * inputs.leverage) / inputs.entryPriceUsd;
+  const positionSizeBtc = Math.min(
+    riskSizedPositionBtc,
+    marginSizedPositionBtc,
+  );
+  const riskAmountUsd = positionSizeBtc * riskPerBtcUsd;
   const notionalValueUsd = positionSizeBtc * inputs.entryPriceUsd;
   const marginRequiredUsd = notionalValueUsd / inputs.leverage;
   const rewardPerBtcUsd =
@@ -140,6 +156,15 @@ export const calculatePositionRisk = (
   const rewardUsd =
     rewardPerBtcUsd === null ? null : positionSizeBtc * rewardPerBtcUsd;
   const rewardRiskRatio = rewardUsd === null ? null : rewardUsd / riskAmountUsd;
+  const sizingConstraint =
+    marginSizedPositionBtc < riskSizedPositionBtc
+      ? "margin"
+      : inputs.dailyLossLimitUsd < requestedRiskAmountUsd &&
+          inputs.dailyLossLimitUsd <= inputs.maxDrawdownUsd
+        ? "daily-loss"
+        : inputs.maxDrawdownUsd < requestedRiskAmountUsd
+          ? "drawdown"
+          : "risk";
 
   return {
     valid: true,
@@ -158,6 +183,7 @@ export const calculatePositionRisk = (
         ? rewardUsd / inputs.profitTargetUsd
         : null,
     reason: "ok",
+    sizingConstraint,
   };
 };
 

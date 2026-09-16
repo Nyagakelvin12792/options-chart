@@ -266,13 +266,30 @@ describe("LightweightChartsAdapter", () => {
     });
 
     expect(adapter.getDrawings()).toHaveLength(2);
-    expect(mocks.candleSeries.createPriceLine).toHaveBeenCalledTimes(6);
-    expect(mocks.candleSeries.createPriceLine).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Long Entry", price: 60_000 }),
-    );
-    expect(mocks.candleSeries.createPriceLine).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Short Entry", price: 60_000 }),
-    );
+    expect(mocks.candleSeries.createPriceLine).not.toHaveBeenCalled();
+    expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(2);
+  });
+
+  it("renders a fixed Volume Profile range with two draggable boundaries", () => {
+    const adapter = initialize();
+    adapter.addDrawing({
+      id: "vp-range",
+      type: "volume-profile-range",
+      fromTimestamp: 1_700_000_000_000,
+      toTimestamp: 1_700_003_600_000,
+      createdAt: 1,
+    });
+
+    expect(adapter.getDrawings()).toEqual([
+      expect.objectContaining({
+        id: "vp-range",
+        fromTimestamp: 1_700_000_000_000,
+        toTimestamp: 1_700_003_600_000,
+      }),
+    ]);
+    expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(2);
+    adapter.removeDrawing("vp-range");
+    expect(mocks.candleSeries.detachPrimitive).toHaveBeenCalledTimes(2);
   });
 
   it("reports viewport proximity and removes chart listeners on destroy", () => {
