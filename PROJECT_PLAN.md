@@ -2,8 +2,8 @@
 ## PROJECT_PLAN.md
 
 Version: 0.9.1
-Status: M10.5 Anchored VWAP and unified indicator settings implemented; deployment verification and M9 observation evidence remain open
-Date: 2026-09-15
+Status: M10.5 Anchored VWAP and unified indicator settings delivered and deployed; M9 observation evidence remains open
+Date: 2026-09-16
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
 Production scope: Read-only market analytics. No order execution. No private exchange credentials.

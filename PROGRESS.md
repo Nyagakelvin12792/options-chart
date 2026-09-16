@@ -2,10 +2,10 @@
 ## PROGRESS.md
 
 Version: 0.9.1
-Last updated: 2026-09-15
-Overall status: M0-M8 and M10.2-M10.5 implementation complete; M10.5 deployment verification and M9 observation evidence remain open
-Current milestone: M10.5 deployment verification, then M9 Trading-Readiness Validation
-Production status: DEPLOYED ON VERCEL AT `c096097`
+Last updated: 2026-09-16
+Overall status: M0-M8 and M10.2-M10.5 complete; M9 observation evidence remains open
+Current milestone: M9 Trading-Readiness Validation after M10.5 delivery
+Production status: DEPLOYED ON VERCEL AT `740c66c`
 
 ---
 
@@ -38,13 +38,13 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Fallback chart | DEFERRED | Adapter retained; KLineChart remains post-v0 unless required |
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
-| Vercel deployment | COMPLETE | Production deployment verified through commit `c096097` |
+| Vercel deployment | COMPLETE | Production deployment verified through commit `740c66c` |
 | Private authentication | COMPLETE | Google login with one exact allowlisted account |
 | Account risk terminal | COMPLETE | Read-only long/short sizing and explicit position-tool entry/SL/TP detection; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
 | Volume Profile | COMPLETE | Persistent TradingView-aligned settings deployed through commit `c096097` |
-| External indicators | IMPLEMENTED | Anchored VWAP is merged at `ee9f5b7` with persistent settings and a unified VP/AVWAP panel; deployment pending |
+| External indicators | COMPLETE | Anchored VWAP is deployed through `740c66c` with persistent settings and a unified VP/AVWAP panel |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -656,7 +656,7 @@ Evidence:
 
 ## M10.5 Anchored VWAP and Unified Indicator Settings
 
-Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
+Status: COMPLETE - DEPLOYED AND VERIFIED AT `740c66c`
 
 - [x] Review and integrate Antigravity Anchored VWAP commit `d500f7c` on top of the current Volume Profile, replay, and position-tool dashboard.
 - [x] Preserve the weighted cumulative VWAP and West-Welford variance method while preventing an undefined zero-volume anchor from producing a false initial value.
@@ -668,8 +668,8 @@ Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
 - [x] Preserve Volume Profile settings, chart instance, replay behavior, wall calculations, and risk tools.
 - [x] Pass 57 test files and 344 tests in the single-worker full run.
 - [x] Pass production build and focused desktop/mobile browser persistence checks.
-- [ ] Push `ee9f5b7` and the M10.5 documentation commit to GitHub.
-- [ ] Verify the Vercel production deployment.
+- [x] Push `ee9f5b7` and the M10.5 documentation commit to GitHub.
+- [x] Verify the Vercel production deployment.
 
 Evidence:
 
@@ -677,6 +677,7 @@ Evidence:
 - Feature commit: `ee9f5b7`.
 - Focused browser checks for Volume Profile and direct chart-picked Anchored VWAP: 2 passed.
 - Desktop 1366x768 and mobile 390x844 settings containment: PASS.
+- GitHub commit `740c66c` was fetched independently from `main`; its Vercel status completed successfully.
 
 ---
 
@@ -934,7 +935,7 @@ Use newest entries first.
 
 ### M10.5-ANCHORED-VWAP-AND-INDICATOR-PANEL
 
-Status: IMPLEMENTATION COMPLETE - DEPLOYMENT PENDING
+Status: COMPLETE - DEPLOYED AND VERIFIED AT `740c66c`
 
 Implementation:
 
@@ -949,9 +950,10 @@ Validation:
 - TypeScript, workspace lint, production build, and two focused Chromium persistence workflows passed.
 - Visual checks passed at 1366x768 and 390x844 without panel overflow.
 
-Remaining:
+Deployment:
 
-- Push the implementation and documentation commits, then verify Vercel production before marking M10.5 deployed.
+- GitHub `main` independently returned `740c66c82cf3b9f180e50b8fd5b94775ebe25d49`.
+- Vercel reported `success` for the deployment associated with that commit.
 
 ---
 
