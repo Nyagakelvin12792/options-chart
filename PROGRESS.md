@@ -1,11 +1,11 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.3
-Last updated: 2026-09-16
-Overall status: M0-M8 and M10.2-M10.7 complete; M10.7 Vercel verification and M9 observation evidence remain open
-Current milestone: M10.7 Vercel verification, then M9 Trading-Readiness Validation
-Production status: DEPLOYED ON VERCEL AT `2ea42ca`
+Version: 0.9.4
+Last updated: 2026-09-17
+Overall status: M0-M8 and M10.2-M10.8 complete locally; M10.8 GitHub/Vercel publication and M9 observation evidence remain open
+Current milestone: Publish and verify M10.8, then continue the native position and VWAP interaction batches
+Production status: DEPLOYED ON VERCEL AT `7cd98a7`; M10.8 is locally integrated at `1015be4` pending publication
 
 ---
 
@@ -45,7 +45,8 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
 | Volume Profile | COMPLETE | Persistent settings plus a user-drawn, draggable fixed range deployed through `2ea42ca` |
 | External indicators | COMPLETE | Anchored VWAP is deployed through `740c66c` with persistent settings and a unified VP/AVWAP panel |
-| Chart refinement M10.7 | COMPLETE - VERCEL VERIFICATION PENDING | Antigravity `b06593d` reviewed and integrated at `33af499`; main was pushed at `5df1a5a`, triggering the configured Vercel integration |
+| Chart refinement M10.7 | COMPLETE | Antigravity `b06593d` reviewed, integrated, pushed, and verified through the production alias at `7cd98a7` |
+| Native chart interactions M10.8 | COMPLETE LOCALLY - PUBLICATION PENDING | One-shot tools, candle-snapped VP preview, selected-range rail, and whole-range movement integrated at `1015be4` |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -108,6 +109,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-052 | multi-expiry wall confluence preserves per-expiry signals and adds expiry breadth without replacing validated aggregate walls | ACCEPTED |
 | ADR-053 | Volume Profile settings persist locally and remain isolated from Deribit options-volume and wall calculations | ACCEPTED |
 | ADR-054 | Anchored VWAP uses Binance candle volume, strict replay cutoffs, direct chart anchors, and a shared settings surface while remaining independent from options calculations | ACCEPTED |
+| ADR-055 | drawing tools are native one-shot interactions owned by ChartAdapter; Fixed Range Volume Profile previews and edits use candle-snapped transient state without changing options or risk formulas | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -710,7 +712,7 @@ Evidence:
 
 ## M10.7 Shift-Aware Level Segments, Level Rail, and Staged Timeframes
 
-Status: COMPLETE - PUSHED TO MAIN, VERCEL VERIFICATION PENDING
+Status: COMPLETE - DEPLOYED AND VERIFIED
 
 - [x] Review Antigravity commit `b06593d` and integrate it on top of the deployed AVWAP, fixed-range VP, position, replay, and risk-terminal work.
 - [x] Add persistent level-shift tracking with Gamma Flip anti-jitter and expiry-scoped confluence records.
@@ -722,7 +724,7 @@ Status: COMPLETE - PUSHED TO MAIN, VERCEL VERIFICATION PENDING
 - [x] Preserve all existing Volume Profile, AVWAP, position, risk, wall, confluence, replay, and options-calculation behavior.
 - [x] Pass 31 focused integration tests, typecheck, lint, isolated performance tests, and the production build.
 - [x] Push the reviewed integration to GitHub `main` at `5df1a5a` and trigger the configured Vercel integration.
-- [ ] Verify the resulting Vercel production deployment when network access to the deployment/status endpoints is available.
+- [x] Verify the production deployment through the Vercel CLI and `https://options-chart-upload.vercel.app` alias at `7cd98a7`.
 
 Evidence:
 
@@ -733,6 +735,33 @@ Evidence:
 - Contention-free performance rerun: 2 files and 7 tests passed; 10,000-candle AVWAP measured 82.30 ms.
 - TypeScript, workspace lint, and the Next.js production build passed.
 - Known limitation: activation history begins with the earliest locally persisted observation; the dashboard does not reconstruct options-level shifts from before tracking began.
+
+---
+
+## M10.8 Native One-Shot Tools and Fixed Range Volume Profile Preview
+
+Status: COMPLETE LOCALLY - GITHUB PUSH AND VERCEL DEPLOYMENT PENDING
+
+- [x] Review Antigravity commit `18d8496` without relying on its handoff claims.
+- [x] Centralize drawing-mode notifications in `ChartAdapter` and synchronize the toolbar from adapter state.
+- [x] Return completed horizontal line, vertical line, Anchored VWAP, Fixed Range VP, and three-point position tools to the pointer.
+- [x] Cancel pending tools and transient previews on Escape, pointer cancellation, or tool changes.
+- [x] Snap initial, final, and edited VP boundaries to loaded candle timestamps.
+- [x] Render an autoscale-neutral live range and provisional Volume Profile histogram during drag.
+- [x] Add a compact selected-range rail with boundary and whole-range movement.
+- [x] Correct stale animation-frame coordinates, live-candle preview input, final endpoint snapping, preview cleanup, and deferred edit persistence found during review.
+- [x] Preserve existing GEX, walls, Max Pain, Gamma Flip, AVWAP calculations, replay, positions, Risk Terminal behavior, and timeframe loading.
+- [x] Pass 59 focused chart/VP tests, TypeScript validation, and the integrated browser VP/position workflow.
+- [ ] Push integrated main and verify the resulting Vercel deployment.
+
+Evidence:
+
+- Antigravity source commit: `18d849675eec95f2264957b39d5e0a82e11b091b`.
+- Codex correction commit: `3ff4cd3`.
+- Local main integration commit: `1015be4`.
+- Focused validation: 5 files and 59 tests passed.
+- Browser validation: `chart-engine.spec.ts` VP/position workflow passed against the integrated main worktree.
+- TypeScript validation passed; the targeted lint run reported only pre-existing React compiler findings in untouched dashboard sections.
 
 ---
 
@@ -1006,7 +1035,7 @@ Validation:
 Deployment:
 
 - GitHub `main` was fast-forwarded and pushed at `5df1a5a`, triggering the configured Vercel integration.
-- Production verification remains pending because this session could not reach the GitHub deployment-status API or the Vercel hostname after its network permission request was denied.
+- A later Vercel CLI deployment completed successfully at `7cd98a7` and updated the `https://options-chart-upload.vercel.app` production alias.
 
 ---
 

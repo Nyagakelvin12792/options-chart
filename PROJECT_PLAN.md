@@ -1,9 +1,9 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.9.3
-Status: M10.7 shift-aware level segments, collision-managed rail, and staged timeframe loading integrated, locally verified, and pushed to main; Vercel verification pending; M9 observation evidence remains open
-Date: 2026-09-16
+Version: 0.9.4
+Status: M10.8 native one-shot drawing tools and live Fixed Range Volume Profile preview integrated and locally verified; GitHub push and Vercel deployment pending; M9 observation evidence remains open
+Date: 2026-09-17
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
 Production scope: Read-only market analytics. No order execution. No private exchange credentials.
@@ -303,6 +303,16 @@ Do not calculate an unlabeled all-expiries Max Pain.
 - Resolve level-label collisions in a compact in-chart rail with SPOT first, walls second, Gamma Flip and Max Pain third, and secondary GEX last.
 - Paint cached or initial 1,000-bar history immediately, refresh the latest page, stream older candles toward 10,000 in the background, cancel stale generations, and restore each timeframe viewport.
 - Keep staged loading and level rendering behind the existing data and chart adapters; do not create another chart or duplicate confluence bands.
+
+## M10.8 Native one-shot tools and Fixed Range Volume Profile interaction
+
+- Make `ChartAdapter` the authoritative drawing-mode owner and synchronize toolbar state through a mode-change subscription.
+- Return horizontal line, vertical line, Anchored VWAP, Fixed Range Volume Profile, and completed position tools to the pointer after one valid drawing.
+- Cancel unfinished tools and transient previews with Escape, pointer cancellation, or an explicit tool change.
+- Snap Fixed Range Volume Profile endpoints and edits to loaded candle timestamps.
+- Render a live, autoscale-neutral range and provisional histogram while the range is dragged.
+- Keep a selected-range rail with draggable boundaries and whole-range movement while preserving ordinary chart panning outside the rail.
+- Preserve Volume Profile settings, replay cutoffs, risk synchronization, options calculations, wall calculations, and the single chart instance.
 
 ## Historical Gamma
 
