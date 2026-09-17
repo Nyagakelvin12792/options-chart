@@ -69,13 +69,13 @@ const mocks = vi.hoisted(() => {
     };
   }
 
-  if (typeof (globalThis as any).requestAnimationFrame === "undefined") {
-    (globalThis as any).requestAnimationFrame = vi.fn((cb: any) => {
-      cb();
-      return 1;
-    });
-    (globalThis as any).cancelAnimationFrame = vi.fn();
-  }
+  const requestAnimationFrameMock = vi.fn((cb: any) => {
+    cb();
+    return 1;
+  });
+  const cancelAnimationFrameMock = vi.fn();
+  (globalThis as any).requestAnimationFrame = requestAnimationFrameMock;
+  (globalThis as any).cancelAnimationFrame = cancelAnimationFrameMock;
 
   const state = {
     visibleRange: { from: 1_700_000_000, to: 1_700_003_600 },
@@ -129,7 +129,10 @@ const mocks = vi.hoisted(() => {
     createPriceLine: vi.fn((options: unknown) => ({ options })),
     removePriceLine: vi.fn(),
     coordinateToPrice: vi.fn(() => 61_000),
-    priceToCoordinate: vi.fn(() => 240),
+    priceToCoordinate: vi.fn((_price: number): number | null => {
+      void _price;
+      return 240;
+    }),
     barsInLogicalRange: vi.fn(() => ({ barsBefore: 25, barsAfter: 12 })),
     attachPrimitive: vi.fn(),
     detachPrimitive: vi.fn(),
@@ -154,7 +157,10 @@ const mocks = vi.hoisted(() => {
     ),
     unsubscribeVisibleLogicalRangeChange: vi.fn(),
     coordinateToTime: vi.fn(() => 1_700_001_800),
-    timeToCoordinate: vi.fn(() => 120),
+    timeToCoordinate: vi.fn((_time: any): number | null => {
+      void _time;
+      return 120;
+    }),
   };
   const chart = {
     addSeries: vi.fn((definition: string) =>
@@ -173,6 +179,8 @@ const mocks = vi.hoisted(() => {
     timeScale,
     chart,
     createChart: vi.fn(() => chart),
+    requestAnimationFrameMock,
+    cancelAnimationFrameMock,
   };
 });
 
@@ -225,12 +233,28 @@ const initialize = () => {
 describe("LightweightChartsAdapter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.candleSeries.coordinateToPrice.mockReset();
+    mocks.candleSeries.priceToCoordinate.mockReset();
+    mocks.timeScale.coordinateToTime.mockReset();
+    mocks.timeScale.timeToCoordinate.mockReset();
+    mocks.requestAnimationFrameMock.mockReset();
+    mocks.cancelAnimationFrameMock.mockReset();
     mocks.state.visibleRange = {
       from: 1_700_000_000,
       to: 1_700_003_600,
     };
     mocks.state.logicalRangeHandler = null;
     mocks.state.containerClickHandler = null;
+    mocks.state.eventHandlers = {};
+    mocks.state.documentEventHandlers = {};
+    mocks.candleSeries.coordinateToPrice.mockImplementation(() => 61_000);
+    mocks.candleSeries.priceToCoordinate.mockImplementation(() => 240);
+    mocks.timeScale.coordinateToTime.mockImplementation(() => 1_700_001_800);
+    mocks.timeScale.timeToCoordinate.mockImplementation(() => 120);
+    mocks.requestAnimationFrameMock.mockImplementation((cb: any) => {
+      cb();
+      return 1;
+    });
   });
 
   it("creates one chart and loads candlestick and volume history", () => {
@@ -436,6 +460,32 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     return adapter;
   };
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.candleSeries.coordinateToPrice.mockReset();
+    mocks.candleSeries.priceToCoordinate.mockReset();
+    mocks.timeScale.coordinateToTime.mockReset();
+    mocks.timeScale.timeToCoordinate.mockReset();
+    mocks.requestAnimationFrameMock.mockReset();
+    mocks.cancelAnimationFrameMock.mockReset();
+    mocks.state.visibleRange = {
+      from: 1_700_000_000,
+      to: 1_700_003_600,
+    };
+    mocks.state.logicalRangeHandler = null;
+    mocks.state.containerClickHandler = null;
+    mocks.state.eventHandlers = {};
+    mocks.state.documentEventHandlers = {};
+    mocks.candleSeries.coordinateToPrice.mockImplementation(() => 61_000);
+    mocks.candleSeries.priceToCoordinate.mockImplementation(() => 240);
+    mocks.timeScale.coordinateToTime.mockImplementation(() => 1_700_001_800);
+    mocks.timeScale.timeToCoordinate.mockImplementation(() => 120);
+    mocks.requestAnimationFrameMock.mockImplementation((cb: any) => {
+      cb();
+      return 1;
+    });
+  });
+
   it("Test 1 — VP creates exactly one drawing", () => {
     const adapter = initialize();
     adapter.setHistory([
@@ -556,19 +606,29 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     expect(timeSpy).toHaveBeenCalled();
   });
 
-  it("Test 8 — Position 3-point completion returns to pointer", () => {
+  it("Test 8 — Position gesture completion returns to pointer", () => {
     const adapter = initialize();
+    adapter.setHistory([
+      makeCandle(1_700_000_000_000),
+      makeCandle(1_700_003_600_000),
+    ]);
     adapter.setDrawingMode("long-position");
 
     const modeSpy = vi.fn();
     adapter.subscribeDrawingModeChange?.(modeSpy);
 
-    mocks.candleSeries.coordinateToPrice.mockReturnValueOnce(60000);
-    mocks.state.containerClickHandler?.(new MouseEvent("click"));
-    mocks.candleSeries.coordinateToPrice.mockReturnValueOnce(59000);
-    mocks.state.containerClickHandler?.(new MouseEvent("click"));
-    mocks.candleSeries.coordinateToPrice.mockReturnValueOnce(61000);
-    mocks.state.containerClickHandler?.(new MouseEvent("click"));
+    mocks.candleSeries.coordinateToPrice
+      .mockReturnValueOnce(60000)
+      .mockReturnValueOnce(59000)
+      .mockReturnValueOnce(59000);
+    mocks.timeScale.coordinateToTime
+      .mockReturnValueOnce(1_700_000_000)
+      .mockReturnValueOnce(1_700_003_600)
+      .mockReturnValueOnce(1_700_003_600);
+
+    mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+    mocks.container.dispatchEvent(makePointerEvent("pointermove", 200, 250));
+    mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 250));
 
     expect(adapter.getDrawings()).toHaveLength(1);
     expect(adapter.getDrawings()[0]?.type).toBe("position");
@@ -759,10 +819,12 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
 
   it("Test 16 — Escape cancels long-position pending", () => {
     const adapter = initialize();
+    adapter.setHistory([makeCandle(1_700_000_000_000)]);
     adapter.setDrawingMode("long-position");
 
     mocks.candleSeries.coordinateToPrice.mockReturnValueOnce(60000);
-    mocks.state.containerClickHandler?.(new MouseEvent("click"));
+    mocks.timeScale.coordinateToTime.mockReturnValueOnce(1_700_000_000);
+    mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
 
     const modeSpy = vi.fn();
     adapter.subscribeDrawingModeChange?.(modeSpy);
@@ -810,5 +872,698 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     adapter.setHistory([makeCandle(1_700_000_000_000)]);
 
     expect(adapter.getDrawings()).toHaveLength(2);
+  });
+
+  describe("Batch 2: Native TradingView-Style Long/Short Position Tool", () => {
+    it("Requirement 1: Long tool creates one position from one drag gesture", () => {
+      const adapter = initialize();
+      adapter.setHistory([
+        makeCandle(1_700_000_000_000),
+        makeCandle(1_700_001_800_000),
+        makeCandle(1_700_003_600_000),
+      ]);
+      adapter.setDrawingMode("long-position");
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000) // down: entry
+        .mockReturnValueOnce(58_000) // move: stop
+        .mockReturnValueOnce(58_000); // up: stop
+      mocks.timeScale.coordinateToTime
+        .mockReturnValueOnce(1_700_000_000)
+        .mockReturnValueOnce(1_700_001_800)
+        .mockReturnValueOnce(1_700_001_800);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 200, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 300));
+
+      const drawings = adapter.getDrawings();
+      expect(drawings).toHaveLength(1);
+      const pos = drawings[0];
+      expect(pos?.type).toBe("position");
+      if (pos?.type === "position") {
+        expect(pos.direction).toBe("long");
+        expect(pos.entry).toBe(60_000);
+        expect(pos.stopLoss).toBe(58_000);
+      }
+    });
+
+    it("Requirement 2: Short tool creates one position from one drag gesture", () => {
+      const adapter = initialize();
+      adapter.setHistory([
+        makeCandle(1_700_000_000_000),
+        makeCandle(1_700_001_800_000),
+      ]);
+      adapter.setDrawingMode("short-position");
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000) // down: entry
+        .mockReturnValueOnce(58_000) // move: target
+        .mockReturnValueOnce(58_000); // up: target
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 200, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 300));
+
+      const drawings = adapter.getDrawings();
+      expect(drawings).toHaveLength(1);
+      const pos = drawings[0];
+      expect(pos?.type).toBe("position");
+      if (pos?.type === "position") {
+        expect(pos.direction).toBe("short");
+        expect(pos.entry).toBe(60_000);
+        expect(pos.takeProfit).toBe(58_000);
+      }
+    });
+
+    it("Requirement 3: Long explicit-stop gesture produces configured default R:R", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setPositionSettings?.({ defaultRewardRiskRatio: 2.5 });
+      adapter.setDrawingMode("long-position");
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000) // entry
+        .mockReturnValueOnce(59_000) // stop (below entry)
+        .mockReturnValueOnce(59_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 300));
+
+      const pos = adapter.getDrawings()[0];
+      expect(pos?.type).toBe("position");
+      if (pos?.type === "position") {
+        expect(pos.entry).toBe(60_000);
+        expect(pos.stopLoss).toBe(59_000);
+        // Risk = 1000, R:R = 2.5 => Target = 60000 + 1000 * 2.5 = 62500
+        expect(pos.takeProfit).toBe(62_500);
+      }
+    });
+
+    it("Requirement 4: Long explicit-target gesture produces configured default R:R", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setPositionSettings?.({ defaultRewardRiskRatio: 3.0 });
+      adapter.setDrawingMode("long-position");
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000) // entry
+        .mockReturnValueOnce(63_000) // target (above entry)
+        .mockReturnValueOnce(63_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 100));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 100));
+
+      const pos = adapter.getDrawings()[0];
+      expect(pos?.type).toBe("position");
+      if (pos?.type === "position") {
+        expect(pos.entry).toBe(60_000);
+        expect(pos.takeProfit).toBe(63_000);
+        // Reward = 3000, R:R = 3.0 => Risk = 1000 => Stop = 60000 - 1000 = 59000
+        expect(pos.stopLoss).toBe(59_000);
+      }
+    });
+
+    it("Requirement 5: Short explicit-stop and explicit-target behavior", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setPositionSettings?.({ defaultRewardRiskRatio: 2.0 });
+
+      // 1. Short explicit stop (drag above entry)
+      adapter.setDrawingMode("short-position");
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000) // entry
+        .mockReturnValueOnce(61_000) // stop
+        .mockReturnValueOnce(61_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 100));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 100));
+
+      const pos1 = adapter.getDrawings()[0];
+      expect(pos1?.type).toBe("position");
+      if (pos1?.type === "position") {
+        expect(pos1.entry).toBe(60_000);
+        expect(pos1.stopLoss).toBe(61_000);
+        // Risk = 1000, R:R = 2.0 => Target = 60000 - 2000 = 58000
+        expect(pos1.takeProfit).toBe(58_000);
+      }
+
+      // 2. Short explicit target (drag below entry)
+      adapter.setDrawingMode("short-position");
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000) // entry
+        .mockReturnValueOnce(57_000) // target
+        .mockReturnValueOnce(57_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 300));
+
+      const pos2 = adapter.getDrawings()[1];
+      expect(pos2?.type).toBe("position");
+      if (pos2?.type === "position") {
+        expect(pos2.entry).toBe(60_000);
+        expect(pos2.takeProfit).toBe(57_000);
+        // Reward = 3000, R:R = 2.0 => Risk = 1500 => Stop = 60000 + 1500 = 61500
+        expect(pos2.stopLoss).toBe(61_500);
+      }
+    });
+
+    it("Requirement 6: Completion returns to pointer mode", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      const modeSpy = vi.fn();
+      adapter.subscribeDrawingModeChange?.(modeSpy);
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(58_000)
+        .mockReturnValueOnce(58_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 300));
+
+      expect(modeSpy).toHaveBeenCalledWith("pointer");
+    });
+
+    it("Requirement 7: Subsequent drag does not create another position", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(58_000)
+        .mockReturnValueOnce(58_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 300));
+
+      expect(adapter.getDrawings()).toHaveLength(1);
+
+      // Second drag gesture while in pointer mode without activating tool
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 200, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 200, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 300));
+
+      expect(adapter.getDrawings()).toHaveLength(1);
+    });
+
+    it("Requirement 8: Escape cancels pending position gesture without persistence", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(60_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+
+      const modeSpy = vi.fn();
+      adapter.subscribeDrawingModeChange?.(modeSpy);
+
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      );
+
+      expect(adapter.getDrawings()).toHaveLength(0);
+      expect(modeSpy).toHaveBeenCalledWith("pointer");
+    });
+
+    it("Requirement 9: Pointer cancellation (pointercancel) clears preview and resets to pointer", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      const previewSpy = vi.fn();
+      adapter.subscribeDrawingPreviewChange?.(previewSpy);
+      const modeSpy = vi.fn();
+      adapter.subscribeDrawingModeChange?.(modeSpy);
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(58_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+
+      expect(previewSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "position" }),
+      );
+
+      mocks.container.dispatchEvent(makePointerEvent("pointercancel", 100, 300));
+
+      expect(previewSpy).toHaveBeenLastCalledWith(null);
+      expect(modeSpy).toHaveBeenCalledWith("pointer");
+      expect(adapter.getDrawings()).toHaveLength(0);
+    });
+
+    it("Requirement 10: Switching tools clears preview and pending gesture", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      const previewSpy = vi.fn();
+      adapter.subscribeDrawingPreviewChange?.(previewSpy);
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(58_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+
+      expect(previewSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "position" }),
+      );
+
+      adapter.setDrawingMode("horizontal-line");
+
+      expect(previewSpy).toHaveBeenLastCalledWith(null);
+      expect(adapter.getDrawings()).toHaveLength(0);
+    });
+
+    it("Requirement 11: Preview updates are RAF-coalesced", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      mocks.cancelAnimationFrameMock.mockClear();
+
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(60_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(58_000);
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 250));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 260));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 270));
+
+      expect(mocks.cancelAnimationFrameMock).toHaveBeenCalled();
+    });
+
+    it("Requirement 12: Stale animation-frame callbacks cannot restore canceled state", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      let queuedRafCallback: (() => void) | null = null;
+      mocks.requestAnimationFrameMock.mockImplementationOnce((cb: any) => {
+        queuedRafCallback = cb;
+        return 999;
+      });
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(58_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+
+      expect(queuedRafCallback).not.toBeNull();
+
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      );
+
+      const previewSpy = vi.fn();
+      adapter.subscribeDrawingPreviewChange?.(previewSpy);
+
+      // Stale callback executed after cancel
+      queuedRafCallback!();
+
+      expect(previewSpy).not.toHaveBeenCalled();
+      expect(adapter.getDrawings()).toHaveLength(0);
+    });
+
+    it("Requirement 13: Preview emits generic { type: 'position', drawing } object to preview listeners", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      const previewSpy = vi.fn();
+      adapter.subscribeDrawingPreviewChange?.(previewSpy);
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(58_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+
+      expect(previewSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "position",
+          drawing: expect.objectContaining({
+            type: "position",
+            direction: "long",
+            entry: 60_000,
+            stopLoss: 58_000,
+          }),
+        }),
+      );
+    });
+
+    it("Requirement 14: Committed drawing replaces preview authority", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      const previewSpy = vi.fn();
+      adapter.subscribeDrawingPreviewChange?.(previewSpy);
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(58_000)
+        .mockReturnValueOnce(58_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+
+      expect(previewSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "position" }),
+      );
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 300));
+
+      expect(previewSpy).toHaveBeenLastCalledWith(null);
+      expect(adapter.getDrawings()).toHaveLength(1);
+      expect(adapter.getDrawings()[0]?.type).toBe("position");
+    });
+
+    it("Requirement 15: Dragging entry, stop, or target on existing position updates drawing levels", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.addDrawing({
+        id: "pos-1",
+        type: "position",
+        direction: "long",
+        entry: 60_000,
+        stopLoss: 58_000,
+        takeProfit: 64_000,
+        createdAt: 1,
+        fromTimestamp: 1_700_000_000_000,
+        toTimestamp: 1_700_001_800_000,
+      });
+
+      mocks.candleSeries.priceToCoordinate.mockImplementation((price: number) => {
+        if (price === 60_000) return 200;
+        if (price === 58_000) return 300;
+        if (price === 64_000) return 100;
+        return null;
+      });
+
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(57_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 350));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 350));
+
+      const updated = adapter.getDrawings()[0];
+      if (updated?.type === "position") {
+        expect(updated.stopLoss).toBe(57_000);
+      }
+    });
+
+    it("Requirement 16: Horizontal boundaries snap to candle timestamps", () => {
+      const adapter = initialize();
+      const c1 = 1_700_000_000_000;
+      const c2 = 1_700_001_800_000;
+      adapter.setHistory([makeCandle(c1), makeCandle(c2)]);
+
+      adapter.setDrawingMode("long-position");
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(58_000)
+        .mockReturnValueOnce(58_000);
+      mocks.timeScale.coordinateToTime
+        .mockReturnValueOnce(1_700_000_000)
+        .mockReturnValueOnce(1_700_001_790) // near c2
+        .mockReturnValueOnce(1_700_001_790);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 200, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 300));
+
+      const pos = adapter.getDrawings()[0];
+      if (pos?.type === "position") {
+        expect(pos.fromTimestamp).toBe(c1);
+        expect(pos.toTimestamp).toBe(c2);
+      }
+    });
+
+    it("Requirement 17: Whole-position movement preserves candle span", () => {
+      const adapter = initialize();
+      const c1 = 1_700_000_000_000;
+      const c2 = 1_700_001_800_000;
+      const c3 = 1_700_003_600_000;
+      const c4 = 1_700_005_400_000;
+      adapter.setHistory([
+        makeCandle(c1),
+        makeCandle(c2),
+        makeCandle(c3),
+        makeCandle(c4),
+      ]);
+      adapter.addDrawing({
+        id: "pos-1",
+        type: "position",
+        direction: "long",
+        entry: 100,
+        stopLoss: 90,
+        takeProfit: 120,
+        createdAt: 1,
+        fromTimestamp: c1,
+        toTimestamp: c2,
+      });
+
+      adapter.setDrawingMode("pointer");
+
+      mocks.timeScale.timeToCoordinate.mockImplementation((t: number) => {
+        if (t === c1 / 1000) return 50;
+        if (t === c2 / 1000) return 150;
+        return 250;
+      });
+      mocks.candleSeries.priceToCoordinate.mockReturnValue(200);
+
+      mocks.timeScale.coordinateToTime.mockReturnValue(c1 / 1000);
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+
+      mocks.timeScale.coordinateToTime.mockReturnValue(c2 / 1000);
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 150, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 150, 200));
+
+      const pos = adapter.getDrawings()[0];
+      expect(pos?.type).toBe("position");
+      if (pos?.type === "position") {
+        expect(pos.fromTimestamp).toBe(c2);
+        expect(pos.toTimestamp).toBe(c3);
+        expect(pos.toTimestamp! - pos.fromTimestamp!).toBe(c2 - c1);
+      }
+    });
+
+    it("Requirement 18: Invalid ordering cannot be produced", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.addDrawing({
+        id: "pos-order",
+        type: "position",
+        direction: "long",
+        entry: 60_000,
+        stopLoss: 58_000,
+        takeProfit: 64_000,
+        createdAt: 1,
+      });
+
+      mocks.candleSeries.priceToCoordinate.mockImplementation((price: number) => {
+        if (price === 58_000) return 300;
+        return 200;
+      });
+
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(62_000); // attempt to drag stopLoss above entry
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 150));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 150));
+
+      const pos = adapter.getDrawings()[0];
+      if (pos?.type === "position") {
+        expect(pos.stopLoss).toBeLessThan(pos.entry);
+      }
+    });
+
+    it("Requirement 19: Stored legacy positions still render properly", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+
+      expect(() => {
+        adapter.addDrawing({
+          id: "legacy-pos",
+          type: "position",
+          direction: "long",
+          entry: 60_000,
+          stopLoss: 59_000,
+          takeProfit: 62_000,
+          createdAt: 1,
+        });
+      }).not.toThrow();
+
+      expect(adapter.getDrawings()).toHaveLength(1);
+      expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalled();
+    });
+
+    it("Requirement 20: Adapter destruction removes listeners, preview primitives, and cancels RAF handles", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(60_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+
+      mocks.cancelAnimationFrameMock.mockClear();
+
+      adapter.destroy();
+
+      expect(mocks.cancelAnimationFrameMock).toHaveBeenCalled();
+      expect(mocks.container.removeEventListener).toHaveBeenCalled();
+    });
+
+    it("Requirement 21: Viewport and autoscale remain unchanged during position preview", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+
+      const beforeCount = mocks.timeScale.setVisibleRange.mock.calls.length;
+
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(60_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 300));
+
+      const afterCount = mocks.timeScale.setVisibleRange.mock.calls.length;
+      expect(afterCount).toBe(beforeCount);
+    });
+
+    it("commits a completed position to subscribers exactly once", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+      const drawingsSpy = vi.fn();
+      adapter.subscribeDrawingsChange(drawingsSpy);
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(59_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 150, 300));
+
+      expect(drawingsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("persists an edited position once when the drag completes", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.addDrawing({
+        id: "position-edit-notification",
+        type: "position",
+        direction: "long",
+        entry: 60_000,
+        stopLoss: 58_000,
+        takeProfit: 64_000,
+        createdAt: 1,
+      });
+      const drawingsSpy = vi.fn();
+      adapter.subscribeDrawingsChange(drawingsSpy);
+      mocks.candleSeries.priceToCoordinate.mockImplementation((price: number) =>
+        price === 58_000 ? 300 : 200,
+      );
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(57_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 340));
+
+      expect(drawingsSpy).not.toHaveBeenCalled();
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 340));
+
+      expect(drawingsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("clamps adapter position settings to the supported R:R range", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setPositionSettings?.({ defaultRewardRiskRatio: 100 });
+      adapter.setDrawingMode("long-position");
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(59_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 150, 300));
+
+      const position = adapter.getDrawings()[0];
+      expect(position?.type).toBe("position");
+      if (position?.type === "position") {
+        expect(position.takeProfit).toBe(80_000);
+      }
+    });
+
+    it("Requirement 22: Existing VP and AVWAP tests remain green", () => {
+      const adapter = initialize();
+      adapter.setHistory([
+        makeCandle(1_700_000_000_000),
+        makeCandle(1_700_001_800_000),
+      ]);
+      // Fixed-range VP still functions
+      adapter.setDrawingMode("fixed-range-volume-profile");
+      mocks.timeScale.coordinateToTime
+        .mockReturnValueOnce(1_700_000_000)
+        .mockReturnValueOnce(1_700_001_800)
+        .mockReturnValueOnce(1_700_001_800);
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 200, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
+
+      expect(adapter.getDrawings()).toHaveLength(1);
+      expect(adapter.getDrawings()[0]?.type).toBe("volume-profile-range");
+
+      // AVWAP mode time selection still functions
+      const timeSpy = vi.fn();
+      adapter.subscribeTimeSelection(timeSpy);
+      adapter.setDrawingMode("anchored-vwap");
+      mocks.timeScale.coordinateToTime.mockReturnValueOnce(1_700_000_000);
+      mocks.state.containerClickHandler?.(new MouseEvent("click"));
+
+      expect(timeSpy).toHaveBeenCalledWith(1_700_000_000_000);
+    });
   });
 });

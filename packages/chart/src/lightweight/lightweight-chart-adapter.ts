@@ -32,9 +32,11 @@ import type {
 import type { AnchoredVwapRenderInput } from "../anchored-vwap/types";
 import { AnchoredVwapPrimitive } from "../anchored-vwap/anchored-vwap-primitive";
 import {
-  createPositionDrawing,
+  createPositionFromGesture,
   isPositionDrawingOrderValid,
+  moveCompletePositionRange,
   movePositionDrawingLevel,
+  movePositionTimeBoundary,
   type PositionDrawingLevel,
 } from "../position-drawing";
 import type {
@@ -62,12 +64,9 @@ const LEVEL_COLORS: Readonly<Record<GammaLevel["kind"], string>> = {
 };
 
 const USER_DRAWING_COLOR = "#f2c14e";
-const POSITION_COLORS = {
-  entry: "#5fa8ff",
-  stopLoss: "#e05263",
-  takeProfit: "#29b57a",
-} as const;
 const POSITION_DRAG_TOLERANCE_PX = 8;
+const MIN_POSITION_REWARD_RISK_RATIO = 0.25;
+const MAX_POSITION_REWARD_RISK_RATIO = 20;
 const VP_RANGE_MOVE_RAIL_HEIGHT_PX = 28;
 
 const toChartTimestamp = (timestamp: number): UTCTimestamp =>
@@ -173,15 +172,28 @@ export class LightweightChartsAdapter implements ChartAdapter {
     readonly createdAt: number;
     readonly fromTimestamp: number;
   } | null = null;
-  private pendingPosition: {
+  private pendingPositionGesture: {
     readonly id: string;
     readonly direction: PositionDirection;
-    readonly entry: number;
-    readonly stopLoss?: number;
-    readonly createdAt: number;
+    readonly entryPrice: number;
     readonly fromTimestamp: number;
   } | null = null;
-  private pendingPositionLines: IPriceLine[] = [];
+  private positionPreviewPrimitive: PositionDrawingPrimitive | null = null;
+  private positionPreviewRafHandle: number | null = null;
+  private positionSettings: { defaultRewardRiskRatio: number } = {
+    defaultRewardRiskRatio: 2.0,
+  };
+  private draggedPositionBoundary: {
+    readonly drawingId: string;
+    readonly boundary: "fromTimestamp" | "toTimestamp";
+  } | null = null;
+  private draggedPositionBody: {
+    readonly drawingId: string;
+    readonly pointerIndex: number;
+    readonly fromIndex: number;
+    readonly toIndex: number;
+  } | null = null;
+  private positionDragChanged = false;
   private initializedAt = 0;
   private chartCreateCount = 0;
   private historyReplacementCount = 0;
@@ -201,7 +213,9 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.initializedAt = Date.now();
     this.conflationEnabled = options.enableConflation ?? false;
     this.container = container;
-    this.ownerDocument = container.ownerDocument ?? document;
+    this.ownerDocument =
+      container.ownerDocument ??
+      (typeof document !== "undefined" ? document : null);
     this.chart = createChart(container, {
       width: options.width,
       height: options.height,
@@ -273,7 +287,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     container.addEventListener("pointermove", this.handlePointerMove, true);
     container.addEventListener("pointerup", this.handlePointerUp, true);
     container.addEventListener("pointercancel", this.handlePointerCancel, true);
-    this.ownerDocument.addEventListener("keydown", this.handleKeyDown, true);
+    this.ownerDocument?.addEventListener("keydown", this.handleKeyDown, true);
     this.chart
       .timeScale()
       .subscribeVisibleLogicalRangeChange(this.handleLogicalRangeChange);
@@ -469,10 +483,29 @@ export class LightweightChartsAdapter implements ChartAdapter {
     return () => this.drawingPreviewListeners.delete(listener);
   }
 
+  setPositionSettings(settings: {
+    readonly defaultRewardRiskRatio: number;
+  }): void {
+    if (
+      Number.isFinite(settings.defaultRewardRiskRatio) &&
+      settings.defaultRewardRiskRatio > 0
+    ) {
+      this.positionSettings = {
+        defaultRewardRiskRatio: Math.min(
+          Math.max(
+            settings.defaultRewardRiskRatio,
+            MIN_POSITION_REWARD_RISK_RATIO,
+          ),
+          MAX_POSITION_REWARD_RISK_RATIO,
+        ),
+      };
+    }
+  }
+
   setDrawingMode(mode: ChartDrawingMode): void {
     const changed = mode !== this.drawingMode;
     if (changed) {
-      this.clearPendingPosition();
+      this.clearPositionPreview();
       this.pendingVolumeProfileRange = null;
       this.clearVpPreview();
     }
@@ -504,9 +537,9 @@ export class LightweightChartsAdapter implements ChartAdapter {
     }
 
     this.removeRenderedDrawing(drawing.id);
+    this.selectDrawing(drawing.id);
     this.drawings.set(drawing.id, drawing);
     this.renderDrawing(drawing);
-    this.selectedDrawingId = drawing.id;
     if (drawing.type === "volume-profile-range") {
       this.showSelectedVpRange(drawing);
     } else {
@@ -671,10 +704,27 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.volumeSeries = null;
     this.selectedDrawingId = null;
     this.draggedPositionLevel = null;
+    this.draggedPositionBoundary = null;
+    this.draggedPositionBody = null;
     this.draggedRangeBoundary = null;
     this.draggedRangeBody = null;
     this.pendingVolumeProfileRange = null;
-    this.clearPendingPosition();
+    this.clearPositionPreview();
+  }
+
+  private clearPositionPreview(): void {
+    if (this.positionPreviewRafHandle !== null) {
+      cancelAnimationFrame(this.positionPreviewRafHandle);
+      this.positionPreviewRafHandle = null;
+    }
+    if (this.positionPreviewPrimitive && this.series) {
+      this.series.detachPrimitive(this.positionPreviewPrimitive);
+      this.positionPreviewPrimitive = null;
+    } else {
+      this.positionPreviewPrimitive = null;
+    }
+    this.pendingPositionGesture = null;
+    for (const l of this.drawingPreviewListeners) l(null);
   }
 
   private getOrCreateVpPreviewPrimitive(): VpPreviewPrimitive {
@@ -846,29 +896,15 @@ export class LightweightChartsAdapter implements ChartAdapter {
       return;
     }
 
-    if (this.drawingMode === "fixed-range-volume-profile") return;
-
-    const chartTime = this.timeAtCoordinate(x, bounds.width);
     if (
+      this.drawingMode === "fixed-range-volume-profile" ||
       this.drawingMode === "long-position" ||
       this.drawingMode === "short-position"
     ) {
-      const price = this.requireSeries().coordinateToPrice(y);
-      if (
-        price !== null &&
-        Number.isFinite(price) &&
-        price > 0 &&
-        chartTime !== null
-      ) {
-        this.advancePositionCreation(
-          this.drawingMode === "long-position" ? "long" : "short",
-          price,
-          chartTime * 1_000,
-        );
-      }
       return;
     }
 
+    const chartTime = this.timeAtCoordinate(x, bounds.width);
     if (typeof chartTime === "number") {
       if (this.drawingMode === "anchored-vwap") {
         const timestamp = chartTime * 1_000;
@@ -905,6 +941,26 @@ export class LightweightChartsAdapter implements ChartAdapter {
       event.preventDefault();
       return;
     }
+    if (
+      this.drawingMode === "long-position" ||
+      this.drawingMode === "short-position"
+    ) {
+      const entryPrice = this.requireSeries().coordinateToPrice(y);
+      if (entryPrice === null || !Number.isFinite(entryPrice)) return;
+      const chartTime = this.timeAtCoordinate(x, bounds.width);
+      if (chartTime === null) return;
+      const snapped = this.snapToCandle(chartTime) ?? chartTime;
+      const fromTimestamp = snapped * 1_000;
+      this.pendingPositionGesture = {
+        id: `drawing-${Date.now()}-${this.drawingSequence++}`,
+        direction: this.drawingMode === "long-position" ? "long" : "short",
+        entryPrice,
+        fromTimestamp,
+      };
+      this.container.setPointerCapture?.(event.pointerId);
+      event.preventDefault();
+      return;
+    }
     if (this.drawingMode !== "pointer") return;
 
     let closestRange:
@@ -936,7 +992,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
         drawingId: closestRange.drawingId,
         boundary: closestRange.boundary,
       };
-      this.selectedDrawingId = closestRange.drawingId;
+      this.selectDrawing(closestRange.drawingId);
       this.rangeDragChanged = false;
       if (drawing?.type === "volume-profile-range") {
         this.showSelectedVpRange(drawing);
@@ -982,6 +1038,110 @@ export class LightweightChartsAdapter implements ChartAdapter {
         return;
       }
     }
+
+    let closestPositionBoundary:
+      | {
+          readonly drawingId: string;
+          readonly boundary: "fromTimestamp" | "toTimestamp";
+          readonly distance: number;
+        }
+      | undefined;
+    for (const drawing of this.drawings.values()) {
+      if (
+        drawing.type !== "position" ||
+        drawing.fromTimestamp === undefined ||
+        drawing.toTimestamp === undefined
+      ) {
+        continue;
+      }
+      for (const boundary of ["fromTimestamp", "toTimestamp"] as const) {
+        const ts =
+          boundary === "fromTimestamp"
+            ? drawing.fromTimestamp
+            : drawing.toTimestamp;
+        if (ts === undefined) continue;
+        const coordinate = this.requireChart()
+          .timeScale()
+          .timeToCoordinate(toChartTimestamp(ts));
+        if (coordinate === null) continue;
+        const distance = Math.abs(coordinate - x);
+        if (
+          distance <= POSITION_DRAG_TOLERANCE_PX &&
+          (!closestPositionBoundary ||
+            distance < closestPositionBoundary.distance)
+        ) {
+          closestPositionBoundary = {
+            drawingId: drawing.id,
+            boundary,
+            distance,
+          };
+        }
+      }
+    }
+    if (closestPositionBoundary) {
+      this.draggedPositionBoundary = {
+        drawingId: closestPositionBoundary.drawingId,
+        boundary: closestPositionBoundary.boundary,
+      };
+      this.positionDragChanged = false;
+      this.selectDrawing(closestPositionBoundary.drawingId);
+      event.preventDefault();
+      return;
+    }
+
+    for (const drawing of this.drawings.values()) {
+      if (
+        drawing.type !== "position" ||
+        drawing.fromTimestamp === undefined ||
+        drawing.toTimestamp === undefined
+      ) {
+        continue;
+      }
+      const fromCoordinate = this.requireChart()
+        .timeScale()
+        .timeToCoordinate(toChartTimestamp(drawing.fromTimestamp));
+      const toCoordinate = this.requireChart()
+        .timeScale()
+        .timeToCoordinate(toChartTimestamp(drawing.toTimestamp));
+      const entryCoordinate = this.requireSeries().priceToCoordinate(
+        drawing.entry,
+      );
+      if (
+        fromCoordinate === null ||
+        toCoordinate === null ||
+        entryCoordinate === null
+      ) {
+        continue;
+      }
+      const minX = Math.min(fromCoordinate, toCoordinate);
+      const maxX = Math.max(fromCoordinate, toCoordinate);
+      const isWithinX = x >= minX && x <= maxX;
+      const isNearEntry =
+        Math.abs(entryCoordinate - y) <= POSITION_DRAG_TOLERANCE_PX;
+      if (isWithinX && isNearEntry) {
+        const chartTime = this.timeAtCoordinate(x, bounds.width);
+        const snapped =
+          chartTime === null ? null : this.snapToCandle(chartTime);
+        const snappedTime = snapped ?? chartTime;
+        if (snappedTime !== null) {
+          this.draggedPositionBody = {
+            drawingId: drawing.id,
+            pointerIndex: this.binarySearchCandleIndex(snappedTime),
+            fromIndex: this.binarySearchCandleIndex(
+              drawing.fromTimestamp / 1_000,
+            ),
+            toIndex: this.binarySearchCandleIndex(
+              drawing.toTimestamp / 1_000,
+            ),
+          };
+          this.positionDragChanged = false;
+          this.selectDrawing(drawing.id);
+          event.preventDefault();
+          return;
+        }
+      }
+    }
+
     let closest:
       | {
           readonly drawingId: string;
@@ -1012,7 +1172,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
       drawingId: closest.drawingId,
       level: closest.level,
     };
-    this.selectedDrawingId = closest.drawingId;
+    this.selectDrawing(closest.drawingId);
     this.clearSelectedVpRange();
     event.preventDefault();
   };
@@ -1032,6 +1192,57 @@ export class LightweightChartsAdapter implements ChartAdapter {
           const normalTo = Math.max(fromEpoch, toEpoch);
           this.scheduleVpPreview(normalFrom, normalTo);
         }
+      }
+      event.preventDefault();
+      return;
+    }
+    if (this.pendingPositionGesture && this.container) {
+      const bounds = this.container.getBoundingClientRect();
+      const nextPrice = this.requireSeries().coordinateToPrice(
+        event.clientY - bounds.top,
+      );
+      const chartTime = this.timeAtCoordinate(
+        event.clientX - bounds.left,
+        bounds.width,
+      );
+      if (
+        nextPrice !== null &&
+        Number.isFinite(nextPrice) &&
+        chartTime !== null
+      ) {
+        const toTimestamp = (this.snapToCandle(chartTime) ?? chartTime) * 1_000;
+        const pending = this.pendingPositionGesture;
+        if (this.positionPreviewRafHandle !== null) {
+          cancelAnimationFrame(this.positionPreviewRafHandle);
+        }
+        this.positionPreviewRafHandle = requestAnimationFrame(() => {
+          this.positionPreviewRafHandle = null;
+          if (!this.pendingPositionGesture) return;
+          const drawing = createPositionFromGesture({
+            id: pending.id,
+            direction: pending.direction,
+            entryPrice: pending.entryPrice,
+            currentPrice: nextPrice,
+            fromTimestamp: pending.fromTimestamp,
+            toTimestamp,
+            defaultRewardRiskRatio: this.positionSettings.defaultRewardRiskRatio,
+          });
+          if (drawing) {
+            if (!this.positionPreviewPrimitive) {
+              this.positionPreviewPrimitive = new PositionDrawingPrimitive(
+                drawing,
+              );
+              this.requireSeries().attachPrimitive(
+                this.positionPreviewPrimitive,
+              );
+            } else {
+              this.positionPreviewPrimitive.update(drawing);
+            }
+            for (const l of this.drawingPreviewListeners) {
+              l({ type: "position", drawing });
+            }
+          }
+        });
       }
       event.preventDefault();
       return;
@@ -1078,6 +1289,58 @@ export class LightweightChartsAdapter implements ChartAdapter {
       event.preventDefault();
       return;
     }
+    if (this.draggedPositionBody && this.container) {
+      const drawing = this.drawings.get(this.draggedPositionBody.drawingId);
+      if (!drawing || drawing.type !== "position") {
+        this.draggedPositionBody = null;
+        return;
+      }
+      const bounds = this.container.getBoundingClientRect();
+      const chartTime = this.timeAtCoordinate(
+        event.clientX - bounds.left,
+        bounds.width,
+      );
+      const snapped = chartTime === null ? null : this.snapToCandle(chartTime);
+      const currentEpoch = snapped ?? chartTime;
+      if (currentEpoch === null) return;
+
+      if (this.candleTimestamps.length > 0) {
+        const currentIndex = this.binarySearchCandleIndex(currentEpoch);
+        const originalSpan =
+          this.draggedPositionBody.toIndex - this.draggedPositionBody.fromIndex;
+        const desiredFrom =
+          this.draggedPositionBody.fromIndex +
+          currentIndex -
+          this.draggedPositionBody.pointerIndex;
+        const fromIndex = Math.min(
+          Math.max(0, desiredFrom),
+          this.candleTimestamps.length - 1 - originalSpan,
+        );
+        const toIndex = fromIndex + originalSpan;
+        const fromEpoch = this.candleTimestamps[fromIndex];
+        const toEpoch = this.candleTimestamps[toIndex];
+        if (fromEpoch === undefined || toEpoch === undefined) return;
+        const nextDrawing: PositionDrawing = {
+          ...drawing,
+          fromTimestamp: fromEpoch * 1_000,
+          toTimestamp: toEpoch * 1_000,
+        };
+        this.removeRenderedDrawing(drawing.id);
+        this.drawings.set(drawing.id, nextDrawing);
+        this.renderDrawing(nextDrawing);
+        this.positionDragChanged = true;
+      } else {
+        const pointerEpoch = (drawing.fromTimestamp ?? 0) / 1_000;
+        const deltaTimestamp = (currentEpoch - pointerEpoch) * 1_000;
+        const nextDrawing = moveCompletePositionRange(drawing, deltaTimestamp);
+        this.removeRenderedDrawing(drawing.id);
+        this.drawings.set(drawing.id, nextDrawing);
+        this.renderDrawing(nextDrawing);
+        this.positionDragChanged = true;
+      }
+      event.preventDefault();
+      return;
+    }
     if (this.draggedRangeBoundary && this.container) {
       const drawing = this.drawings.get(this.draggedRangeBoundary.drawingId);
       if (!drawing || drawing.type !== "volume-profile-range") {
@@ -1121,6 +1384,31 @@ export class LightweightChartsAdapter implements ChartAdapter {
       event.preventDefault();
       return;
     }
+    if (this.draggedPositionBoundary && this.container) {
+      const drawing = this.drawings.get(this.draggedPositionBoundary.drawingId);
+      if (!drawing || drawing.type !== "position") {
+        this.draggedPositionBoundary = null;
+        return;
+      }
+      const bounds = this.container.getBoundingClientRect();
+      const chartTime = this.timeAtCoordinate(
+        event.clientX - bounds.left,
+        bounds.width,
+      );
+      if (chartTime === null) return;
+      const timestamp = (this.snapToCandle(chartTime) ?? chartTime) * 1_000;
+      const nextDrawing = movePositionTimeBoundary(
+        drawing,
+        this.draggedPositionBoundary.boundary,
+        timestamp,
+      );
+      this.removeRenderedDrawing(drawing.id);
+      this.drawings.set(drawing.id, nextDrawing);
+      this.renderDrawing(nextDrawing);
+      this.positionDragChanged = true;
+      event.preventDefault();
+      return;
+    }
     if (!this.draggedPositionLevel || !this.container) return;
     const drawing = this.drawings.get(this.draggedPositionLevel.drawingId);
     if (!drawing || drawing.type !== "position") {
@@ -1144,7 +1432,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.removeRenderedDrawing(drawing.id);
     this.drawings.set(drawing.id, nextDrawing);
     this.renderDrawing(nextDrawing);
-    this.notifyDrawingsChange();
+    this.positionDragChanged = true;
     event.preventDefault();
   };
 
@@ -1174,6 +1462,46 @@ export class LightweightChartsAdapter implements ChartAdapter {
       this.setDrawingMode("pointer");
       event.preventDefault();
     }
+    if (this.pendingPositionGesture && this.container) {
+      const pending = this.pendingPositionGesture;
+      const bounds = this.container.getBoundingClientRect();
+      const finalPrice = this.requireSeries().coordinateToPrice(
+        event.clientY - bounds.top,
+      );
+      const chartTime = this.timeAtCoordinate(
+        event.clientX - bounds.left,
+        bounds.width,
+      );
+      const toTimestamp =
+        chartTime !== null
+          ? (this.snapToCandle(chartTime) ?? chartTime) * 1_000
+          : pending.fromTimestamp;
+      const drawing =
+        finalPrice !== null && Number.isFinite(finalPrice)
+          ? createPositionFromGesture({
+              id: pending.id,
+              direction: pending.direction,
+              entryPrice: pending.entryPrice,
+              currentPrice: finalPrice,
+              fromTimestamp: pending.fromTimestamp,
+              toTimestamp,
+              defaultRewardRiskRatio: this.positionSettings.defaultRewardRiskRatio,
+            })
+          : null;
+
+      this.clearPositionPreview();
+
+      if (drawing) {
+        this.addDrawing(drawing);
+      }
+      try {
+        this.container.releasePointerCapture?.(event.pointerId);
+      } catch {
+        // ignore
+      }
+      this.setDrawingMode("pointer");
+      event.preventDefault();
+    }
     if (
       this.rangeDragChanged &&
       (this.draggedRangeBoundary || this.draggedRangeBody)
@@ -1181,7 +1509,13 @@ export class LightweightChartsAdapter implements ChartAdapter {
       this.clearVpPreview();
       this.notifyDrawingsChange();
     }
+    if (this.positionDragChanged) {
+      this.notifyDrawingsChange();
+      this.positionDragChanged = false;
+    }
     this.draggedPositionLevel = null;
+    this.draggedPositionBoundary = null;
+    this.draggedPositionBody = null;
     this.draggedRangeBoundary = null;
     this.draggedRangeBody = null;
     this.rangeDragChanged = false;
@@ -1191,7 +1525,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     if (event.key !== "Escape") return;
     if (this.drawingMode !== "pointer") {
       this.pendingVolumeProfileRange = null;
-      this.clearPendingPosition();
+      this.clearPositionPreview();
       this.clearVpPreview();
       this.setDrawingMode("pointer");
     }
@@ -1205,11 +1539,26 @@ export class LightweightChartsAdapter implements ChartAdapter {
         this.setDrawingMode("pointer");
       }
     }
+    if (this.pendingPositionGesture !== null) {
+      this.clearPositionPreview();
+      if (
+        this.drawingMode === "long-position" ||
+        this.drawingMode === "short-position"
+      ) {
+        this.setDrawingMode("pointer");
+      }
+    }
     if (this.rangeDragChanged) {
       this.clearVpPreview();
       this.notifyDrawingsChange();
     }
+    if (this.positionDragChanged) {
+      this.notifyDrawingsChange();
+      this.positionDragChanged = false;
+    }
     this.draggedPositionLevel = null;
+    this.draggedPositionBoundary = null;
+    this.draggedPositionBody = null;
     this.draggedRangeBoundary = null;
     this.draggedRangeBody = null;
     this.rangeDragChanged = false;
@@ -1305,9 +1654,25 @@ export class LightweightChartsAdapter implements ChartAdapter {
 
   private renderPositionDrawing(drawing: PositionDrawing): void {
     const series = this.requireSeries();
-    const primitive = new PositionDrawingPrimitive(drawing);
+    const primitive = new PositionDrawingPrimitive(drawing, {
+      selected: this.selectedDrawingId === drawing.id,
+    });
     series.attachPrimitive(primitive);
     this.positionDrawingPrimitives.set(drawing.id, primitive);
+  }
+
+  private selectDrawing(id: string): void {
+    if (this.selectedDrawingId === id) {
+      this.positionDrawingPrimitives.get(id)?.setSelected(true);
+      return;
+    }
+    if (this.selectedDrawingId) {
+      this.positionDrawingPrimitives
+        .get(this.selectedDrawingId)
+        ?.setSelected(false);
+    }
+    this.selectedDrawingId = id;
+    this.positionDrawingPrimitives.get(id)?.setSelected(true);
   }
 
   private timeAtCoordinate(x: number, width: number): UTCTimestamp | null {
@@ -1327,81 +1692,6 @@ export class LightweightChartsAdapter implements ChartAdapter {
     return (visibleRange.from +
       (visibleRange.to - visibleRange.from) * ratio) as UTCTimestamp;
   }
-
-  private advancePositionCreation(
-    direction: PositionDirection,
-    price: number,
-    timestamp: number,
-  ): void {
-    const pending = this.pendingPosition;
-    if (!pending || pending.direction !== direction) {
-      this.clearPendingPosition();
-      this.pendingPosition = {
-        id: `drawing-${Date.now()}-${this.drawingSequence++}`,
-        direction,
-        entry: price,
-        createdAt: Date.now(),
-        fromTimestamp: timestamp,
-      };
-      this.pendingPositionLines.push(
-        this.requireSeries().createPriceLine({
-          price,
-          color: POSITION_COLORS.entry,
-          lineWidth: 2,
-          lineStyle: LineStyle.Solid,
-          axisLabelVisible: true,
-          title: `${direction.toUpperCase()} ENTRY · select SL`,
-        }),
-      );
-      return;
-    }
-
-    if (pending.stopLoss === undefined) {
-      const validStop =
-        direction === "long" ? price < pending.entry : price > pending.entry;
-      if (!validStop) return;
-      this.pendingPosition = { ...pending, stopLoss: price };
-      this.pendingPositionLines.push(
-        this.requireSeries().createPriceLine({
-          price,
-          color: POSITION_COLORS.stopLoss,
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: "SL · select TP",
-        }),
-      );
-      return;
-    }
-
-    const validTarget =
-      direction === "long" ? price > pending.entry : price < pending.entry;
-    if (!validTarget) return;
-    const drawing = createPositionDrawing({
-      id: pending.id,
-      direction,
-      entry: pending.entry,
-      stopLoss: pending.stopLoss,
-      takeProfit: price,
-      createdAt: pending.createdAt,
-      fromTimestamp: pending.fromTimestamp,
-      toTimestamp: timestamp,
-    });
-    this.clearPendingPosition();
-    this.addDrawing(drawing);
-    this.setDrawingMode("pointer");
-  }
-
-  private clearPendingPosition(): void {
-    if (this.series) {
-      for (const line of this.pendingPositionLines) {
-        this.series.removePriceLine(line);
-      }
-    }
-    this.pendingPositionLines = [];
-    this.pendingPosition = null;
-  }
-
   private notifyDrawingsChange(): void {
     const drawings = this.getDrawings();
     for (const listener of this.drawingsChangeListeners) listener(drawings);

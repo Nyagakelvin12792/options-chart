@@ -1,9 +1,16 @@
 "use client";
 
-import type { ChartDrawing } from "@options-chart/chart";
+import type { ChartDrawing, PositionDrawing } from "@options-chart/chart";
 import { Settings2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+import {
+  clampRewardRiskRatio,
+  DEFAULT_POSITION_TOOL_SETTINGS,
+  MAX_REWARD_RISK_RATIO,
+  MIN_REWARD_RISK_RATIO,
+  type PositionToolSettings,
+} from "@/lib/position-tool-settings";
 import {
   calculatePositionRisk,
   type PositionRiskResult,
@@ -12,6 +19,9 @@ import {
 
 interface RiskTerminalProps {
   readonly drawings: readonly ChartDrawing[];
+  readonly previewPosition?: PositionDrawing | null;
+  readonly settings?: PositionToolSettings;
+  readonly onSettingsChange?: (settings: PositionToolSettings) => void;
 }
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -120,7 +130,12 @@ function BudgetRow({
   );
 }
 
-export function RiskTerminal({ drawings }: RiskTerminalProps) {
+export function RiskTerminal({
+  drawings,
+  previewPosition = null,
+  settings,
+  onSettingsChange,
+}: RiskTerminalProps) {
   const [positionSide, setPositionSide] = useState<PositionSide>("long");
   const [balanceUsd, setBalanceUsd] = useState("10000");
   const [dailyLossLimitUsd, setDailyLossLimitUsd] = useState("300");
@@ -131,6 +146,41 @@ export function RiskTerminal({ drawings }: RiskTerminalProps) {
   const [entryPriceUsd, setEntryPriceUsd] = useState("68296.8");
   const [stopLossPriceUsd, setStopLossPriceUsd] = useState("67800");
   const [takeProfitPriceUsd, setTakeProfitPriceUsd] = useState("69300");
+
+  const defaultRr =
+    settings?.defaultRewardRiskRatio ??
+    DEFAULT_POSITION_TOOL_SETTINGS.defaultRewardRiskRatio;
+  const [rrInput, setRrInput] = useState(() => String(defaultRr));
+
+  useEffect(() => {
+    if (settings?.defaultRewardRiskRatio !== undefined) {
+      setRrInput(String(settings.defaultRewardRiskRatio));
+    }
+  }, [settings?.defaultRewardRiskRatio]);
+
+  const handleRrChange = (nextValue: string) => {
+    setRrInput(nextValue);
+    const parsed = Number(nextValue);
+    if (
+      Number.isFinite(parsed) &&
+      parsed >= MIN_REWARD_RISK_RATIO &&
+      parsed <= MAX_REWARD_RISK_RATIO
+    ) {
+      onSettingsChange?.({
+        defaultRewardRiskRatio: clampRewardRiskRatio(parsed),
+      });
+    }
+  };
+
+  const handleRrBlur = () => {
+    const parsed = Number(rrInput);
+    const clamped = clampRewardRiskRatio(parsed);
+    setRrInput(String(clamped));
+    if (clamped !== settings?.defaultRewardRiskRatio) {
+      onSettingsChange?.({ defaultRewardRiskRatio: clamped });
+    }
+  };
+
   const latestPosition = useMemo(
     () =>
       drawings
@@ -141,15 +191,16 @@ export function RiskTerminal({ drawings }: RiskTerminalProps) {
         .sort((left, right) => right.createdAt - left.createdAt)[0],
     [drawings],
   );
-  const effectiveSide = latestPosition?.direction ?? positionSide;
-  const effectiveEntry = latestPosition
-    ? toInputValue(latestPosition.entry)
+  const activePosition = previewPosition ?? latestPosition;
+  const effectiveSide = activePosition?.direction ?? positionSide;
+  const effectiveEntry = activePosition
+    ? toInputValue(activePosition.entry)
     : entryPriceUsd;
-  const effectiveStop = latestPosition
-    ? toInputValue(latestPosition.stopLoss)
+  const effectiveStop = activePosition
+    ? toInputValue(activePosition.stopLoss)
     : stopLossPriceUsd;
-  const effectiveTarget = latestPosition
-    ? toInputValue(latestPosition.takeProfit)
+  const effectiveTarget = activePosition
+    ? toInputValue(activePosition.takeProfit)
     : takeProfitPriceUsd;
 
   const riskResult = useMemo(
@@ -275,37 +326,55 @@ export function RiskTerminal({ drawings }: RiskTerminalProps) {
           ))}
         </div>
 
+        <label className="risk-field">
+          <span>Default R:R</span>
+          <span className="risk-input-wrap">
+            <input
+              type="number"
+              step="0.1"
+              min="0.25"
+              max="20"
+              value={rrInput}
+              onChange={(event) => handleRrChange(event.target.value)}
+              onBlur={handleRrBlur}
+            />
+            <small>R</small>
+          </span>
+        </label>
+
         <div className="risk-field-grid risk-trade-grid">
           <NumericField
             label="Entry"
             value={effectiveEntry}
             onChange={setEntryPriceUsd}
             suffix="$"
-            readOnly={Boolean(latestPosition)}
+            readOnly={Boolean(activePosition)}
           />
           <NumericField
             label="Stop-loss"
             value={effectiveStop}
             onChange={setStopLossPriceUsd}
             suffix="$"
-            readOnly={Boolean(latestPosition)}
+            readOnly={Boolean(activePosition)}
           />
           <NumericField
             label="Take-profit"
             value={effectiveTarget}
             onChange={setTakeProfitPriceUsd}
             suffix="$"
-            readOnly={Boolean(latestPosition)}
+            readOnly={Boolean(activePosition)}
           />
         </div>
 
         <p
-          className={`risk-detection-state state-${latestPosition ? "detected" : "idle"}`}
+          className={`risk-detection-state state-${activePosition ? "detected" : "idle"}`}
           aria-live="polite"
         >
-          {latestPosition
-            ? `${effectiveSide === "long" ? "Long" : "Short"} chart position synced`
-            : resultMessage(riskResult)}
+          {previewPosition
+            ? `${effectiveSide === "long" ? "Long" : "Short"} position preview syncing`
+            : latestPosition
+              ? `${effectiveSide === "long" ? "Long" : "Short"} chart position synced`
+              : resultMessage(riskResult)}
         </p>
 
         <dl className="risk-result-list">

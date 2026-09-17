@@ -3,6 +3,7 @@ export type {
   ChartAdapterDiagnostics,
   ChartDrawing,
   ChartDrawingMode,
+  ChartDrawingPreview,
   ChartHistoryOptions,
   ChartInitializeOptions,
   ChartVisibleRange,
@@ -17,8 +18,11 @@ export { LightweightChartsAdapter } from "./lightweight/lightweight-chart-adapte
 export { PositionDrawingPrimitive } from "./lightweight/position-drawing-primitive";
 export {
   createPositionDrawing,
+  createPositionFromGesture,
   isPositionDrawingOrderValid,
+  moveCompletePositionRange,
   movePositionDrawingLevel,
+  movePositionTimeBoundary,
   positionRewardRiskRatio,
   type PositionDrawingLevel,
 } from "./position-drawing";

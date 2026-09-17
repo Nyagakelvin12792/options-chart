@@ -210,20 +210,10 @@ test("anchors Volume Profile by drag and syncs explicit position levels to risk"
   ).toBe(1);
 
   await page.getByRole("button", { name: "Long position" }).click();
-  await chart.click({
-    position: { x: bounds.width * 0.42, y: bounds.height * 0.5 },
-  });
-  expect(
-    (
-      await evaluateChart<readonly { type?: string }[]>(page, "getDrawings")
-    ).filter((drawing) => drawing.type === "position").length,
-  ).toBe(0);
-  await chart.click({
-    position: { x: bounds.width * 0.52, y: bounds.height * 0.66 },
-  });
-  await chart.click({
-    position: { x: bounds.width * 0.68, y: bounds.height * 0.3 },
-  });
+  await page.mouse.move(bounds.x + bounds.width * 0.42, bounds.y + bounds.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.62, bounds.y + bounds.height * 0.65);
+  await page.mouse.up();
 
   await expect(page.getByText("Long chart position synced")).toBeVisible();
   await expect
@@ -234,18 +224,16 @@ test("anchors Volume Profile by drag and syncs explicit position levels to risk"
         ).filter((drawing) => drawing.type === "position").length,
     )
     .toBe(1);
+  await expect(
+    page.getByRole("button", { name: "Pointer and crosshair" }),
+  ).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Size limited by")).toBeVisible();
 
   await page.getByRole("button", { name: "Short position" }).click();
-  await chart.click({
-    position: { x: bounds.width * 0.44, y: bounds.height * 0.5 },
-  });
-  await chart.click({
-    position: { x: bounds.width * 0.54, y: bounds.height * 0.32 },
-  });
-  await chart.click({
-    position: { x: bounds.width * 0.72, y: bounds.height * 0.74 },
-  });
+  await page.mouse.move(bounds.x + bounds.width * 0.44, bounds.y + bounds.height * 0.5);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.64, bounds.y + bounds.height * 0.35);
+  await page.mouse.up();
 
   await expect(page.getByText("Short chart position synced")).toBeVisible();
   await expect
@@ -256,6 +244,9 @@ test("anchors Volume Profile by drag and syncs explicit position levels to risk"
         ).filter((drawing) => drawing.type === "position").length,
     )
     .toBe(2);
+  await expect(
+    page.getByRole("button", { name: "Pointer and crosshair" }),
+  ).toHaveAttribute("aria-pressed", "true");
 });
 
 test("keeps the chart-first layout stable at required desktop viewports", async ({
