@@ -1316,6 +1316,11 @@ export function DashboardClient({
       setDrawings(drawings);
       setDiagnostics(adapter.getDiagnostics());
     });
+
+    const unsubscribeDrawingMode = adapter.subscribeDrawingModeChange?.((mode) => {
+      setDrawingModeState(mode);
+    });
+
     const unsubscribeTimeSelection = adapter.subscribeTimeSelection(
       (timestamp) => {
         setAnchoredVwapSettings((current) =>
@@ -1327,7 +1332,6 @@ export function DashboardClient({
           }),
         );
         adapter.setDrawingMode("pointer");
-        setDrawingModeState("pointer");
       },
     );
     const scheduleOverlayRefresh = () => {
@@ -1382,6 +1386,7 @@ export function DashboardClient({
       }
       unsubscribeViewport();
       unsubscribeDrawings();
+      unsubscribeDrawingMode?.();
       unsubscribeTimeSelection();
       volumeProfileController.dispose();
       adapter.removeVolumeProfile?.("dashboard-volume-profile");

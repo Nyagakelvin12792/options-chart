@@ -1,7 +1,15 @@
-﻿import type { Candle } from "@options-chart/domain";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Candle } from "@options-chart/domain";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
+  const documentMock = {
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  };
+  (globalThis as any).document = documentMock as any;
+
   const state = {
     visibleRange: { from: 1_700_000_000, to: 1_700_003_600 },
     logicalRangeHandler: null as
