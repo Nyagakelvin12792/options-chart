@@ -1,8 +1,8 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.9.4
-Status: M10.8 native one-shot drawing tools and live Fixed Range Volume Profile preview integrated, verified, and pushed to main; Vercel verification pending; M9 observation evidence remains open
+Version: 0.9.5
+Status: M10.9 native single-gesture long/short position tools integrated and functionally verified; GitHub publication and Vercel verification pending; M9 observation evidence remains open
 Date: 2026-09-17
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
@@ -313,6 +313,15 @@ Do not calculate an unlabeled all-expiries Max Pain.
 - Render a live, autoscale-neutral range and provisional histogram while the range is dragged.
 - Keep a selected-range rail with draggable boundaries and whole-range movement while preserving ordinary chart panning outside the rail.
 - Preserve Volume Profile settings, replay cutoffs, risk synchronization, options calculations, wall calculations, and the single chart instance.
+
+## M10.9 Native single-gesture position interaction
+
+- Create long and short positions from one pointer drag: pointer-down fixes Entry, vertical movement explicitly sets either SL or TP, and the opposite level is derived from the saved default reward:risk ratio.
+- Use horizontal movement for the candle-snapped position time range, show an autoscale-neutral live preview, and return to the pointer after completion or cancellation.
+- Persist a validated default reward:risk ratio from 0.25R through 20R in the Risk Terminal and apply it to subsequent position gestures.
+- Synchronize the Risk Terminal from the transient position preview, then from the committed drawing, without changing account-risk, daily-loss, drawdown, leverage, or margin formulas.
+- Keep Entry, SL, TP, left/right time boundaries, and whole-range movement editable after creation while persisting one committed update per completed edit.
+- Preserve Volume Profile, Anchored VWAP, replay, wall, confluence, options, and staged-timeframe behavior behind the existing chart adapter.
 
 ## Historical Gamma
 
@@ -4268,7 +4277,7 @@ Initial history: up to 10,000 validated real candles
 History transport: REST pagination at no more than 1,000 bars per request
 Synthetic market fallback: prohibited
 Volume pane: no; preserve vertical space for price action
-Drawing tools: horizontal line, vertical line, fixed-range Volume Profile, Anchored VWAP, and explicit three-point long/short risk-reward drawings
+Drawing tools: horizontal line, vertical line, fixed-range Volume Profile, Anchored VWAP, and native single-gesture long/short risk-reward drawings
 Chart engine: Lightweight Charts
 Fallback chart interface: retained
 Fallback implementation: post-v0 unless required
