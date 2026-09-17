@@ -9,6 +9,7 @@ import {
   type ChartAdapterDiagnostics,
   type ChartDrawing,
   type ChartDrawingMode,
+  type ChartDrawingPreview,
   type ChartVisibleRange,
   type LevelSegment,
 } from "@options-chart/chart";
@@ -93,6 +94,11 @@ import {
   resolveAnchoredVwapAnchor,
   serializeAnchoredVwapSettings,
 } from "@/lib/anchored-vwap-settings";
+import {
+  loadPositionToolSettings,
+  savePositionToolSettings,
+  type PositionToolSettings,
+} from "@/lib/position-tool-settings";
 import {
   ConfluenceZoneOverlay,
   type PositionedWallConfluenceZone,
@@ -412,6 +418,19 @@ export function DashboardClient({
     useState<ChartDrawingMode>("pointer");
   const [drawingCount, setDrawingCount] = useState(0);
   const [drawings, setDrawings] = useState<readonly ChartDrawing[]>([]);
+  const [positionSettings, setPositionSettingsState] =
+    useState<PositionToolSettings>(() => loadPositionToolSettings());
+  const [drawingPreview, setDrawingPreview] =
+    useState<ChartDrawingPreview>(null);
+
+  const handlePositionSettingsChange = useCallback(
+    (newSettings: PositionToolSettings) => {
+      setPositionSettingsState(newSettings);
+      savePositionToolSettings(newSettings);
+      chartAdapterRef.current?.setPositionSettings?.(newSettings);
+    },
+    [],
+  );
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [diagnostics, setDiagnostics] =
     useState<ChartAdapterDiagnostics | null>(null);
@@ -1323,6 +1342,13 @@ export function DashboardClient({
       },
     );
 
+    const unsubscribePreview = adapter.subscribeDrawingPreviewChange?.(
+      (preview) => {
+        setDrawingPreview(preview);
+      },
+    );
+    adapter.setPositionSettings?.(positionSettings);
+
     const unsubscribeTimeSelection = adapter.subscribeTimeSelection(
       (timestamp) => {
         setAnchoredVwapSettings((current) =>
@@ -1388,6 +1414,7 @@ export function DashboardClient({
       unsubscribeViewport();
       unsubscribeDrawings();
       unsubscribeDrawingMode?.();
+      unsubscribePreview?.();
       unsubscribeTimeSelection();
       volumeProfileController.dispose();
       adapter.removeVolumeProfile?.("dashboard-volume-profile");
@@ -2940,7 +2967,14 @@ export function DashboardClient({
             </div>
           </div>
         </section>
-        <RiskTerminal drawings={drawings} />
+        <RiskTerminal
+          drawings={drawings}
+          previewPosition={
+            drawingPreview?.type === "position" ? drawingPreview.drawing : null
+          }
+          settings={positionSettings}
+          onSettingsChange={handlePositionSettingsChange}
+        />
       </div>
 
       <footer className="status-bar">

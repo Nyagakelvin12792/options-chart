@@ -60,6 +60,8 @@ export interface PositionDrawing extends ChartDrawingBase {
   readonly takeProfit: number;
   readonly fromTimestamp?: number;
   readonly toTimestamp?: number;
+  readonly selected?: boolean;
+  readonly hovered?: boolean;
 }
 
 export interface VolumeProfileRangeDrawing extends ChartDrawingBase {
@@ -95,11 +97,17 @@ export interface ChartAdapterDiagnostics {
   readonly lastError: string | null;
 }
 
-export type ChartDrawingPreview = {
-  readonly type: "volume-profile-range";
-  readonly fromTimestamp: number;
-  readonly toTimestamp: number;
-} | null;
+export type ChartDrawingPreview =
+  | {
+      readonly type: "volume-profile-range";
+      readonly fromTimestamp: number;
+      readonly toTimestamp: number;
+    }
+  | {
+      readonly type: "position";
+      readonly drawing: PositionDrawing;
+    }
+  | null;
 
 export interface ChartAdapter {
   readonly name: string;
@@ -137,6 +145,7 @@ export interface ChartAdapter {
   subscribeDrawingPreviewChange?(
     listener: (preview: ChartDrawingPreview) => void,
   ): () => void;
+  setPositionSettings?(settings: { readonly defaultRewardRiskRatio: number }): void;
   setVolumeProfile?(id: string, renderInput: VolumeProfileRenderInput): void;
   removeVolumeProfile?(id: string): void;
   setAnchoredVwap?(id: string, renderInput: AnchoredVwapRenderInput): void;
