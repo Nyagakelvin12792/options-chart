@@ -95,6 +95,12 @@ export interface ChartAdapterDiagnostics {
   readonly lastError: string | null;
 }
 
+export type ChartDrawingPreview = {
+  readonly type: "volume-profile-range";
+  readonly fromTimestamp: number;
+  readonly toTimestamp: number;
+} | null;
+
 export interface ChartAdapter {
   readonly name: string;
   readonly version: string;
@@ -125,6 +131,12 @@ export interface ChartAdapter {
     listener: (drawings: readonly ChartDrawing[]) => void,
   ): () => void;
   subscribeTimeSelection(listener: (timestamp: number) => void): () => void;
+  subscribeDrawingModeChange?(
+    listener: (mode: ChartDrawingMode) => void,
+  ): () => void;
+  subscribeDrawingPreviewChange?(
+    listener: (preview: ChartDrawingPreview) => void,
+  ): () => void;
   setVolumeProfile?(id: string, renderInput: VolumeProfileRenderInput): void;
   removeVolumeProfile?(id: string): void;
   setAnchoredVwap?(id: string, renderInput: AnchoredVwapRenderInput): void;

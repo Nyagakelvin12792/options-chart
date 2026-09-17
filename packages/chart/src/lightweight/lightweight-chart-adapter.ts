@@ -20,6 +20,7 @@ import type {
   ChartAdapterDiagnostics,
   ChartDrawing,
   ChartDrawingMode,
+  ChartDrawingPreview,
   ChartHistoryOptions,
   ChartInitializeOptions,
   ChartVisibleRange,
@@ -41,8 +42,14 @@ import type {
   LevelSegmentsPresentationOptions,
 } from "../level-segments/types";
 import { LevelSegmentsPrimitive } from "../level-segments/level-segments-primitive";
-import type { VolumeProfileRenderInput } from "../volume-profile/types";
+import type {
+  VolumeProfileInput,
+  VolumeProfileRenderInput,
+} from "../volume-profile/types";
 import { VolumeProfilePrimitive } from "../volume-profile/volume-profile-primitive";
+import { VolumeProfileController } from "../volume-profile/controller";
+import { VpPreviewPrimitive } from "../volume-profile/vp-preview-primitive";
+import type { VpPreviewState } from "../volume-profile/vp-preview-primitive";
 import { PositionDrawingPrimitive } from "./position-drawing-primitive";
 import { VerticalLinePrimitive } from "./vertical-line-primitive";
 
@@ -61,6 +68,7 @@ const POSITION_COLORS = {
   takeProfit: "#29b57a",
 } as const;
 const POSITION_DRAG_TOLERANCE_PX = 8;
+const VP_RANGE_MOVE_RAIL_HEIGHT_PX = 28;
 
 const toChartTimestamp = (timestamp: number): UTCTimestamp =>
   Math.floor(timestamp / 1_000) as UTCTimestamp;
@@ -91,6 +99,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
 
   private chart: IChartApi | null = null;
   private container: HTMLElement | null = null;
+  private ownerDocument: Document | null = null;
   private series: ISeriesApi<"Candlestick"> | null = null;
   private volumeSeries: ISeriesApi<"Histogram"> | null = null;
   private readonly levelLines = new Map<string, IPriceLine>();
@@ -126,6 +135,20 @@ export class LightweightChartsAdapter implements ChartAdapter {
   private readonly timeSelectionListeners = new Set<
     (timestamp: number) => void
   >();
+  private readonly drawingModeListeners = new Set<
+    (mode: ChartDrawingMode) => void
+  >();
+  private readonly drawingPreviewListeners = new Set<
+    (preview: ChartDrawingPreview) => void
+  >();
+  private candleTimestamps: number[] = [];
+  private rawCandles: Candle[] = [];
+  private vpPreviewPrimitive: VpPreviewPrimitive | null = null;
+  private vpSelectionPrimitive: VpPreviewPrimitive | null = null;
+  private vpPreviewController: VolumeProfileController | null = null;
+  private lastPreviewRange: { from: number; to: number } | null = null;
+  private queuedPreviewRange: { from: number; to: number } | null = null;
+  private vpPreviewRafHandle: number | null = null;
 
   private drawingMode: ChartDrawingMode = "pointer";
   private selectedDrawingId: string | null = null;
@@ -138,6 +161,13 @@ export class LightweightChartsAdapter implements ChartAdapter {
     readonly drawingId: string;
     readonly boundary: "fromTimestamp" | "toTimestamp";
   } | null = null;
+  private draggedRangeBody: {
+    readonly drawingId: string;
+    readonly pointerIndex: number;
+    readonly fromIndex: number;
+    readonly toIndex: number;
+  } | null = null;
+  private rangeDragChanged = false;
   private pendingVolumeProfileRange: {
     readonly id: string;
     readonly createdAt: number;
@@ -171,6 +201,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.initializedAt = Date.now();
     this.conflationEnabled = options.enableConflation ?? false;
     this.container = container;
+    this.ownerDocument = container.ownerDocument ?? document;
     this.chart = createChart(container, {
       width: options.width,
       height: options.height,
@@ -241,7 +272,8 @@ export class LightweightChartsAdapter implements ChartAdapter {
     container.addEventListener("pointerdown", this.handlePointerDown, true);
     container.addEventListener("pointermove", this.handlePointerMove, true);
     container.addEventListener("pointerup", this.handlePointerUp, true);
-    container.addEventListener("pointercancel", this.handlePointerUp, true);
+    container.addEventListener("pointercancel", this.handlePointerCancel, true);
+    this.ownerDocument.addEventListener("keydown", this.handleKeyDown, true);
     this.chart
       .timeScale()
       .subscribeVisibleLogicalRangeChange(this.handleLogicalRangeChange);
@@ -261,6 +293,12 @@ export class LightweightChartsAdapter implements ChartAdapter {
     });
     this.historyReplacementCount += 1;
     this.dataPointCount = candles.length;
+    this.rawCandles = [...candles].sort(
+      (left, right) => left.openTime - right.openTime,
+    );
+    this.candleTimestamps = this.rawCandles.map((candle) =>
+      Math.floor(candle.openTime / 1_000),
+    );
 
     if (preservedRange) {
       this.setVisibleRange(preservedRange);
@@ -275,6 +313,17 @@ export class LightweightChartsAdapter implements ChartAdapter {
       this.volumeSeries?.update(toChartVolume(candle));
     });
     this.realtimeUpdateCount += 1;
+    const epochSec = Math.floor(candle.openTime / 1_000);
+    const idx = this.binarySearchCandleIndex(epochSec);
+    if (
+      idx >= this.candleTimestamps.length ||
+      this.candleTimestamps[idx] !== epochSec
+    ) {
+      this.candleTimestamps.splice(idx, 0, epochSec);
+      this.rawCandles.splice(idx, 0, candle);
+    } else {
+      this.rawCandles[idx] = candle;
+    }
     this.dataPointCount = Math.max(this.dataPointCount, 1);
   }
 
@@ -406,12 +455,31 @@ export class LightweightChartsAdapter implements ChartAdapter {
     return () => this.viewportListeners.delete(listener);
   }
 
+  subscribeDrawingModeChange(
+    listener: (mode: ChartDrawingMode) => void,
+  ): () => void {
+    this.drawingModeListeners.add(listener);
+    return () => this.drawingModeListeners.delete(listener);
+  }
+
+  subscribeDrawingPreviewChange(
+    listener: (preview: ChartDrawingPreview) => void,
+  ): () => void {
+    this.drawingPreviewListeners.add(listener);
+    return () => this.drawingPreviewListeners.delete(listener);
+  }
+
   setDrawingMode(mode: ChartDrawingMode): void {
-    if (mode !== this.drawingMode) {
+    const changed = mode !== this.drawingMode;
+    if (changed) {
       this.clearPendingPosition();
       this.pendingVolumeProfileRange = null;
+      this.clearVpPreview();
     }
     this.drawingMode = mode;
+    if (changed) {
+      for (const l of this.drawingModeListeners) l(mode);
+    }
   }
 
   addDrawing(drawing: ChartDrawing): void {
@@ -439,6 +507,11 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.drawings.set(drawing.id, drawing);
     this.renderDrawing(drawing);
     this.selectedDrawingId = drawing.id;
+    if (drawing.type === "volume-profile-range") {
+      this.showSelectedVpRange(drawing);
+    } else {
+      this.clearSelectedVpRange();
+    }
     this.notifyDrawingsChange();
   }
 
@@ -446,7 +519,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
     if (!this.drawings.has(id)) return;
     this.removeRenderedDrawing(id);
     this.drawings.delete(id);
-    if (this.selectedDrawingId === id) this.selectedDrawingId = null;
+    if (this.selectedDrawingId === id) {
+      this.selectedDrawingId = null;
+      this.clearSelectedVpRange();
+    }
     this.notifyDrawingsChange();
   }
 
@@ -458,6 +534,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     for (const id of this.drawings.keys()) this.removeRenderedDrawing(id);
     this.drawings.clear();
     this.selectedDrawingId = null;
+    this.clearSelectedVpRange();
     this.notifyDrawingsChange();
   }
 
@@ -490,7 +567,9 @@ export class LightweightChartsAdapter implements ChartAdapter {
         (this.chart ? 2 : 0) +
         this.viewportListeners.size +
         this.drawingsChangeListeners.size +
-        this.timeSelectionListeners.size,
+        this.timeSelectionListeners.size +
+        this.drawingModeListeners.size +
+        this.drawingPreviewListeners.size,
       conflationEnabled: this.conflationEnabled,
       lastOperationDurationMs: this.lastOperationDurationMs,
       maxOperationDurationMs: this.maxOperationDurationMs,
@@ -534,9 +613,25 @@ export class LightweightChartsAdapter implements ChartAdapter {
     );
     this.container?.removeEventListener(
       "pointercancel",
-      this.handlePointerUp,
+      this.handlePointerCancel,
       true,
     );
+    this.ownerDocument?.removeEventListener(
+      "keydown",
+      this.handleKeyDown,
+      true,
+    );
+    if (this.vpPreviewRafHandle !== null) {
+      cancelAnimationFrame(this.vpPreviewRafHandle);
+      this.vpPreviewRafHandle = null;
+    }
+    this.candleTimestamps = [];
+    this.rawCandles = [];
+    this.queuedPreviewRange = null;
+    this.vpPreviewController?.dispose();
+    this.vpPreviewController = null;
+    this.drawingModeListeners.clear();
+    this.drawingPreviewListeners.clear();
     this.levelLines.clear();
     this.drawings.clear();
     this.horizontalDrawingLines.clear();
@@ -544,6 +639,14 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.volumeProfileRangePrimitives.clear();
     this.verticalDrawingPrimitives.clear();
     if (this.series) {
+      if (this.vpPreviewPrimitive) {
+        this.series.detachPrimitive(this.vpPreviewPrimitive);
+        this.vpPreviewPrimitive = null;
+      }
+      if (this.vpSelectionPrimitive) {
+        this.series.detachPrimitive(this.vpSelectionPrimitive);
+        this.vpSelectionPrimitive = null;
+      }
       if (this.levelSegmentsPrimitive) {
         this.series.detachPrimitive(this.levelSegmentsPrimitive);
         this.levelSegmentsPrimitive = null;
@@ -563,13 +666,164 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.chart?.remove();
     this.chart = null;
     this.container = null;
+    this.ownerDocument = null;
     this.series = null;
     this.volumeSeries = null;
     this.selectedDrawingId = null;
     this.draggedPositionLevel = null;
     this.draggedRangeBoundary = null;
+    this.draggedRangeBody = null;
     this.pendingVolumeProfileRange = null;
     this.clearPendingPosition();
+  }
+
+  private getOrCreateVpPreviewPrimitive(): VpPreviewPrimitive {
+    if (!this.vpPreviewPrimitive) {
+      this.vpPreviewPrimitive = new VpPreviewPrimitive();
+      this.requireSeries().attachPrimitive(this.vpPreviewPrimitive);
+    }
+    return this.vpPreviewPrimitive;
+  }
+
+  private getOrCreateVpSelectionPrimitive(): VpPreviewPrimitive {
+    if (!this.vpSelectionPrimitive) {
+      this.vpSelectionPrimitive = new VpPreviewPrimitive();
+      this.requireSeries().attachPrimitive(this.vpSelectionPrimitive);
+    }
+    return this.vpSelectionPrimitive;
+  }
+
+  private showSelectedVpRange(drawing: VolumeProfileRangeDrawing): void {
+    this.getOrCreateVpSelectionPrimitive().update({
+      fromEpoch: drawing.fromTimestamp / 1_000,
+      toEpoch: drawing.toTimestamp / 1_000,
+      selectionOnly: true,
+    });
+  }
+
+  private clearSelectedVpRange(): void {
+    this.vpSelectionPrimitive?.update(null);
+  }
+
+  private clearVpPreview(): void {
+    if (this.vpPreviewRafHandle !== null) {
+      cancelAnimationFrame(this.vpPreviewRafHandle);
+      this.vpPreviewRafHandle = null;
+    }
+    this.queuedPreviewRange = null;
+    if (this.vpPreviewPrimitive) {
+      this.vpPreviewPrimitive.update(null);
+    }
+    this.lastPreviewRange = null;
+    this.vpPreviewController?.dispose();
+    this.vpPreviewController = null;
+    for (const l of this.drawingPreviewListeners) l(null);
+  }
+
+  private scheduleVpPreview(fromEpoch: number, toEpoch: number): void {
+    this.queuedPreviewRange = { from: fromEpoch, to: toEpoch };
+    if (this.vpPreviewRafHandle !== null) return;
+    this.vpPreviewRafHandle = requestAnimationFrame(() => {
+      this.vpPreviewRafHandle = null;
+      const range = this.queuedPreviewRange;
+      this.queuedPreviewRange = null;
+      if (range) this.updateVpPreview(range.from, range.to);
+    });
+  }
+
+  private updateVpPreview(fromEpoch: number, toEpoch: number): void {
+    const rangeChanged =
+      !this.lastPreviewRange ||
+      this.lastPreviewRange.from !== fromEpoch ||
+      this.lastPreviewRange.to !== toEpoch;
+
+    if (!rangeChanged) return;
+    this.lastPreviewRange = { from: fromEpoch, to: toEpoch };
+
+    // Notify preview subscribers
+    const previewChange = {
+      type: "volume-profile-range" as const,
+      fromTimestamp: fromEpoch * 1_000,
+      toTimestamp: toEpoch * 1_000,
+    };
+    for (const l of this.drawingPreviewListeners) l(previewChange);
+
+    // Update primitive boundary visual immediately with current histogram (if any)
+    const primitive = this.getOrCreateVpPreviewPrimitive();
+    const currentResult =
+      this.vpPreviewController?.getCurrentResult() ?? undefined;
+    const previewState: VpPreviewState = {
+      fromEpoch,
+      toEpoch,
+      provisionalResult: currentResult ?? undefined,
+    };
+    primitive.update(previewState);
+
+    // Schedule debounced VP calculation (~16 updates/sec max)
+    const candles = this.rawCandles;
+    if (candles.length > 0) {
+      if (!this.vpPreviewController) {
+        this.vpPreviewController = new VolumeProfileController({
+          profileId: "__preview__",
+          debounceMs: 60,
+          maxDelayMs: 120,
+          onRender: (renderInput) => {
+            const p = this.vpPreviewPrimitive;
+            if (!p || !this.lastPreviewRange) return;
+            p.update({
+              fromEpoch: this.lastPreviewRange.from,
+              toEpoch: this.lastPreviewRange.to,
+              provisionalResult: renderInput.result,
+            });
+          },
+        });
+      }
+      const input: VolumeProfileInput = {
+        candles,
+        range: { from: fromEpoch * 1_000, to: toEpoch * 1_000 },
+        binConfig: { mode: "rowCount", rowCount: 50 },
+        sourceMetadata: {
+          exchange: "",
+          market: "",
+          symbol: "",
+          sourceTimeframe: "",
+          displayTimeframe: "",
+          volumeUnit: "base",
+          calculationVersion: "preview",
+        },
+      };
+      this.vpPreviewController.setInput(input);
+    }
+  }
+
+  private binarySearchCandleIndex(epochSec: number): number {
+    let lo = 0;
+    let hi = this.candleTimestamps.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      const midVal = this.candleTimestamps[mid];
+      if (midVal !== undefined && midVal < epochSec) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
+
+  private snapToCandle(epochSec: number): number | null {
+    const arr = this.candleTimestamps;
+    if (arr.length === 0) return null;
+    const idx = this.binarySearchCandleIndex(epochSec);
+    const first = arr[0];
+    const last = arr[arr.length - 1];
+    if (idx === 0) return first !== undefined ? first : null;
+    if (idx >= arr.length) return last !== undefined ? last : null;
+    const before = arr[idx - 1];
+    const after = arr[idx];
+    if (before === undefined || after === undefined) {
+      return before ?? after ?? null;
+    }
+    return Math.abs(epochSec - before) <= Math.abs(after - epochSec)
+      ? before
+      : after;
   }
 
   private readonly handleContainerClick = (event: MouseEvent): void => {
@@ -587,6 +841,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
       const price = this.requireSeries().coordinateToPrice(y);
       if (price !== null) {
         this.addDrawing({ id, type: "horizontal-line", price, createdAt });
+        this.setDrawingMode("pointer");
       }
       return;
     }
@@ -618,6 +873,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
       if (this.drawingMode === "anchored-vwap") {
         const timestamp = chartTime * 1_000;
         for (const listener of this.timeSelectionListeners) listener(timestamp);
+        this.setDrawingMode("pointer");
         return;
       }
       this.addDrawing({
@@ -626,6 +882,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
         timestamp: chartTime * 1_000,
         createdAt,
       });
+      this.setDrawingMode("pointer");
     }
   };
 
@@ -638,10 +895,11 @@ export class LightweightChartsAdapter implements ChartAdapter {
     if (this.drawingMode === "fixed-range-volume-profile") {
       const chartTime = this.timeAtCoordinate(x, bounds.width);
       if (chartTime === null) return;
+      const snapped = this.snapToCandle(chartTime) ?? chartTime;
       this.pendingVolumeProfileRange = {
         id: `drawing-${Date.now()}-${this.drawingSequence++}`,
         createdAt: Date.now(),
-        fromTimestamp: chartTime * 1_000,
+        fromTimestamp: snapped * 1_000,
       };
       this.container.setPointerCapture?.(event.pointerId);
       event.preventDefault();
@@ -673,13 +931,56 @@ export class LightweightChartsAdapter implements ChartAdapter {
       }
     }
     if (closestRange) {
+      const drawing = this.drawings.get(closestRange.drawingId);
       this.draggedRangeBoundary = {
         drawingId: closestRange.drawingId,
         boundary: closestRange.boundary,
       };
       this.selectedDrawingId = closestRange.drawingId;
+      this.rangeDragChanged = false;
+      if (drawing?.type === "volume-profile-range") {
+        this.showSelectedVpRange(drawing);
+      }
       event.preventDefault();
       return;
+    }
+
+    const selectedRange = this.selectedDrawingId
+      ? this.drawings.get(this.selectedDrawingId)
+      : undefined;
+    if (
+      selectedRange?.type === "volume-profile-range" &&
+      y <= VP_RANGE_MOVE_RAIL_HEIGHT_PX
+    ) {
+      const fromCoordinate = this.requireChart()
+        .timeScale()
+        .timeToCoordinate(toChartTimestamp(selectedRange.fromTimestamp));
+      const toCoordinate = this.requireChart()
+        .timeScale()
+        .timeToCoordinate(toChartTimestamp(selectedRange.toTimestamp));
+      const chartTime = this.timeAtCoordinate(x, bounds.width);
+      const snapped = chartTime === null ? null : this.snapToCandle(chartTime);
+      if (
+        fromCoordinate !== null &&
+        toCoordinate !== null &&
+        snapped !== null &&
+        x >= Math.min(fromCoordinate, toCoordinate) &&
+        x <= Math.max(fromCoordinate, toCoordinate)
+      ) {
+        this.draggedRangeBody = {
+          drawingId: selectedRange.id,
+          pointerIndex: this.binarySearchCandleIndex(snapped),
+          fromIndex: this.binarySearchCandleIndex(
+            selectedRange.fromTimestamp / 1_000,
+          ),
+          toIndex: this.binarySearchCandleIndex(
+            selectedRange.toTimestamp / 1_000,
+          ),
+        };
+        this.rangeDragChanged = false;
+        event.preventDefault();
+        return;
+      }
     }
     let closest:
       | {
@@ -712,10 +1013,71 @@ export class LightweightChartsAdapter implements ChartAdapter {
       level: closest.level,
     };
     this.selectedDrawingId = closest.drawingId;
+    this.clearSelectedVpRange();
     event.preventDefault();
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
+    if (this.pendingVolumeProfileRange && this.container) {
+      const bounds = this.container.getBoundingClientRect();
+      const chartTime = this.timeAtCoordinate(
+        event.clientX - bounds.left,
+        bounds.width,
+      );
+      if (chartTime !== null) {
+        const toEpoch = this.snapToCandle(chartTime) ?? chartTime;
+        const fromEpoch = this.pendingVolumeProfileRange.fromTimestamp / 1_000;
+        if (toEpoch !== fromEpoch) {
+          const normalFrom = Math.min(fromEpoch, toEpoch);
+          const normalTo = Math.max(fromEpoch, toEpoch);
+          this.scheduleVpPreview(normalFrom, normalTo);
+        }
+      }
+      event.preventDefault();
+      return;
+    }
+    if (this.draggedRangeBody && this.container) {
+      const drawing = this.drawings.get(this.draggedRangeBody.drawingId);
+      if (!drawing || drawing.type !== "volume-profile-range") {
+        this.draggedRangeBody = null;
+        return;
+      }
+      const bounds = this.container.getBoundingClientRect();
+      const chartTime = this.timeAtCoordinate(
+        event.clientX - bounds.left,
+        bounds.width,
+      );
+      const snapped = chartTime === null ? null : this.snapToCandle(chartTime);
+      if (snapped === null || this.candleTimestamps.length === 0) return;
+      const currentIndex = this.binarySearchCandleIndex(snapped);
+      const originalSpan =
+        this.draggedRangeBody.toIndex - this.draggedRangeBody.fromIndex;
+      const desiredFrom =
+        this.draggedRangeBody.fromIndex +
+        currentIndex -
+        this.draggedRangeBody.pointerIndex;
+      const fromIndex = Math.min(
+        Math.max(0, desiredFrom),
+        this.candleTimestamps.length - 1 - originalSpan,
+      );
+      const toIndex = fromIndex + originalSpan;
+      const fromEpoch = this.candleTimestamps[fromIndex];
+      const toEpoch = this.candleTimestamps[toIndex];
+      if (fromEpoch === undefined || toEpoch === undefined) return;
+      const nextDrawing: VolumeProfileRangeDrawing = {
+        ...drawing,
+        fromTimestamp: fromEpoch * 1_000,
+        toTimestamp: toEpoch * 1_000,
+      };
+      this.removeRenderedDrawing(drawing.id);
+      this.drawings.set(drawing.id, nextDrawing);
+      this.renderDrawing(nextDrawing);
+      this.showSelectedVpRange(nextDrawing);
+      this.scheduleVpPreview(fromEpoch, toEpoch);
+      this.rangeDragChanged = true;
+      event.preventDefault();
+      return;
+    }
     if (this.draggedRangeBoundary && this.container) {
       const drawing = this.drawings.get(this.draggedRangeBoundary.drawingId);
       if (!drawing || drawing.type !== "volume-profile-range") {
@@ -728,20 +1090,34 @@ export class LightweightChartsAdapter implements ChartAdapter {
         bounds.width,
       );
       if (chartTime === null) return;
-      const timestamp = chartTime * 1_000;
+      const timestamp = (this.snapToCandle(chartTime) ?? chartTime) * 1_000;
       const opposite =
         this.draggedRangeBoundary.boundary === "fromTimestamp"
           ? drawing.toTimestamp
           : drawing.fromTimestamp;
       if (timestamp === opposite) return;
+      const candidateFrom =
+        this.draggedRangeBoundary.boundary === "fromTimestamp"
+          ? timestamp
+          : drawing.fromTimestamp;
+      const candidateTo =
+        this.draggedRangeBoundary.boundary === "toTimestamp"
+          ? timestamp
+          : drawing.toTimestamp;
       const nextDrawing: VolumeProfileRangeDrawing = {
         ...drawing,
-        [this.draggedRangeBoundary.boundary]: timestamp,
+        fromTimestamp: Math.min(candidateFrom, candidateTo),
+        toTimestamp: Math.max(candidateFrom, candidateTo),
       };
       this.removeRenderedDrawing(drawing.id);
       this.drawings.set(drawing.id, nextDrawing);
       this.renderDrawing(nextDrawing);
-      this.notifyDrawingsChange();
+      this.showSelectedVpRange(nextDrawing);
+      this.scheduleVpPreview(
+        nextDrawing.fromTimestamp / 1_000,
+        nextDrawing.toTimestamp / 1_000,
+      );
+      this.rangeDragChanged = true;
       event.preventDefault();
       return;
     }
@@ -781,8 +1157,10 @@ export class LightweightChartsAdapter implements ChartAdapter {
       );
       const pending = this.pendingVolumeProfileRange;
       this.pendingVolumeProfileRange = null;
+      this.clearVpPreview();
       if (chartTime !== null) {
-        const toTimestamp = chartTime * 1_000;
+        const snapped = this.snapToCandle(chartTime);
+        const toTimestamp = (snapped ?? chartTime) * 1_000;
         if (toTimestamp !== pending.fromTimestamp) {
           this.addDrawing({
             ...pending,
@@ -793,10 +1171,48 @@ export class LightweightChartsAdapter implements ChartAdapter {
         }
       }
       this.container.releasePointerCapture?.(event.pointerId);
+      this.setDrawingMode("pointer");
       event.preventDefault();
+    }
+    if (
+      this.rangeDragChanged &&
+      (this.draggedRangeBoundary || this.draggedRangeBody)
+    ) {
+      this.clearVpPreview();
+      this.notifyDrawingsChange();
     }
     this.draggedPositionLevel = null;
     this.draggedRangeBoundary = null;
+    this.draggedRangeBody = null;
+    this.rangeDragChanged = false;
+  };
+
+  private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape") return;
+    if (this.drawingMode !== "pointer") {
+      this.pendingVolumeProfileRange = null;
+      this.clearPendingPosition();
+      this.clearVpPreview();
+      this.setDrawingMode("pointer");
+    }
+  };
+
+  private readonly handlePointerCancel = (): void => {
+    if (this.pendingVolumeProfileRange !== null) {
+      this.pendingVolumeProfileRange = null;
+      this.clearVpPreview();
+      if (this.drawingMode === "fixed-range-volume-profile") {
+        this.setDrawingMode("pointer");
+      }
+    }
+    if (this.rangeDragChanged) {
+      this.clearVpPreview();
+      this.notifyDrawingsChange();
+    }
+    this.draggedPositionLevel = null;
+    this.draggedRangeBoundary = null;
+    this.draggedRangeBody = null;
+    this.rangeDragChanged = false;
   };
 
   private readonly handleLogicalRangeChange = (
@@ -973,6 +1389,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     });
     this.clearPendingPosition();
     this.addDrawing(drawing);
+    this.setDrawingMode("pointer");
   }
 
   private clearPendingPosition(): void {
