@@ -2,7 +2,7 @@
 ## PROJECT_PLAN.md
 
 Version: 0.9.4
-Status: M10.8 native one-shot drawing tools and live Fixed Range Volume Profile preview integrated and locally verified; GitHub push and Vercel deployment pending; M9 observation evidence remains open
+Status: M10.8 native one-shot drawing tools and live Fixed Range Volume Profile preview integrated, verified, and pushed to main; Vercel verification pending; M9 observation evidence remains open
 Date: 2026-09-17
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  

@@ -3,9 +3,9 @@
 
 Version: 0.9.4
 Last updated: 2026-09-17
-Overall status: M0-M8 and M10.2-M10.8 complete locally; M10.8 GitHub/Vercel publication and M9 observation evidence remain open
-Current milestone: Publish and verify M10.8, then continue the native position and VWAP interaction batches
-Production status: DEPLOYED ON VERCEL AT `7cd98a7`; M10.8 is locally integrated at `1015be4` pending publication
+Overall status: M0-M8 and M10.2-M10.8 complete; M10.8 Vercel verification and M9 observation evidence remain open
+Current milestone: Verify the M10.8 Vercel deployment, then continue the native position and VWAP interaction batches
+Production status: DEPLOYED ON VERCEL AT `7cd98a7`; M10.8 was pushed to main through `d2b651e` and awaits deployment verification
 
 ---
 
@@ -46,7 +46,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Volume Profile | COMPLETE | Persistent settings plus a user-drawn, draggable fixed range deployed through `2ea42ca` |
 | External indicators | COMPLETE | Anchored VWAP is deployed through `740c66c` with persistent settings and a unified VP/AVWAP panel |
 | Chart refinement M10.7 | COMPLETE | Antigravity `b06593d` reviewed, integrated, pushed, and verified through the production alias at `7cd98a7` |
-| Native chart interactions M10.8 | COMPLETE LOCALLY - PUBLICATION PENDING | One-shot tools, candle-snapped VP preview, selected-range rail, and whole-range movement integrated at `1015be4` |
+| Native chart interactions M10.8 | COMPLETE - VERCEL VERIFICATION PENDING | One-shot tools, candle-snapped VP preview, selected-range rail, and whole-range movement pushed through `d2b651e` |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -740,7 +740,7 @@ Evidence:
 
 ## M10.8 Native One-Shot Tools and Fixed Range Volume Profile Preview
 
-Status: COMPLETE LOCALLY - GITHUB PUSH AND VERCEL DEPLOYMENT PENDING
+Status: COMPLETE - PUSHED TO MAIN, VERCEL VERIFICATION PENDING
 
 - [x] Review Antigravity commit `18d8496` without relying on its handoff claims.
 - [x] Centralize drawing-mode notifications in `ChartAdapter` and synchronize the toolbar from adapter state.
@@ -752,7 +752,8 @@ Status: COMPLETE LOCALLY - GITHUB PUSH AND VERCEL DEPLOYMENT PENDING
 - [x] Correct stale animation-frame coordinates, live-candle preview input, final endpoint snapping, preview cleanup, and deferred edit persistence found during review.
 - [x] Preserve existing GEX, walls, Max Pain, Gamma Flip, AVWAP calculations, replay, positions, Risk Terminal behavior, and timeframe loading.
 - [x] Pass 59 focused chart/VP tests, TypeScript validation, and the integrated browser VP/position workflow.
-- [ ] Push integrated main and verify the resulting Vercel deployment.
+- [x] Push the integrated implementation and documentation to GitHub main through `d2b651e`.
+- [ ] Verify the resulting Vercel deployment when the status endpoint is reachable.
 
 Evidence:
 
