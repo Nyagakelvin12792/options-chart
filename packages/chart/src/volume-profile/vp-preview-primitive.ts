@@ -5,13 +5,18 @@ import type {
   SeriesAttachedParameter,
   Time,
 } from "lightweight-charts";
-import type { VolumeProfilePresentationOptions, VolumeProfileResult, VolumeProfileRow } from "./types";
+import type {
+  VolumeProfilePresentationOptions,
+  VolumeProfileResult,
+  VolumeProfileRow,
+} from "./types";
 
 export interface VpPreviewState {
   readonly fromEpoch: number; // epoch-seconds
-  readonly toEpoch: number;   // epoch-seconds
+  readonly toEpoch: number; // epoch-seconds
   readonly provisionalResult?: VolumeProfileResult | undefined;
   readonly presentation?: VolumeProfilePresentationOptions | undefined;
+  readonly selectionOnly?: boolean | undefined;
 }
 
 interface ComputedPreviewRowCoords {
@@ -36,86 +41,120 @@ class VpPreviewPaneRenderer implements IPrimitivePaneRenderer {
     const fromX = this.getFromX();
     const toX = this.getToX();
 
-    target.useBitmapCoordinateSpace(({ context, horizontalPixelRatio, verticalPixelRatio, bitmapSize }) => {
-      context.save();
+    target.useBitmapCoordinateSpace(
+      ({ context, horizontalPixelRatio, verticalPixelRatio, bitmapSize }) => {
+        context.save();
 
-      // Draw range shading
-      if (fromX !== null && toX !== null) {
-        const x1 = Math.min(fromX, toX) * horizontalPixelRatio;
-        const x2 = Math.max(fromX, toX) * horizontalPixelRatio;
-        const w = Math.max(1, x2 - x1);
+        // Draw range shading
+        if (fromX !== null && toX !== null) {
+          const x1 = Math.min(fromX, toX) * horizontalPixelRatio;
+          const x2 = Math.max(fromX, toX) * horizontalPixelRatio;
+          const w = Math.max(1, x2 - x1);
 
-        context.fillStyle = "rgba(231, 184, 75, 0.08)";
-        context.fillRect(x1, 0, w, bitmapSize.height);
+          context.fillStyle = state.selectionOnly
+            ? "rgba(231, 184, 75, 0.025)"
+            : "rgba(231, 184, 75, 0.08)";
+          context.fillRect(x1, 0, w, bitmapSize.height);
 
-        // Left boundary
-        context.strokeStyle = "rgba(231, 184, 75, 0.7)";
-        context.lineWidth = Math.max(1, horizontalPixelRatio);
-        context.setLineDash([4 * horizontalPixelRatio, 3 * horizontalPixelRatio]);
-        context.beginPath();
-        context.moveTo(x1, 0);
-        context.lineTo(x1, bitmapSize.height);
-        context.stroke();
+          // Left boundary
+          context.strokeStyle = "rgba(231, 184, 75, 0.7)";
+          context.lineWidth = Math.max(1, horizontalPixelRatio);
+          context.setLineDash([
+            4 * horizontalPixelRatio,
+            3 * horizontalPixelRatio,
+          ]);
+          context.beginPath();
+          context.moveTo(x1, 0);
+          context.lineTo(x1, bitmapSize.height);
+          context.stroke();
 
-        // Right boundary
-        context.beginPath();
-        context.moveTo(x2, 0);
-        context.lineTo(x2, bitmapSize.height);
-        context.stroke();
-        context.setLineDash([]);
-      }
+          // Right boundary
+          context.beginPath();
+          context.moveTo(x2, 0);
+          context.lineTo(x2, bitmapSize.height);
+          context.stroke();
+          context.setLineDash([]);
 
-      // Draw provisional histogram (right-side, bounded within range)
-      const coords = this.getPreviewCoords();
-      const maxVol = this.getMaxVolume();
-      const presentation = state.presentation;
-      if (coords.length > 0 && maxVol > 0 && fromX !== null && toX !== null) {
-        const rangeLeft = Math.min(fromX, toX) * horizontalPixelRatio;
-        const rangeRight = Math.max(fromX, toX) * horizontalPixelRatio;
-        const maxBarWidth = rangeRight - rangeLeft;
-        const bullishColor = presentation?.bullishColor ?? "rgba(37, 169, 119, 0.55)";
-        const bearishColor = presentation?.bearishColor ?? "rgba(220, 83, 98, 0.55)";
-        const totalColor = presentation?.totalColor ?? "rgba(99, 102, 241, 0.55)";
-
-        context.globalAlpha = 0.6;
-        for (const item of coords) {
-          const y1 = Math.min(item.yTop, item.yBottom) * verticalPixelRatio;
-          const y2 = Math.max(item.yTop, item.yBottom) * verticalPixelRatio;
-          const h = Math.max(1 * verticalPixelRatio, y2 - y1);
-          if (y2 < 0 || y1 > bitmapSize.height) continue;
-
-          const row = item.row;
-          const barWidth = (row.totalVolume / maxVol) * maxBarWidth;
-          if (barWidth <= 0) continue;
-
-          const hasDirectional = row.bullishVolume + row.bearishVolume > 0;
-          if (hasDirectional) {
-            const bullW = (row.bullishVolume / maxVol) * maxBarWidth;
-            const bearW = (row.bearishVolume / maxVol) * maxBarWidth;
-            // Right-side placement
-            let cur = rangeRight;
-            if (bearW > 0) {
-              context.fillStyle = bearishColor;
-              context.fillRect(cur - bearW, y1, bearW, h);
-              cur -= bearW;
+          if (state.selectionOnly) {
+            const railY = 12 * verticalPixelRatio;
+            const radius =
+              4 * Math.max(horizontalPixelRatio, verticalPixelRatio);
+            context.strokeStyle = "rgba(231, 184, 75, 0.9)";
+            context.lineWidth = Math.max(1, verticalPixelRatio);
+            context.beginPath();
+            context.moveTo(x1, railY);
+            context.lineTo(x2, railY);
+            context.stroke();
+            context.fillStyle = "rgba(231, 184, 75, 0.95)";
+            for (const handleX of [x1, x2]) {
+              context.beginPath();
+              context.arc(handleX, railY, radius, 0, Math.PI * 2);
+              context.fill();
             }
-            if (bullW > 0) {
-              context.fillStyle = bullishColor;
-              context.fillRect(cur - bullW, y1, bullW, h);
-            }
-          } else {
-            context.fillStyle = totalColor;
-            context.fillRect(rangeRight - barWidth, y1, barWidth, h);
           }
         }
-        context.globalAlpha = 1.0;
 
-        // POC line in preview
-        // (poc coordinate computed in updateAllViews)
-      }
+        // Draw provisional histogram (right-side, bounded within range)
+        const coords = this.getPreviewCoords();
+        const maxVol = this.getMaxVolume();
+        const presentation = state.presentation;
+        if (
+          !state.selectionOnly &&
+          coords.length > 0 &&
+          maxVol > 0 &&
+          fromX !== null &&
+          toX !== null
+        ) {
+          const rangeLeft = Math.min(fromX, toX) * horizontalPixelRatio;
+          const rangeRight = Math.max(fromX, toX) * horizontalPixelRatio;
+          const maxBarWidth = rangeRight - rangeLeft;
+          const bullishColor =
+            presentation?.bullishColor ?? "rgba(37, 169, 119, 0.55)";
+          const bearishColor =
+            presentation?.bearishColor ?? "rgba(220, 83, 98, 0.55)";
+          const totalColor =
+            presentation?.totalColor ?? "rgba(99, 102, 241, 0.55)";
 
-      context.restore();
-    });
+          context.globalAlpha = 0.6;
+          for (const item of coords) {
+            const y1 = Math.min(item.yTop, item.yBottom) * verticalPixelRatio;
+            const y2 = Math.max(item.yTop, item.yBottom) * verticalPixelRatio;
+            const h = Math.max(1 * verticalPixelRatio, y2 - y1);
+            if (y2 < 0 || y1 > bitmapSize.height) continue;
+
+            const row = item.row;
+            const barWidth = (row.totalVolume / maxVol) * maxBarWidth;
+            if (barWidth <= 0) continue;
+
+            const hasDirectional = row.bullishVolume + row.bearishVolume > 0;
+            if (hasDirectional) {
+              const bullW = (row.bullishVolume / maxVol) * maxBarWidth;
+              const bearW = (row.bearishVolume / maxVol) * maxBarWidth;
+              // Right-side placement
+              let cur = rangeRight;
+              if (bearW > 0) {
+                context.fillStyle = bearishColor;
+                context.fillRect(cur - bearW, y1, bearW, h);
+                cur -= bearW;
+              }
+              if (bullW > 0) {
+                context.fillStyle = bullishColor;
+                context.fillRect(cur - bullW, y1, bullW, h);
+              }
+            } else {
+              context.fillStyle = totalColor;
+              context.fillRect(rangeRight - barWidth, y1, barWidth, h);
+            }
+          }
+          context.globalAlpha = 1.0;
+
+          // POC line in preview
+          // (poc coordinate computed in updateAllViews)
+        }
+
+        context.restore();
+      },
+    );
   }
 }
 
@@ -128,10 +167,20 @@ class VpPreviewPaneView implements IPrimitivePaneView {
     getPreviewCoords: () => readonly ComputedPreviewRowCoords[],
     getMaxVolume: () => number,
   ) {
-    this._renderer = new VpPreviewPaneRenderer(getState, getFromX, getToX, getPreviewCoords, getMaxVolume);
+    this._renderer = new VpPreviewPaneRenderer(
+      getState,
+      getFromX,
+      getToX,
+      getPreviewCoords,
+      getMaxVolume,
+    );
   }
-  zOrder(): "top" { return "top"; }
-  renderer(): VpPreviewPaneRenderer { return this._renderer; }
+  zOrder(): "top" {
+    return "top";
+  }
+  renderer(): VpPreviewPaneRenderer {
+    return this._renderer;
+  }
 }
 
 export class VpPreviewPrimitive implements ISeriesPrimitive<Time> {

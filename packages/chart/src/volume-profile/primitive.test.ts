@@ -184,7 +184,10 @@ describe("VolumeProfile Primitive & Adapter Integration", () => {
 
   it("cleans all attached volume profile primitives on adapter destroy", () => {
     adapter.setVolumeProfile("vp-1", dummyRenderInput);
-    adapter.setVolumeProfile("vp-2", { ...dummyRenderInput, profileId: "vp-2" });
+    adapter.setVolumeProfile("vp-2", {
+      ...dummyRenderInput,
+      profileId: "vp-2",
+    });
     expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(2);
 
     adapter.destroy();
@@ -240,9 +243,15 @@ describe("VolumeProfileController Lifecycle & Performance", () => {
     // 5 rapid updates in 50 ms
     controller.setInput(baseInput, false);
     vi.advanceTimersByTime(20);
-    controller.setInput({ ...baseInput, range: { from: 1000, to: 2500 } }, false);
+    controller.setInput(
+      { ...baseInput, range: { from: 1000, to: 2500 } },
+      false,
+    );
     vi.advanceTimersByTime(20);
-    controller.setInput({ ...baseInput, range: { from: 1000, to: 3000 } }, false);
+    controller.setInput(
+      { ...baseInput, range: { from: 1000, to: 3000 } },
+      false,
+    );
     vi.advanceTimersByTime(20);
 
     expect(renderSpy).toHaveBeenCalledTimes(0);

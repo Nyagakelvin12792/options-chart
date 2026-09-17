@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
     }),
   };
   (globalThis as any).document = documentMock as any;
-  
+
   if (typeof (globalThis as any).Element === "undefined") {
     (globalThis as any).Element = class Element {};
   }
@@ -68,9 +68,12 @@ const mocks = vi.hoisted(() => {
       }
     };
   }
-  
+
   if (typeof (globalThis as any).requestAnimationFrame === "undefined") {
-    (globalThis as any).requestAnimationFrame = vi.fn((cb: any) => { cb(); return 1; });
+    (globalThis as any).requestAnimationFrame = vi.fn((cb: any) => {
+      cb();
+      return 1;
+    });
     (globalThis as any).cancelAnimationFrame = vi.fn();
   }
 
@@ -80,12 +83,18 @@ const mocks = vi.hoisted(() => {
       ((range: { from: number; to: number }) => void) | null,
     containerClickHandler: null as EventListener | null,
     eventHandlers: {} as Record<string, EventListenerOrEventListenerObject[]>,
-    documentEventHandlers: {} as Record<string, EventListenerOrEventListenerObject[]>,
+    documentEventHandlers: {} as Record<
+      string,
+      EventListenerOrEventListenerObject[]
+    >,
   };
-  documentMock.addEventListener.mockImplementation((type: string, handler: EventListenerOrEventListenerObject) => {
-    if (!state.documentEventHandlers[type]) state.documentEventHandlers[type] = [];
-    state.documentEventHandlers[type].push(handler);
-  });
+  documentMock.addEventListener.mockImplementation(
+    (type: string, handler: EventListenerOrEventListenerObject) => {
+      if (!state.documentEventHandlers[type])
+        state.documentEventHandlers[type] = [];
+      state.documentEventHandlers[type].push(handler);
+    },
+  );
   const container = {
     addEventListener: vi.fn(
       (type: string, handler: EventListenerOrEventListenerObject) => {
@@ -377,7 +386,7 @@ describe("LightweightChartsAdapter", () => {
         toTimestamp: 1_700_003_600_000,
       }),
     ]);
-    expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(2);
+    expect(mocks.candleSeries.attachPrimitive).toHaveBeenCalledTimes(3);
     adapter.removeDrawing("vp-range");
     expect(mocks.candleSeries.detachPrimitive).toHaveBeenCalledTimes(2);
   });
@@ -406,7 +415,12 @@ describe("LightweightChartsAdapter", () => {
 });
 
 const makePointerEvent = (type: string, x = 100, y = 200) =>
-  new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, bubbles: true });
+  new PointerEvent(type, {
+    clientX: x,
+    clientY: y,
+    pointerId: 1,
+    bubbles: true,
+  });
 
 describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
   const initialize = () => {
@@ -430,12 +444,14 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
       makeCandle(1_700_003_600_000),
     ]);
     adapter.setDrawingMode("fixed-range-volume-profile");
-    
-    mocks.timeScale.coordinateToTime.mockReturnValueOnce(1_700_000_000).mockReturnValueOnce(1_700_003_600);
+
+    mocks.timeScale.coordinateToTime
+      .mockReturnValueOnce(1_700_000_000)
+      .mockReturnValueOnce(1_700_003_600);
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
     mocks.container.dispatchEvent(makePointerEvent("pointermove", 200, 200));
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
-    
+
     const drawings = adapter.getDrawings();
     expect(drawings).toHaveLength(1);
     expect(drawings[0]?.type).toBe("volume-profile-range");
@@ -445,29 +461,35 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     const adapter = initialize();
     adapter.setHistory([makeCandle(1_700_000_000_000)]);
     adapter.setDrawingMode("fixed-range-volume-profile");
-    
+
     const spy = vi.fn();
     adapter.subscribeDrawingModeChange?.(spy);
-    
+
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
-    
+
     expect(spy).toHaveBeenCalledWith("pointer");
   });
 
   it("Test 3 — Subsequent drag does not create another VP", () => {
     const adapter = initialize();
-    adapter.setHistory([makeCandle(1_700_000_000_000)]);
+    adapter.setHistory([
+      makeCandle(1_700_000_000_000),
+      makeCandle(1_700_003_600_000),
+    ]);
     adapter.setDrawingMode("fixed-range-volume-profile");
-    
+
+    mocks.timeScale.coordinateToTime
+      .mockReturnValueOnce(1_700_000_000)
+      .mockReturnValueOnce(1_700_003_600);
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
-    
+
     expect(adapter.getDrawings()).toHaveLength(1);
-    
+
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 300, 200));
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 400, 200));
-    
+
     expect(adapter.getDrawings()).toHaveLength(1);
   });
 
@@ -475,17 +497,17 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     const adapter = initialize();
     const spy = vi.fn();
     const unsub = adapter.subscribeDrawingModeChange?.(spy);
-    
+
     adapter.setDrawingMode("horizontal-line");
     expect(spy).toHaveBeenCalledWith("horizontal-line");
-    
+
     adapter.setDrawingMode("horizontal-line");
     expect(spy).toHaveBeenCalledTimes(1);
-    
+
     adapter.setDrawingMode("pointer");
     expect(spy).toHaveBeenCalledWith("pointer");
     expect(spy).toHaveBeenCalledTimes(2);
-    
+
     unsub?.();
     adapter.setDrawingMode("horizontal-line");
     expect(spy).toHaveBeenCalledTimes(2);
@@ -494,12 +516,12 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
   it("Test 5 — H-line completion returns to pointer", () => {
     const adapter = initialize();
     adapter.setDrawingMode("horizontal-line");
-    
+
     const spy = vi.fn();
     adapter.subscribeDrawingModeChange?.(spy);
-    
+
     mocks.state.containerClickHandler?.(new MouseEvent("click"));
-    
+
     expect(spy).toHaveBeenCalledWith("pointer");
     expect(adapter.getDrawings()).toHaveLength(1);
     expect(adapter.getDrawings()[0]?.type).toBe("horizontal-line");
@@ -508,12 +530,12 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
   it("Test 6 — V-line completion returns to pointer", () => {
     const adapter = initialize();
     adapter.setDrawingMode("vertical-line");
-    
+
     const spy = vi.fn();
     adapter.subscribeDrawingModeChange?.(spy);
-    
+
     mocks.state.containerClickHandler?.(new MouseEvent("click"));
-    
+
     expect(spy).toHaveBeenCalledWith("pointer");
     expect(adapter.getDrawings()).toHaveLength(1);
     expect(adapter.getDrawings()[0]?.type).toBe("vertical-line");
@@ -522,14 +544,14 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
   it("Test 7 — AVWAP completion returns to pointer", () => {
     const adapter = initialize();
     adapter.setDrawingMode("anchored-vwap");
-    
+
     const modeSpy = vi.fn();
     adapter.subscribeDrawingModeChange?.(modeSpy);
     const timeSpy = vi.fn();
     adapter.subscribeTimeSelection(timeSpy);
-    
+
     mocks.state.containerClickHandler?.(new MouseEvent("click"));
-    
+
     expect(modeSpy).toHaveBeenCalledWith("pointer");
     expect(timeSpy).toHaveBeenCalled();
   });
@@ -537,17 +559,17 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
   it("Test 8 — Position 3-point completion returns to pointer", () => {
     const adapter = initialize();
     adapter.setDrawingMode("long-position");
-    
+
     const modeSpy = vi.fn();
     adapter.subscribeDrawingModeChange?.(modeSpy);
-    
+
     mocks.candleSeries.coordinateToPrice.mockReturnValueOnce(60000);
     mocks.state.containerClickHandler?.(new MouseEvent("click"));
     mocks.candleSeries.coordinateToPrice.mockReturnValueOnce(59000);
     mocks.state.containerClickHandler?.(new MouseEvent("click"));
     mocks.candleSeries.coordinateToPrice.mockReturnValueOnce(61000);
     mocks.state.containerClickHandler?.(new MouseEvent("click"));
-    
+
     expect(adapter.getDrawings()).toHaveLength(1);
     expect(adapter.getDrawings()[0]?.type).toBe("position");
     expect(modeSpy).toHaveBeenCalledWith("pointer");
@@ -556,13 +578,15 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
   it("Test 9 — Escape cancels VP pending state", () => {
     const adapter = initialize();
     adapter.setDrawingMode("fixed-range-volume-profile");
-    
+
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
-    
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    
+
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
-    
+
     expect(adapter.getDrawings()).toHaveLength(0);
     const spy = vi.fn();
     adapter.subscribeDrawingModeChange?.(spy);
@@ -572,12 +596,12 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     const adapter = initialize();
     adapter.setDrawingMode("fixed-range-volume-profile");
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
-    
+
     const spy = vi.fn();
     adapter.subscribeDrawingModeChange?.(spy);
-    
+
     mocks.container.dispatchEvent(makePointerEvent("pointercancel", 100, 200));
-    
+
     expect(spy).toHaveBeenCalledWith("pointer");
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
     expect(adapter.getDrawings()).toHaveLength(0);
@@ -587,10 +611,10 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     const adapter = initialize();
     adapter.setDrawingMode("fixed-range-volume-profile");
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
-    
+
     adapter.setDrawingMode("horizontal-line");
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
-    
+
     expect(adapter.getDrawings()).toHaveLength(0);
   });
 
@@ -601,16 +625,73 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
       makeCandle(1_700_003_600_000),
     ]);
     adapter.setDrawingMode("fixed-range-volume-profile");
-    
+
     mocks.timeScale.coordinateToTime.mockReturnValueOnce(1_700_001_800);
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
-    
+
     mocks.timeScale.coordinateToTime.mockReturnValueOnce(1_700_003_600);
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
-    
-    const drawing = adapter.getDrawings()[0] as VolumeProfileRangeDrawing | undefined;
+
+    const drawing = adapter.getDrawings()[0] as
+      VolumeProfileRangeDrawing | undefined;
     expect(drawing).toBeDefined();
-    expect([1_700_000_000_000, 1_700_003_600_000]).toContain(drawing?.fromTimestamp);
+    expect([1_700_000_000_000, 1_700_003_600_000]).toContain(
+      drawing?.fromTimestamp,
+    );
+    expect(drawing?.toTimestamp).toBe(1_700_003_600_000);
+  });
+
+  it("moves the complete selected VP range from its top rail", () => {
+    const adapter = initialize();
+    const times = [1_700_000_000, 1_700_003_600, 1_700_007_200, 1_700_010_800];
+    adapter.setHistory(times.map((time) => makeCandle(time * 1_000)));
+    adapter.addDrawing({
+      id: "vp-move",
+      type: "volume-profile-range",
+      fromTimestamp: times[0]! * 1_000,
+      toTimestamp: times[2]! * 1_000,
+      createdAt: 1,
+    });
+    mocks.timeScale.timeToCoordinate.mockImplementation((...args: unknown[]) =>
+      Number(args[0]) === times[0] ? 100 : 300,
+    );
+    mocks.timeScale.coordinateToTime.mockImplementation((...args: unknown[]) =>
+      Number(args[0]) < 250 ? times[1]! : times[2]!,
+    );
+
+    mocks.container.dispatchEvent(makePointerEvent("pointerdown", 200, 12));
+    mocks.container.dispatchEvent(makePointerEvent("pointermove", 300, 12));
+    mocks.container.dispatchEvent(makePointerEvent("pointerup", 300, 12));
+
+    expect(adapter.getDrawings()[0]).toEqual(
+      expect.objectContaining({
+        fromTimestamp: times[1]! * 1_000,
+        toTimestamp: times[3]! * 1_000,
+      }),
+    );
+  });
+
+  it("clears an active VP preview when another tool is selected", () => {
+    const adapter = initialize();
+    adapter.setHistory([
+      makeCandle(1_700_000_000_000),
+      makeCandle(1_700_003_600_000),
+    ]);
+    const previewSpy = vi.fn();
+    adapter.subscribeDrawingPreviewChange?.(previewSpy);
+    adapter.setDrawingMode("fixed-range-volume-profile");
+    mocks.timeScale.coordinateToTime.mockImplementation((...args: unknown[]) =>
+      Number(args[0]) < 150 ? 1_700_000_000 : 1_700_003_600,
+    );
+
+    mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+    mocks.container.dispatchEvent(makePointerEvent("pointermove", 200, 200));
+    adapter.setDrawingMode("horizontal-line");
+
+    expect(previewSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "volume-profile-range" }),
+    );
+    expect(previewSpy).toHaveBeenLastCalledWith(null);
   });
 
   it("Test 13 — Reverse-direction drag normalizes range", () => {
@@ -620,14 +701,15 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
       makeCandle(1_700_003_600_000),
     ]);
     adapter.setDrawingMode("fixed-range-volume-profile");
-    
+
     mocks.timeScale.coordinateToTime.mockReturnValueOnce(1_700_003_600);
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 300, 200));
-    
+
     mocks.timeScale.coordinateToTime.mockReturnValueOnce(1_700_000_000);
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 200));
-    
-    const drawing = adapter.getDrawings()[0] as VolumeProfileRangeDrawing | undefined;
+
+    const drawing = adapter.getDrawings()[0] as
+      VolumeProfileRangeDrawing | undefined;
     expect(drawing).toBeDefined();
     expect(drawing!.fromTimestamp).toBeLessThan(drawing!.toTimestamp);
   });
@@ -643,19 +725,22 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
       type: "volume-profile-range",
       fromTimestamp: 1_700_000_000_000,
       toTimestamp: 1_700_003_600_000,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     });
     adapter.setDrawingMode("pointer");
-    
+
     mocks.timeScale.timeToCoordinate.mockReturnValue(120);
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 120, 200));
     mocks.timeScale.coordinateToTime.mockReturnValueOnce(1_700_001_800);
     mocks.container.dispatchEvent(makePointerEvent("pointermove", 150, 200));
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 150, 200));
-    
-    const drawing = adapter.getDrawings()[0] as VolumeProfileRangeDrawing | undefined;
+
+    const drawing = adapter.getDrawings()[0] as
+      VolumeProfileRangeDrawing | undefined;
     expect(drawing).toBeDefined();
-    expect([1_700_000_000_000, 1_700_003_600_000]).toContain(drawing?.fromTimestamp);
+    expect([1_700_000_000_000, 1_700_003_600_000]).toContain(
+      drawing?.fromTimestamp,
+    );
   });
 
   it("Test 15 — Adapter destroy removes listeners", () => {
@@ -664,9 +749,9 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     const drawSpy = vi.fn();
     adapter.subscribeDrawingModeChange?.(modeSpy);
     adapter.subscribeDrawingsChange(drawSpy);
-    
+
     adapter.destroy();
-    
+
     expect(() => adapter.setDrawingMode("horizontal-line")).not.toThrow();
     expect(modeSpy).not.toHaveBeenCalled();
     expect(drawSpy).not.toHaveBeenCalled();
@@ -675,15 +760,17 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
   it("Test 16 — Escape cancels long-position pending", () => {
     const adapter = initialize();
     adapter.setDrawingMode("long-position");
-    
+
     mocks.candleSeries.coordinateToPrice.mockReturnValueOnce(60000);
     mocks.state.containerClickHandler?.(new MouseEvent("click"));
-    
+
     const modeSpy = vi.fn();
     adapter.subscribeDrawingModeChange?.(modeSpy);
-    
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-    
+
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+
     expect(adapter.getDrawings()).toHaveLength(0);
     expect(modeSpy).toHaveBeenCalledWith("pointer");
   });
@@ -692,13 +779,13 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
     const adapter = initialize();
     adapter.setHistory([makeCandle(1_700_000_000_000)]);
     adapter.setDrawingMode("fixed-range-volume-profile");
-    
+
     const beforeCount = mocks.timeScale.setVisibleRange.mock.calls.length;
-    
+
     mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
     mocks.container.dispatchEvent(makePointerEvent("pointermove", 150, 200));
     mocks.container.dispatchEvent(makePointerEvent("pointerup", 200, 200));
-    
+
     const afterCount = mocks.timeScale.setVisibleRange.mock.calls.length;
     expect(afterCount).toBe(beforeCount);
   });
@@ -706,16 +793,22 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
   it("Test 18 — Existing drawings survive setHistory", () => {
     const adapter = initialize();
     adapter.addDrawing({
-      id: "h1", type: "horizontal-line", price: 60000, createdAt: 1
+      id: "h1",
+      type: "horizontal-line",
+      price: 60000,
+      createdAt: 1,
     });
     adapter.addDrawing({
-      id: "v1", type: "vertical-line", timestamp: 1_700_000_000_000, createdAt: 2
+      id: "v1",
+      type: "vertical-line",
+      timestamp: 1_700_000_000_000,
+      createdAt: 2,
     });
-    
+
     expect(adapter.getDrawings()).toHaveLength(2);
-    
+
     adapter.setHistory([makeCandle(1_700_000_000_000)]);
-    
+
     expect(adapter.getDrawings()).toHaveLength(2);
   });
 });

@@ -1317,9 +1317,11 @@ export function DashboardClient({
       setDiagnostics(adapter.getDiagnostics());
     });
 
-    const unsubscribeDrawingMode = adapter.subscribeDrawingModeChange?.((mode) => {
-      setDrawingModeState(mode);
-    });
+    const unsubscribeDrawingMode = adapter.subscribeDrawingModeChange?.(
+      (mode) => {
+        setDrawingModeState(mode);
+      },
+    );
 
     const unsubscribeTimeSelection = adapter.subscribeTimeSelection(
       (timestamp) => {
@@ -1331,7 +1333,6 @@ export function DashboardClient({
             manualTimestamp: timestamp,
           }),
         );
-        adapter.setDrawingMode("pointer");
       },
     );
     const scheduleOverlayRefresh = () => {

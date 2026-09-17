@@ -195,6 +195,20 @@ test("anchors Volume Profile by drag and syncs explicit position levels to risk"
     )
     .toBe(1);
 
+  await expect(
+    page.getByRole("button", { name: "Pointer and crosshair" }),
+  ).toHaveAttribute("aria-pressed", "true");
+
+  await page.mouse.move(bounds.x + bounds.width * 0.35, bounds.y + 240);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width * 0.55, bounds.y + 240);
+  await page.mouse.up();
+  expect(
+    (
+      await evaluateChart<readonly { type?: string }[]>(page, "getDrawings")
+    ).filter((drawing) => drawing.type === "volume-profile-range").length,
+  ).toBe(1);
+
   await page.getByRole("button", { name: "Long position" }).click();
   await chart.click({
     position: { x: bounds.width * 0.42, y: bounds.height * 0.5 },

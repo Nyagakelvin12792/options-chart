@@ -24,12 +24,16 @@ const mockSeries = {
 describe("VpPreviewPrimitive", () => {
   it("update(null) — paneViews() returns views but renderer draws nothing", () => {
     const primitive = new VpPreviewPrimitive();
-    primitive.attached({ chart: mockChart, series: mockSeries, requestUpdate: vi.fn() } as any);
-    
+    primitive.attached({
+      chart: mockChart,
+      series: mockSeries,
+      requestUpdate: vi.fn(),
+    } as any);
+
     primitive.update(null);
     const views = primitive.paneViews();
     expect(views).toBeInstanceOf(Array);
-    
+
     const renderer = views[0]?.renderer();
     if (renderer) {
       const ctx = {
@@ -49,7 +53,7 @@ describe("VpPreviewPrimitive", () => {
         horizontalPixelRatio: 1,
         verticalPixelRatio: 1,
         bitmapSize: { width: 100, height: 100 },
-        mediaSize: { width: 100, height: 100 }
+        mediaSize: { width: 100, height: 100 },
       } as any);
       expect(ctx.fill).not.toHaveBeenCalled();
     }
@@ -58,8 +62,12 @@ describe("VpPreviewPrimitive", () => {
   it("update({ fromEpoch, toEpoch }) with no provisionalResult — renders overlay only", () => {
     const primitive = new VpPreviewPrimitive();
     const requestUpdate = vi.fn();
-    primitive.attached({ chart: mockChart, series: mockSeries, requestUpdate } as any);
-    
+    primitive.attached({
+      chart: mockChart,
+      series: mockSeries,
+      requestUpdate,
+    } as any);
+
     primitive.update({ fromEpoch: 1_700_000_000, toEpoch: 1_700_003_600 });
     expect(requestUpdate).toHaveBeenCalled();
   });
@@ -67,8 +75,12 @@ describe("VpPreviewPrimitive", () => {
   it("update({ fromEpoch, toEpoch, provisionalResult: mockResult }) — previewCoords computed", () => {
     const primitive = new VpPreviewPrimitive();
     const requestUpdate = vi.fn();
-    primitive.attached({ chart: mockChart, series: mockSeries, requestUpdate } as any);
-    
+    primitive.attached({
+      chart: mockChart,
+      series: mockSeries,
+      requestUpdate,
+    } as any);
+
     primitive.update({
       fromEpoch: 1_700_000_000,
       toEpoch: 1_700_003_600,
@@ -80,19 +92,23 @@ describe("VpPreviewPrimitive", () => {
         valueAreaLow: 59000,
         valueAreaHigh: 61000,
         bins: [],
-        rows: []
-      } as any
+        rows: [],
+      } as any,
     });
-    
+
     expect(requestUpdate).toHaveBeenCalled();
   });
 
   it("After detached(), state is cleared", () => {
     const primitive = new VpPreviewPrimitive();
     const requestUpdate = vi.fn();
-    primitive.attached({ chart: mockChart, series: mockSeries, requestUpdate } as any);
+    primitive.attached({
+      chart: mockChart,
+      series: mockSeries,
+      requestUpdate,
+    } as any);
     primitive.update({ fromEpoch: 1, toEpoch: 2 });
-    
+
     primitive.detached();
     expect(() => primitive.paneViews()).not.toThrow();
   });
