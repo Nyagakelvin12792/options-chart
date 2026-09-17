@@ -3,9 +3,9 @@
 
 Version: 0.9.5
 Last updated: 2026-09-17
-Overall status: M0-M8 and M10.2-M10.9 complete and pushed to main; M10.9 Vercel verification and M9 observation evidence remain open
-Current milestone: Verify the M10.9 Vercel deployment, then continue the native AVWAP interaction batch
-Production status: DEPLOYED ON VERCEL AT `7cd98a7`; M10.9 was pushed to main through `39761d7` and awaits deployment verification
+Overall status: M0-M8 and M10.2-M10.9 complete, pushed to main, and deployed; M9 observation evidence remains open
+Current milestone: Continue with the native AVWAP interaction batch
+Production status: M10.9 DEPLOYED AND VERIFIED through GitHub main `cb37892` and Vercel deployment `AMLqXkgxG5GLkvEao6puNxdMn3hY`
 
 ---
 
@@ -47,7 +47,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | External indicators | COMPLETE | Anchored VWAP is deployed through `740c66c` with persistent settings and a unified VP/AVWAP panel |
 | Chart refinement M10.7 | COMPLETE | Antigravity `b06593d` reviewed, integrated, pushed, and verified through the production alias at `7cd98a7` |
 | Native chart interactions M10.8 | COMPLETE - VERCEL VERIFICATION PENDING | One-shot tools, candle-snapped VP preview, selected-range rail, and whole-range movement pushed through `d2b651e` |
-| Native position interactions M10.9 | COMPLETE - VERCEL VERIFICATION PENDING | Single-gesture long/short creation, live Risk Terminal preview, persistent default R:R, and post-creation editing pushed through `39761d7` |
+| Native position interactions M10.9 | COMPLETE - DEPLOYED AND VERIFIED | Single-gesture long/short creation, live Risk Terminal preview, persistent default R:R, and post-creation editing deployed at `options-chart-upload.vercel.app` |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -742,7 +742,7 @@ Evidence:
 
 ## M10.8 Native One-Shot Tools and Fixed Range Volume Profile Preview
 
-Status: COMPLETE - PUSHED TO MAIN, VERCEL VERIFICATION PENDING
+Status: COMPLETE - DEPLOYED AND VERIFIED
 
 - [x] Review Antigravity commit `18d8496` without relying on its handoff claims.
 - [x] Centralize drawing-mode notifications in `ChartAdapter` and synchronize the toolbar from adapter state.
@@ -783,7 +783,7 @@ Status: COMPLETE - PUSHED TO MAIN, VERCEL VERIFICATION PENDING
 - [x] Pass 72 focused position/chart tests, TypeScript validation, targeted lint, and whitespace validation.
 - [x] Pass the production build and integrated browser position workflow.
 - [x] Push the reviewed integration and documentation to GitHub main.
-- [ ] Verify the resulting Vercel production deployment.
+- [x] Verify the resulting Vercel production deployment.
 
 Evidence:
 
@@ -795,8 +795,8 @@ Evidence:
 - Production build passed with Next.js 16.3.3.
 - Integrated Chromium workflow passed: Fixed Range VP, long and short one-drag positions, Risk Terminal synchronization, and automatic pointer reset.
 - Full functional suite: 63 files and 432 tests passed. The sole failure was the unchanged AVWAP 10,000-candle timing assertion on the resource-constrained machine; an isolated rerun measured 233.82 ms against a 100 ms threshold while the cache test passed.
-- GitHub main accepted the reviewed implementation and documentation through `39761d7`.
-- Vercel verification remains pending because the authenticated CLI could not reach the Vercel API from the current network sandbox.
+- GitHub main accepted the implementation through `39761d7` and the publication-status documentation through `cb37892`.
+- Vercel CLI deployment `AMLqXkgxG5GLkvEao6puNxdMn3hY` completed successfully and updated the `https://options-chart-upload.vercel.app` production alias.
 
 ---
 

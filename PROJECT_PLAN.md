@@ -2,7 +2,7 @@
 ## PROJECT_PLAN.md
 
 Version: 0.9.5
-Status: M10.9 native single-gesture long/short position tools integrated, functionally verified, and pushed to main; Vercel verification pending; M9 observation evidence remains open
+Status: M10.9 native single-gesture long/short position tools integrated, verified, pushed to main, and deployed to Vercel; M9 observation evidence remains open
 Date: 2026-09-17
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
