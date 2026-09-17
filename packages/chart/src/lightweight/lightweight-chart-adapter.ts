@@ -65,6 +65,8 @@ const LEVEL_COLORS: Readonly<Record<GammaLevel["kind"], string>> = {
 
 const USER_DRAWING_COLOR = "#f2c14e";
 const POSITION_DRAG_TOLERANCE_PX = 8;
+const MIN_POSITION_REWARD_RISK_RATIO = 0.25;
+const MAX_POSITION_REWARD_RISK_RATIO = 20;
 const VP_RANGE_MOVE_RAIL_HEIGHT_PX = 28;
 
 const toChartTimestamp = (timestamp: number): UTCTimestamp =>
@@ -489,7 +491,13 @@ export class LightweightChartsAdapter implements ChartAdapter {
       settings.defaultRewardRiskRatio > 0
     ) {
       this.positionSettings = {
-        defaultRewardRiskRatio: settings.defaultRewardRiskRatio,
+        defaultRewardRiskRatio: Math.min(
+          Math.max(
+            settings.defaultRewardRiskRatio,
+            MIN_POSITION_REWARD_RISK_RATIO,
+          ),
+          MAX_POSITION_REWARD_RISK_RATIO,
+        ),
       };
     }
   }
@@ -529,9 +537,9 @@ export class LightweightChartsAdapter implements ChartAdapter {
     }
 
     this.removeRenderedDrawing(drawing.id);
+    this.selectDrawing(drawing.id);
     this.drawings.set(drawing.id, drawing);
     this.renderDrawing(drawing);
-    this.selectedDrawingId = drawing.id;
     if (drawing.type === "volume-profile-range") {
       this.showSelectedVpRange(drawing);
     } else {
@@ -984,7 +992,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
         drawingId: closestRange.drawingId,
         boundary: closestRange.boundary,
       };
-      this.selectedDrawingId = closestRange.drawingId;
+      this.selectDrawing(closestRange.drawingId);
       this.rangeDragChanged = false;
       if (drawing?.type === "volume-profile-range") {
         this.showSelectedVpRange(drawing);
@@ -1076,7 +1084,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
         boundary: closestPositionBoundary.boundary,
       };
       this.positionDragChanged = false;
-      this.selectedDrawingId = closestPositionBoundary.drawingId;
+      this.selectDrawing(closestPositionBoundary.drawingId);
       event.preventDefault();
       return;
     }
@@ -1127,7 +1135,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
             ),
           };
           this.positionDragChanged = false;
-          this.selectedDrawingId = drawing.id;
+          this.selectDrawing(drawing.id);
           event.preventDefault();
           return;
         }
@@ -1164,7 +1172,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
       drawingId: closest.drawingId,
       level: closest.level,
     };
-    this.selectedDrawingId = closest.drawingId;
+    this.selectDrawing(closest.drawingId);
     this.clearSelectedVpRange();
     event.preventDefault();
   };
@@ -1424,7 +1432,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.removeRenderedDrawing(drawing.id);
     this.drawings.set(drawing.id, nextDrawing);
     this.renderDrawing(nextDrawing);
-    this.notifyDrawingsChange();
+    this.positionDragChanged = true;
     event.preventDefault();
   };
 
@@ -1485,8 +1493,6 @@ export class LightweightChartsAdapter implements ChartAdapter {
 
       if (drawing) {
         this.addDrawing(drawing);
-        this.selectedDrawingId = drawing.id;
-        this.notifyDrawingsChange();
       }
       try {
         this.container.releasePointerCapture?.(event.pointerId);
@@ -1655,6 +1661,20 @@ export class LightweightChartsAdapter implements ChartAdapter {
     this.positionDrawingPrimitives.set(drawing.id, primitive);
   }
 
+  private selectDrawing(id: string): void {
+    if (this.selectedDrawingId === id) {
+      this.positionDrawingPrimitives.get(id)?.setSelected(true);
+      return;
+    }
+    if (this.selectedDrawingId) {
+      this.positionDrawingPrimitives
+        .get(this.selectedDrawingId)
+        ?.setSelected(false);
+    }
+    this.selectedDrawingId = id;
+    this.positionDrawingPrimitives.get(id)?.setSelected(true);
+  }
+
   private timeAtCoordinate(x: number, width: number): UTCTimestamp | null {
     const timeScale = this.requireChart().timeScale();
     const direct = timeScale.coordinateToTime(x);
@@ -1672,8 +1692,6 @@ export class LightweightChartsAdapter implements ChartAdapter {
     return (visibleRange.from +
       (visibleRange.to - visibleRange.from) * ratio) as UTCTimestamp;
   }
-
-
   private notifyDrawingsChange(): void {
     const drawings = this.getDrawings();
     for (const listener of this.drawingsChangeListeners) listener(drawings);

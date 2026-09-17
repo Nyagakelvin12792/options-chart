@@ -1470,6 +1470,73 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
       expect(afterCount).toBe(beforeCount);
     });
 
+    it("commits a completed position to subscribers exactly once", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setDrawingMode("long-position");
+      const drawingsSpy = vi.fn();
+      adapter.subscribeDrawingsChange(drawingsSpy);
+
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(59_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 150, 300));
+
+      expect(drawingsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("persists an edited position once when the drag completes", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.addDrawing({
+        id: "position-edit-notification",
+        type: "position",
+        direction: "long",
+        entry: 60_000,
+        stopLoss: 58_000,
+        takeProfit: 64_000,
+        createdAt: 1,
+      });
+      const drawingsSpy = vi.fn();
+      adapter.subscribeDrawingsChange(drawingsSpy);
+      mocks.candleSeries.priceToCoordinate.mockImplementation((price: number) =>
+        price === 58_000 ? 300 : 200,
+      );
+      mocks.candleSeries.coordinateToPrice.mockReturnValue(57_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 300));
+      mocks.container.dispatchEvent(makePointerEvent("pointermove", 100, 340));
+
+      expect(drawingsSpy).not.toHaveBeenCalled();
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 100, 340));
+
+      expect(drawingsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("clamps adapter position settings to the supported R:R range", () => {
+      const adapter = initialize();
+      adapter.setHistory([makeCandle(1_700_000_000_000)]);
+      adapter.setPositionSettings?.({ defaultRewardRiskRatio: 100 });
+      adapter.setDrawingMode("long-position");
+      mocks.candleSeries.coordinateToPrice
+        .mockReturnValueOnce(60_000)
+        .mockReturnValueOnce(59_000);
+      mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
+
+      mocks.container.dispatchEvent(makePointerEvent("pointerdown", 100, 200));
+      mocks.container.dispatchEvent(makePointerEvent("pointerup", 150, 300));
+
+      const position = adapter.getDrawings()[0];
+      expect(position?.type).toBe("position");
+      if (position?.type === "position") {
+        expect(position.takeProfit).toBe(80_000);
+      }
+    });
+
     it("Requirement 22: Existing VP and AVWAP tests remain green", () => {
       const adapter = initialize();
       adapter.setHistory([
