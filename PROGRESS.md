@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.5
-Last updated: 2026-09-17
-Overall status: M0-M8 and M10.2-M10.9 complete, pushed to main, and deployed; M9 observation evidence remains open
-Current milestone: Continue with the native AVWAP interaction batch
+Version: 0.9.8
+Last updated: 2026-09-23
+Overall status: M0-M8 and M10.2-M10.9 deployed; M11 work is paused with sequence parity, live collector observation, and M9 evidence open
+Current milestone: PAUSED during M11.2 at the sequence-string parity checkpoint
 Production status: M10.9 DEPLOYED AND VERIFIED through GitHub main `cb37892` and Vercel deployment `AMLqXkgxG5GLkvEao6puNxdMn3hY`
 
 ---
@@ -48,6 +48,8 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Chart refinement M10.7 | COMPLETE | Antigravity `b06593d` reviewed, integrated, pushed, and verified through the production alias at `7cd98a7` |
 | Native chart interactions M10.8 | COMPLETE - VERCEL VERIFICATION PENDING | One-shot tools, candle-snapped VP preview, selected-range rail, and whole-range movement pushed through `d2b651e` |
 | Native position interactions M10.9 | COMPLETE - DEPLOYED AND VERIFIED | Single-gesture long/short creation, live Risk Terminal preview, persistent default R:R, and post-creation editing deployed at `options-chart-upload.vercel.app` |
+| JEV and Cryptofeed architecture M11.1 | APPROVED - DOCUMENTATION ONLY | Lean signal stack, staged collector, typed decisions, narration, replay, calibration, and paper-ledger contracts approved; runtime remains disabled |
+| Cryptofeed shadow collector M11.2 | PAUSED - ONE STATIC PARITY ISSUE | Most strict parser probes pass; Python rejects arbitrary sequence strings accepted by TypeScript, and bounded live evidence remains |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -112,6 +114,9 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-054 | Anchored VWAP uses Binance candle volume, strict replay cutoffs, direct chart anchors, and a shared settings surface while remaining independent from options calculations | ACCEPTED |
 | ADR-055 | drawing tools are native one-shot interactions owned by ChartAdapter; Fixed Range Volume Profile previews and edits use candle-snapped transient state without changing options or risk formulas | ACCEPTED |
 | ADR-056 | native long/short positions use one drag gesture, persistent bounded default R:R, transient risk preview, and commit-on-release edit persistence | ACCEPTED |
+| ADR-057 | Cryptofeed is an optional persistent shadow collector and cannot replace authoritative production feeds without parity, gap, stale, and replay evidence | ACCEPTED |
+| ADR-058 | JEV is an optional typed semantic decision provider behind deterministic health and risk checks; it cannot calculate or enlarge numeric risk | ACCEPTED |
+| ADR-059 | A general-purpose LLM may narrate converged evidence but cannot calculate signals, alter decisions, or change numeric risk | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -800,6 +805,34 @@ Evidence:
 
 ---
 
+## M11.1 JEV and Cryptofeed Integration Architecture
+
+Status: APPROVED - DOCUMENTATION ONLY
+
+- [x] Reviewed QuantDinger's worker, risk-gate, audit, and decision-boundary patterns.
+- [x] Preserved existing Binance, Deribit, formula, chart-adapter, and risk contracts.
+- [x] Defined a persistent Cryptofeed shadow-collector boundary outside ordinary Vercel requests.
+- [x] Defined versioned market-event, decision-context, and assessment contracts.
+- [x] Restricted JEV to typed semantic assessment behind deterministic checks.
+- [x] Defined stale-result cancellation, fail-closed required mode, replay calibration, and paper-ledger gates.
+- [x] Kept live execution, private exchange credentials, and recurring hosted infrastructure out of scope.
+- [x] Product owner approved proceeding with the staged architecture on 2026-09-22.
+- [x] Limited the primary decision surface to structure, location, flow, options regime, and trade quality.
+- [x] Restricted the LLM to concise narration after deterministic convergence.
+
+Evidence:
+
+- Architecture: `docs/architecture/JEV_CRYPTOFEED_INTEGRATION.md`.
+- Journal: `docs/progress/M11/M11.1.md`.
+- No production code, dependency, formula, or deployment change was made.
+
+Implementation plan:
+
+- `docs/implementation/M11_MARKET_INTELLIGENCE_IMPLEMENTATION_PLAN.md`
+- `docs/progress/M11/M11.2.md`
+
+---
+
 # 6. Validation Scoreboard
 
 Do not change a status to PASS without test evidence.
@@ -1047,6 +1080,17 @@ Mitigation:
 ---
 
 # 10. Change Log
+
+## 2026-09-22
+
+### M11.1-JEV-CRYPTOFEED-INTEGRATION-ARCHITECTURE
+
+- Added a staged architecture that uses Cryptofeed for optional normalized market-event collection and JEV for optional typed semantic assessment.
+- Kept Binance candles, Deribit options, validated calculations, risk sizing, and protective behavior deterministic and authoritative.
+- Defined shadow, replay, calibration, and paper-trade promotion gates before any user-facing decision authority.
+- Recorded QuantDinger and `jev-trader` as architectural references rather than application dependencies.
+- Product owner approved the architecture, accepted ADR-057 through ADR-059, and selected GPT-5.5 for routine implementation with GPT-5.6 reserved for high-risk reviews.
+- Added the staged M11.2-M11.8 implementation plan, explicit repository ownership, promotion gates, analysis-panel contract, and token controls.
 
 Use newest entries first.
 
@@ -1625,7 +1669,9 @@ This prevents agents from repeatedly replacing each other's implementations.
 2. Capture M9.7 high-volatility, M9.8 quiet, and M9.9 near-expiry session evidence.
 3. Complete the M9.10 24-hour browser stability run.
 4. Freeze v1 formulas only after the observation gates pass, then complete the `v1.0.0` release tag.
-5. Preserve independent wall signals, compact chart markers, and risk-terminal isolation in subsequent UI refinements.
+5. Implement M11.2 locally in shadow mode without changing production feeds.
+6. Record schema-parity, replay, gap, stale, duplicate, reconnect, and bounded live-session evidence before beginning M11.3.
+7. Preserve independent wall signals, compact chart markers, and risk-terminal isolation in subsequent UI refinements.
 
 ---
 

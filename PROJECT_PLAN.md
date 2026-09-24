@@ -1,9 +1,9 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.9.5
-Status: M10.9 native single-gesture long/short position tools integrated, verified, pushed to main, and deployed to Vercel; M9 observation evidence remains open
-Date: 2026-09-17
+Version: 0.9.8
+Status: PAUSED during M11.2; sequence-string parity and bounded live observation remain open
+Date: 2026-09-23
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
 Production scope: Read-only market analytics. No order execution. No private exchange credentials.
@@ -322,6 +322,21 @@ Do not calculate an unlabeled all-expiries Max Pain.
 - Synchronize the Risk Terminal from the transient position preview, then from the committed drawing, without changing account-risk, daily-loss, drawdown, leverage, or margin formulas.
 - Keep Entry, SL, TP, left/right time boundaries, and whole-range movement editable after creation while persisting one committed update per completed edit.
 - Preserve Volume Profile, Anchored VWAP, replay, wall, confluence, options, and staged-timeframe behavior behind the existing chart adapter.
+
+## M11 JEV and Cryptofeed research track
+
+- M11 is an optional post-validation extension governed by `docs/architecture/JEV_CRYPTOFEED_INTEGRATION.md`.
+- Cryptofeed may collect normalized public trades and order books in local shadow mode, but cannot replace authoritative Binance candles or Deribit options without parity and reliability evidence.
+- JEV may provide typed semantic assessments only after deterministic data-health, trade-geometry, and account-risk checks.
+- JEV cannot calculate numeric levels, position size, Greeks, GEX, confluence, or account limits, and cannot increase deterministic risk.
+- AI provider credentials remain server-side. Ordinary Vercel request handlers do not own persistent collector or trading loops.
+- M11 remains read-only or paper-only; live execution and private exchange credentials are out of scope.
+- Promotion requires replay without future leakage, deterministic-baseline comparison, probability calibration, stale-result rejection, and product-owner approval.
+- The user-facing decision surface stays deliberately compact: market structure, location, order flow, options regime, and trade quality.
+- A general-purpose LLM may narrate an already converged assessment, but it cannot change classifications, prices, risk, or execution state.
+- The approved delivery and verification plan is `docs/implementation/M11_MARKET_INTELLIGENCE_IMPLEMENTATION_PLAN.md`.
+- M11.2 final review cleared storage, replay, schema generation, shutdown, and observability but found strict Python parser divergence; that correction and the bounded live Cryptofeed observation remain before milestone exit.
+- CVD, absorption, JEV, narration, UI changes, and production deployment are excluded from M11.2.
 
 ## Historical Gamma
 

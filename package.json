@@ -29,6 +29,8 @@
     "capture:deribit": "tsx tools/capture-fixtures/capture-deribit.ts",
     "verify:parity": "tsx scripts/verify-parity.ts",
     "test:parity": "tsx scripts/verify-parity.ts",
+    "schemas:market-events:check": "tsx scripts/sync-market-event-schemas.mts",
+    "schemas:market-events:write": "tsx scripts/sync-market-event-schemas.mts --write",
     "test:python": "python tools/reference-python/test_black_scholes.py && python tools/reference-python/test_gamma_reference.py && python tools/reference-python/test_max_pain.py",
     "verify:deribit-live": "vitest run --config vitest.live.config.ts",
     "verify:trading-readiness-live": "vitest run --config vitest.live.config.ts tests/live/trading-readiness.live.ts",

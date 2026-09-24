@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://options-chart.local/schemas/market-event-v1.json",
+  "title": "MarketEventV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "venue",
+    "symbol",
+    "instrumentType",
+    "channel",
+    "exchangeTimestampMs",
+    "receiptTimestampMs",
+    "sequence",
+    "payload",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "market-event-v1" },
+    "eventId": {
+      "type": "string",
+      "pattern": "^market-event-v1:[0-9a-f]{16}$"
+    },
+    "venue": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "symbol": { "type": "string", "minLength": 1 },
+    "instrumentType": { "enum": ["spot", "perpetual", "future", "option"] },
+    "channel": {
+      "enum": [
+        "trade",
+        "l1-book",
+        "l2-book",
+        "open-interest",
+        "funding",
+        "liquidation",
+        "index"
+      ]
+    },
+    "exchangeTimestampMs": {
+      "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
+    },
+    "receiptTimestampMs": { "type": "integer", "minimum": 0 },
+    "sequence": {
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string" },
+        { "type": "null" }
+      ]
+    },
+    "payload": true,
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collector",
+        "collectorVersion",
+        "connectionId",
+        "recordedAtMs"
+      ],
+      "properties": {
+        "collector": { "const": "cryptofeed" },
+        "collectorVersion": { "type": "string", "minLength": 1 },
+        "connectionId": { "type": "string", "minLength": 1 },
+        "recordedAtMs": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "venue": { "const": "binance" },
+          "instrumentType": { "const": "spot" },
+          "channel": { "const": "trade" }
+        },
+        "required": ["venue", "instrumentType", "channel"]
+      },
+      "then": {
+        "required": ["payload"],
+        "properties": {
+          "payload": { "$ref": "#/$defs/binanceSpotTradePayloadV1" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "venue": { "const": "binance" },
+          "instrumentType": { "const": "spot" },
+          "channel": { "const": "l2-book" }
+        },
+        "required": ["venue", "instrumentType", "channel"]
+      },
+      "then": {
+        "required": ["payload"],
+        "properties": {
+          "payload": { "$ref": "#/$defs/binanceSpotL2BookPayloadV1" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sequence": {
+      "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "string" }]
+    },
+    "nullableSequence": {
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string" },
+        { "type": "null" }
+      ]
+    },
+    "decimalString": {
+      "type": "string",
+      "pattern": "^(?!\\s*$)[+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?$"
+    },
+    "binanceSpotTradePayloadV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "tradeId",
+        "price",
+        "quantity",
+        "tradeTimestampMs",
+        "takerSide"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "binance-spot-trade-payload-v1" },
+        "tradeId": { "$ref": "#/$defs/nullableSequence" },
+        "price": { "$ref": "#/$defs/decimalString" },
+        "quantity": { "$ref": "#/$defs/decimalString" },
+        "tradeTimestampMs": {
+          "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }]
+        },
+        "takerSide": { "enum": ["buy", "sell", null] },
+        "isBuyerMaker": { "type": "boolean" }
+      }
+    },
+    "binanceSpotL2BookLevel": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "$ref": "#/$defs/decimalString" },
+        { "$ref": "#/$defs/decimalString" }
+      ]
+    },
+    "binanceSpotL2BookPayloadV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "updateType", "sequence", "bids", "asks"],
+      "properties": {
+        "schemaVersion": { "const": "binance-spot-l2-book-payload-v1" },
+        "updateType": { "enum": ["snapshot", "delta"] },
+        "sequence": { "$ref": "#/$defs/nullableSequence" },
+        "previousSequence": { "$ref": "#/$defs/nullableSequence" },
+        "bids": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/binanceSpotL2BookLevel" }
+        },
+        "asks": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/binanceSpotL2BookLevel" }
+        }
+      }
+    }
+  }
+}
