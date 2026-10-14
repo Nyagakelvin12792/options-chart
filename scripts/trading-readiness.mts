@@ -11,6 +11,7 @@ import { captureDeribitOptionsSnapshot } from "../tools/capture-fixtures/capture
 import {
   buildTradingReadinessAudit,
   certifyFullDayBrowserStability,
+  compareExpiryRollover,
   sha256Json,
   type BrowserStabilitySample,
 } from "../tools/trading-readiness/audit";
@@ -124,6 +125,36 @@ const runAudit = async (values: {
   }
 };
 
+const runRollover = async (previousFile?: string, currentFile?: string, outputFile?: string): Promise<void> => {
+  if (!previousFile || !currentFile) {
+    throw new Error("rollover requires --previous and --current raw snapshot paths");
+  }
+  const previous = DeribitConsolidatedSnapshotSchema.parse(JSON.parse(await readFile(resolve(previousFile), "utf8")));
+  const current = DeribitConsolidatedSnapshotSchema.parse(JSON.parse(await readFile(resolve(currentFile), "utf8")));
+  if (current.timestamp <= previous.timestamp) {
+    throw new Error("Current snapshot must be captured after previous snapshot");
+  }
+  const expiries = (snapshot: typeof previous): number[] =>
+    [...new Set(snapshot.instruments.filter(item => item.expiration_timestamp > snapshot.timestamp).map(item => item.expiration_timestamp))].sort((a, b) => a - b);
+  const comparison = compareExpiryRollover(expiries(previous), expiries(current));
+  const priorNearest = comparison.previousNearestExpiry;
+  const passed = priorNearest !== null &&
+    priorNearest <= current.timestamp &&
+    comparison.removedExpiries.includes(priorNearest) &&
+    comparison.currentNearestExpiry !== null &&
+    comparison.currentNearestExpiry > priorNearest;
+  const output = resolve(outputFile ?? join("docs/audits/M9", dateDirectory(current.timestamp), `${timestampSlug(current.timestamp)}-expiry-rollover.json`));
+  await writeJson(output, {
+    schemaVersion: "expiry-rollover-observation-v1",
+    previous: { path: previousFile, timestamp: previous.timestamp, sha256: sha256Json(previous), activeExpiries: expiries(previous) },
+    current: { path: currentFile, timestamp: current.timestamp, sha256: sha256Json(current), activeExpiries: expiries(current) },
+    comparison,
+    passed,
+  });
+  console.log(`Expiry rollover: ${passed ? "PASS" : "FAIL"}; evidence: ${output}`);
+  if (!passed) process.exitCode = 1;
+};
+
 const runCertification = async (values: {
   readonly input?: string;
   readonly output?: string;
@@ -165,6 +196,8 @@ const { positionals, values } = parseArgs({
     input: { type: "string" },
     output: { type: "string" },
     "output-dir": { type: "string" },
+    previous: { type: "string" },
+    current: { type: "string" },
     spot: { type: "string" },
     parity: { type: "boolean", default: false },
   },
@@ -180,6 +213,8 @@ if (command === "audit") {
   });
 } else if (command === "certify-full-day") {
   await runCertification({ input: values.input, output: values.output });
+} else if (command === "rollover") {
+  await runRollover(values.previous, values.current, values.output);
 } else {
   throw new Error(`Unknown trading-readiness command: ${command}`);
 }
