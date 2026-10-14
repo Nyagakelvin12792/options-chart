@@ -33,6 +33,7 @@
     "verify:deribit-live": "vitest run --config vitest.live.config.ts",
     "verify:trading-readiness-live": "vitest run --config vitest.live.config.ts tests/live/trading-readiness.live.ts",
     "validate:trading-readiness": "tsx scripts/trading-readiness.mts audit",
+    "validate:expiry-rollover": "tsx scripts/trading-readiness.mts rollover",
     "certify:browser-full-day": "tsx scripts/trading-readiness.mts certify-full-day",
     "format:check": "prettier --check .",
     "progress:build": "node scripts/progress.mjs build",
