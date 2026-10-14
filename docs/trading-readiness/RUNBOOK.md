@@ -13,6 +13,20 @@
 Run `npm run verify:parity` or the equivalent Vitest parity target. Vendor
 figures with unknown positioning assumptions must be recorded as observational.
 
+## Expiry Rollover
+
+Capture schema-valid raw Deribit chain snapshots before and after an actual
+nearest-expiry transition, preserving both original snapshots. Run:
+
+```text
+npm run validate:expiry-rollover -- --previous=<pre-expiry.json> --current=<post-expiry.json>
+```
+
+A passing observation requires the prior nearest expiry to have elapsed,
+its removal from active expiries, and a later new nearest expiry. Commit both
+snapshots and the generated JSON under `docs/audits/M9/`. Also inspect the
+deployed chart's rollover behavior before marking M9.6 complete.
+
 ## Full-Day Browser Run
 
 ```text

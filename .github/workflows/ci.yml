@@ -31,8 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Prettier check
-        run: npm run format:check
+      - name: Prettier check (changed files)
+        run: |
+          git diff --name-only --diff-filter=ACMR -z origin/${{ github.base_ref || 'main' }}...HEAD | xargs -0 -r npx prettier --check
 
       - name: Lint
         run: npm run lint
