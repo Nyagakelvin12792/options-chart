@@ -184,6 +184,31 @@ def test_payload_validation_accepts_typescript_decimal_grammar() -> None:
     assert event.payload["price"] == "1E-8"
 
 
+def test_sequence_validation_accepts_opaque_nonempty_strings() -> None:
+    event = build_market_event(
+        venue="BINANCE",
+        symbol="BTC-USDT",
+        instrument_type="spot",
+        channel="trade",
+        exchange_timestamp_ms=1_700_000_000_001,
+        receipt_timestamp_ms=1_700_000_000_111,
+        sequence="opaque-sequence/alpha",
+        payload={
+            "schemaVersion": "binance-spot-trade-payload-v1",
+            "tradeId": "opaque-sequence/alpha",
+            "price": "64000.10",
+            "quantity": "0.25000000",
+            "tradeTimestampMs": 1_700_000_000_001,
+            "takerSide": "buy",
+        },
+        collector_version="test",
+        connection_id="conn-1",
+    )
+
+    assert event.sequence == "opaque-sequence/alpha"
+    assert event.payload["tradeId"] == "opaque-sequence/alpha"
+
+
 def test_payload_validation_rejects_infinite_javascript_number_decimal() -> None:
     try:
         build_market_event(

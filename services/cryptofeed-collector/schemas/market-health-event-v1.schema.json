@@ -129,7 +129,7 @@
     "nullableSequence": {
       "anyOf": [
         { "type": "integer", "minimum": 0 },
-        { "type": "string" },
+        { "type": "string", "minLength": 1 },
         { "type": "null" }
       ]
     },

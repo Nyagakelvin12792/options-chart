@@ -382,7 +382,7 @@ def validate_event(event: MarketEventV1) -> None:
     _validate_timestamp_ms(event.exchangeTimestampMs, "exchangeTimestampMs", nullable=True)
     _validate_timestamp_ms(event.provenance.recordedAtMs, "provenance.recordedAtMs", nullable=False)
     if not _valid_sequence(event.sequence):
-        raise ValueError("sequence must be a nonnegative integer, decimal string, or null")
+        raise ValueError("sequence must be a nonnegative integer, nonempty string, or null")
     validate_payload(event.channel, event.payload)
     if event.channel == "trade" and event.payload.get("tradeTimestampMs") != event.exchangeTimestampMs:
         raise ValueError("tradeTimestampMs must equal exchangeTimestampMs")
@@ -586,7 +586,7 @@ def _validate_trade_payload(payload: dict[str, Any]) -> None:
     if payload["takerSide"] not in {"buy", "sell", None}:
         raise ValueError("takerSide must be buy, sell, or null")
     if not _valid_sequence(payload["tradeId"]):
-        raise ValueError("tradeId must be a nonnegative integer, decimal string, or null")
+        raise ValueError("tradeId must be a nonnegative integer, nonempty string, or null")
     _validate_timestamp_ms(payload["tradeTimestampMs"], "tradeTimestampMs", nullable=True)
     if "isBuyerMaker" in payload and not isinstance(payload["isBuyerMaker"], bool):
         raise ValueError("isBuyerMaker must be boolean when present")
@@ -631,7 +631,7 @@ def _valid_sequence(value: Any) -> bool:
     if _is_int(value):
         return value >= 0
     if isinstance(value, str):
-        return _is_decimal_string(value)
+        return len(value) > 0
     return False
 
 

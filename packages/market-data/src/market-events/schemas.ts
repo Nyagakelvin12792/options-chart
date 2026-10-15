@@ -17,7 +17,13 @@ const decimalString = z
     "Expected a finite decimal string",
   );
 
-const sequenceValue = z.union([z.number().int().nonnegative(), z.string()]);
+// Venue sequence identifiers are opaque: some feeds use integers while others
+// expose non-numeric strings. Keep strings non-empty so TypeScript, JSON Schema,
+// and the Python collector reject the same malformed value.
+const sequenceValue = z.union([
+  z.number().int().nonnegative(),
+  z.string().min(1),
+]);
 const nullableSequenceValue = sequenceValue.nullable();
 const timestampMs = z.number().int().nonnegative();
 const nullableTimestampMs = timestampMs.nullable();

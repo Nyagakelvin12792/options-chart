@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.8
-Last updated: 2026-09-23
-Overall status: M0-M8 and M10.2-M10.9 deployed; M11 work is paused with sequence parity, live collector observation, and M9 evidence open
-Current milestone: PAUSED during M11.2 at the sequence-string parity checkpoint
+Version: 0.9.9
+Last updated: 2026-10-15
+Overall status: M0-M8 and M10.2-M10.9 deployed; M11.2 static parity is complete, while its Linux live observation and M9 evidence remain open
+Current milestone: BLOCKED during M11.2 pending a bounded live Cryptofeed observation on Linux
 Production status: M10.9 DEPLOYED AND VERIFIED through GitHub main `cb37892` and Vercel deployment `AMLqXkgxG5GLkvEao6puNxdMn3hY`
 
 ---
@@ -49,7 +49,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Native chart interactions M10.8 | COMPLETE - VERCEL VERIFICATION PENDING | One-shot tools, candle-snapped VP preview, selected-range rail, and whole-range movement pushed through `d2b651e` |
 | Native position interactions M10.9 | COMPLETE - DEPLOYED AND VERIFIED | Single-gesture long/short creation, live Risk Terminal preview, persistent default R:R, and post-creation editing deployed at `options-chart-upload.vercel.app` |
 | JEV and Cryptofeed architecture M11.1 | APPROVED - DOCUMENTATION ONLY | Lean signal stack, staged collector, typed decisions, narration, replay, calibration, and paper-ledger contracts approved; runtime remains disabled |
-| Cryptofeed shadow collector M11.2 | PAUSED - ONE STATIC PARITY ISSUE | Most strict parser probes pass; Python rejects arbitrary sequence strings accepted by TypeScript, and bounded live evidence remains |
+| Cryptofeed shadow collector M11.2 | BLOCKED - LINUX LIVE EVIDENCE PENDING | TypeScript, JSON Schema, and Python agree on opaque non-empty sequence strings; Cryptofeed's native order-book dependency cannot run on Windows, so bounded live evidence remains |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -1081,6 +1081,18 @@ Mitigation:
 
 # 10. Change Log
 
+## 2026-10-15
+
+### M11.2-SEQUENCE-PARITY-CORRECTION
+
+- Selected opaque non-empty sequence strings as the canonical cross-runtime contract while retaining nonnegative integer and null support.
+- Added TypeScript and Python regression tests for opaque strings and empty-string rejection; regenerated the checked JSON Schemas with `minLength: 1`.
+- Focused validation passed with 18 TypeScript and 32 Python tests; schema synchronization, typecheck, lint, production build, and both progress gates passed.
+- The full Vitest run passed 450 functional tests and failed only the known resource-sensitive AVWAP timing assertion at 114.34 ms versus 100 ms; its isolated two-test rerun passed.
+- The contention-free split gates passed 449 non-performance tests plus both isolated AVWAP performance tests.
+- Live dependency installation was attempted with Python 3.13 and an isolated Python 3.12 runtime. Cryptofeed 2.5.0 remains unavailable on Windows because `order-book` publishes POSIX/macOS wheels and its source build explicitly rejects the Windows architecture.
+- No live websocket, reconnect, or shutdown evidence is claimed. Run the bounded observation on a Linux runner before M11.3 begins.
+
 ## 2026-09-22
 
 ### M11.1-JEV-CRYPTOFEED-INTEGRATION-ARCHITECTURE
@@ -1669,8 +1681,8 @@ This prevents agents from repeatedly replacing each other's implementations.
 2. Capture M9.7 high-volatility, M9.8 quiet, and M9.9 near-expiry session evidence.
 3. Complete the M9.10 24-hour browser stability run.
 4. Freeze v1 formulas only after the observation gates pass, then complete the `v1.0.0` release tag.
-5. Implement M11.2 locally in shadow mode without changing production feeds.
-6. Record schema-parity, replay, gap, stale, duplicate, reconnect, and bounded live-session evidence before beginning M11.3.
+5. Run the M11.2 bounded Cryptofeed observation on a supported Linux runner without changing production feeds.
+6. Record live-session, reconnect, and shutdown evidence before beginning M11.3; static schema parity, replay, gap, stale, and duplicate gates are complete.
 7. Preserve independent wall signals, compact chart markers, and risk-terminal isolation in subsequent UI refinements.
 
 ---

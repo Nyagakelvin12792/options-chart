@@ -102,12 +102,15 @@
   ],
   "$defs": {
     "sequence": {
-      "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "string" }]
+      "anyOf": [
+        { "type": "integer", "minimum": 0 },
+        { "type": "string", "minLength": 1 }
+      ]
     },
     "nullableSequence": {
       "anyOf": [
         { "type": "integer", "minimum": 0 },
-        { "type": "string" },
+        { "type": "string", "minLength": 1 },
         { "type": "null" }
       ]
     },

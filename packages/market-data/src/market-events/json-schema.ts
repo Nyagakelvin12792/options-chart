@@ -105,12 +105,15 @@ export const MARKET_EVENT_V1_JSON_SCHEMA = {
   ],
   $defs: {
     sequence: {
-      anyOf: [{ type: "integer", minimum: 0 }, { type: "string" }],
+      anyOf: [
+        { type: "integer", minimum: 0 },
+        { type: "string", minLength: 1 },
+      ],
     },
     nullableSequence: {
       anyOf: [
         { type: "integer", minimum: 0 },
-        { type: "string" },
+        { type: "string", minLength: 1 },
         { type: "null" },
       ],
     },
@@ -287,7 +290,7 @@ export const MARKET_HEALTH_EVENT_V1_JSON_SCHEMA = {
     nullableSequence: {
       anyOf: [
         { type: "integer", minimum: 0 },
-        { type: "string" },
+        { type: "string", minLength: 1 },
         { type: "null" },
       ],
     },

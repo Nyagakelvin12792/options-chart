@@ -129,6 +129,40 @@ describe("MarketEventV1Schema", () => {
     });
   });
 
+  it("accepts opaque nonempty sequence strings and rejects empty strings", () => {
+    const payload = {
+      schemaVersion: "binance-spot-trade-payload-v1" as const,
+      tradeId: "opaque-sequence/alpha",
+      price: "63500.50",
+      quantity: "0.010",
+      tradeTimestampMs: 1_800_000_000_000,
+      takerSide: "buy" as const,
+    };
+    const draft = createMarketEventDraft({
+      venue: "binance",
+      symbol: "BTCUSDT",
+      instrumentType: "spot",
+      channel: "trade",
+      exchangeTimestampMs: 1_800_000_000_000,
+      receiptTimestampMs: 1_800_000_000_123,
+      sequence: "opaque-sequence/alpha",
+      payload,
+      provenance,
+    });
+
+    expect(
+      MarketEventV1Schema.safeParse(withMarketEventId(draft)).success,
+    ).toBe(true);
+    expect(
+      MarketEventV1Schema.safeParse({
+        ...draft,
+        eventId: "market-event-v1:0000000000000000",
+        sequence: "",
+        payload: { ...payload, tradeId: "" },
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects uppercase venue identifiers before payload validation can be bypassed", () => {
     const validBinanceTradePayload = {
       schemaVersion: "binance-spot-trade-payload-v1",
