@@ -1,0 +1,161 @@
+name: M11.2 Linux Live Observation
+
+on:
+  push:
+    branches:
+      - handoff/qwen-m11
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m11-live-observation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observe:
+    name: Binance public shadow collector
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/cryptofeed-collector/pyproject.toml
+
+      - name: Install collector
+        run: python -m pip install -e "./services/cryptofeed-collector[test]"
+
+      - name: Run collector unit tests
+        run: python -m pytest -q services/cryptofeed-collector/tests
+
+      - name: Prepare live observation
+        shell: bash
+        run: |
+          mkdir -p artifacts/m11.2-live/records
+          cat > artifacts/m11.2-live/live-config.json <<'JSON'
+          {
+            "venue": "binance",
+            "symbol": "BTC-USDT",
+            "instrumentType": "spot",
+            "channels": ["trade", "l2-book"],
+            "collectorVersion": "cryptofeed-shadow-0.1.0",
+            "storage": {
+              "directory": "records",
+              "prefix": "binance-btc-usdt",
+              "maxBytes": 52428800
+            },
+            "health": {
+              "staleAfterMs": 15000
+            },
+            "liveCollection": {
+              "enabled": true
+            }
+          }
+          JSON
+
+      - name: Observe public market data for 90 seconds
+        shell: bash
+        run: |
+          set +e
+          timeout --signal=INT --kill-after=20s 90s \
+            python -m cryptofeed_collector.cli \
+              --config artifacts/m11.2-live/live-config.json \
+              --live \
+            > artifacts/m11.2-live/collector.log 2>&1
+          collector_exit=$?
+          set -e
+          printf '%s\n' "$collector_exit" > artifacts/m11.2-live/collector-exit-code.txt
+          cat artifacts/m11.2-live/collector.log
+
+      - name: Validate and summarize observation
+        shell: bash
+        run: |
+          PYTHONPATH=services/cryptofeed-collector/src python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          from cryptofeed_collector.events import MarketEventV1, record_from_dict
+
+          root = Path("artifacts/m11.2-live")
+          exit_code = int((root / "collector-exit-code.txt").read_text(encoding="utf-8").strip())
+          paths = sorted((root / "records").glob("binance-btc-usdt-*.ndjson"))
+          channels: Counter[str] = Counter()
+          health_types: Counter[str] = Counter()
+          event_ids: set[str] = set()
+          duplicate_event_ids: list[str] = []
+          receipt_timestamps: list[int] = []
+          validation_errors: list[str] = []
+          total_records = 0
+
+          for path in paths:
+              for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+                  if not line.strip():
+                      continue
+                  total_records += 1
+                  try:
+                      record = record_from_dict(json.loads(line))
+                  except Exception as exc:
+                      validation_errors.append(f"{path.name}:{line_number}: {exc}")
+                      continue
+                  if isinstance(record, MarketEventV1):
+                      channels[record.channel] += 1
+                      receipt_timestamps.append(record.receiptTimestampMs)
+                      if record.eventId in event_ids:
+                          duplicate_event_ids.append(record.eventId)
+                      event_ids.add(record.eventId)
+                  else:
+                      health_types[record.type] += 1
+
+          summary = {
+              "collectorExitCode": exit_code,
+              "files": [path.name for path in paths],
+              "totalRecords": total_records,
+              "marketEvents": sum(channels.values()),
+              "channelCounts": dict(sorted(channels.items())),
+              "healthCounts": dict(sorted(health_types.items())),
+              "uniqueEventIds": len(event_ids),
+              "duplicateEventIdsInArchive": duplicate_event_ids,
+              "firstReceiptTimestampMs": min(receipt_timestamps) if receipt_timestamps else None,
+              "lastReceiptTimestampMs": max(receipt_timestamps) if receipt_timestamps else None,
+              "validationErrors": validation_errors,
+          }
+          (root / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(summary, indent=2))
+
+          failures: list[str] = []
+          if exit_code not in {124, 130}:
+              failures.append(f"collector exited unexpectedly with code {exit_code}")
+          if not paths:
+              failures.append("collector produced no NDJSON archive")
+          if channels["trade"] == 0:
+              failures.append("collector produced no trade events")
+          if channels["l2-book"] == 0:
+              failures.append("collector produced no l2-book events")
+          if health_types["collector-error"]:
+              failures.append("collector emitted collector-error health records")
+          if duplicate_event_ids:
+              failures.append("archive contains repeated market event IDs")
+          if validation_errors:
+              failures.append("one or more records failed canonical validation")
+          if failures:
+              raise SystemExit("; ".join(failures))
+          PY
+
+      - name: Upload live observation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m11-2-linux-live-observation-${{ github.run_id }}
+          path: artifacts/m11.2-live
+          if-no-files-found: error
+          retention-days: 14
