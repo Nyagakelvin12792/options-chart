@@ -15,6 +15,9 @@ from .health import (
     is_stale,
 )
 
+BINANCE_PUBLIC_REST_URL = "https://data-api.binance.vision"
+BINANCE_PUBLIC_WEBSOCKET_URL = "wss://data-stream.binance.vision"
+
 
 def now_ms() -> int:
     return time.time_ns() // 1_000_000
@@ -232,6 +235,7 @@ def run_live(config: CollectorConfig, writer: Any) -> None:
     try:
         from cryptofeed import FeedHandler
         from cryptofeed.callback import BookCallback, TradeCallback
+        from cryptofeed.connection import RestEndpoint, Routes, WebsocketEndpoint
         from cryptofeed.defines import L2_BOOK, TRADES
         from cryptofeed.exchanges import Binance
     except ImportError as exc:  # pragma: no cover - depends on optional install.
@@ -260,31 +264,46 @@ def run_live(config: CollectorConfig, writer: Any) -> None:
         for event in normalizer.normalize_l2_book(book, receipt_timestamp_ms=receipt_timestamp_ms):
             writer.write(event)
 
-    callbacks = {}
-    if "trade" in config.channels:
-        callbacks[TRADES] = TradeCallback(trade_callback)
-    if "l2-book" in config.channels:
-        callbacks[L2_BOOK] = BookCallback(book_callback)
-
-    feed_handler = FeedHandler()
-    feed_handler.add_feed(
-        Binance(
-            symbols=[config.symbol],
-            channels=list(callbacks),
-            callbacks=callbacks,
-            max_depth=100,
-            book_interval=0,
-        )
-    )
-    stale_monitor.start()
     terminal_error: Exception | None = None
+    stale_monitor_started = False
     try:
+        callbacks = {}
+        if "trade" in config.channels:
+            callbacks[TRADES] = TradeCallback(trade_callback)
+        if "l2-book" in config.channels:
+            callbacks[L2_BOOK] = BookCallback(book_callback)
+
+        class BinancePublicMarketData(Binance):
+            websocket_endpoints = [WebsocketEndpoint(BINANCE_PUBLIC_WEBSOCKET_URL)]
+            rest_endpoints = [
+                RestEndpoint(
+                    BINANCE_PUBLIC_REST_URL,
+                    routes=Routes(
+                        "/api/v3/exchangeInfo",
+                        l2book="/api/v3/depth?symbol={}&limit={}",
+                    ),
+                )
+            ]
+
+        feed_handler = FeedHandler()
+        feed_handler.add_feed(
+            BinancePublicMarketData(
+                symbols=[config.symbol],
+                channels=list(callbacks),
+                callbacks=callbacks,
+                max_depth=100,
+                book_interval=0,
+            )
+        )
+        stale_monitor.start()
+        stale_monitor_started = True
         feed_handler.run()
     except Exception as exc:
         terminal_error = exc
     finally:
-        stop_stale_monitor.set()
-        stale_monitor.join(timeout=5)
+        if stale_monitor_started:
+            stop_stale_monitor.set()
+            stale_monitor.join(timeout=5)
     if terminal_error is not None:
         writer.write(
             build_collector_error_event(

@@ -4,6 +4,8 @@ Local-only M11.2 scaffold for Binance BTC-USDT Spot trades and L2 book events.
 
 The collector writes normalized append-only NDJSON records. Live collection is
 opt-in and uses public market data only. No credentials are required.
+It uses Binance's market-data-only REST and WebSocket hosts so the shadow feed
+does not depend on account or trading endpoints.
 
 ```bash
 python -m pip install -e ".[test]"

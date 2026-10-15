@@ -176,11 +176,25 @@ def test_live_run_exception_does_not_fabricate_reconnect_and_joins_stale_monitor
         def __init__(self, **_kwargs) -> None:
             pass
 
+    class FakeEndpoint:
+        def __init__(self, address, **kwargs) -> None:
+            self.address = address
+            self.kwargs = kwargs
+
+    class FakeRoutes:
+        def __init__(self, route, **kwargs) -> None:
+            self.route = route
+            self.kwargs = kwargs
+
     cryptofeed_module = ModuleType("cryptofeed")
     cryptofeed_module.FeedHandler = FakeFeedHandler
     callback_module = ModuleType("cryptofeed.callback")
     callback_module.BookCallback = FakeCallback
     callback_module.TradeCallback = FakeCallback
+    connection_module = ModuleType("cryptofeed.connection")
+    connection_module.RestEndpoint = FakeEndpoint
+    connection_module.Routes = FakeRoutes
+    connection_module.WebsocketEndpoint = FakeEndpoint
     defines_module = ModuleType("cryptofeed.defines")
     defines_module.L2_BOOK = "l2_book"
     defines_module.TRADES = "trades"
@@ -189,6 +203,7 @@ def test_live_run_exception_does_not_fabricate_reconnect_and_joins_stale_monitor
 
     monkeypatch.setitem(sys.modules, "cryptofeed", cryptofeed_module)
     monkeypatch.setitem(sys.modules, "cryptofeed.callback", callback_module)
+    monkeypatch.setitem(sys.modules, "cryptofeed.connection", connection_module)
     monkeypatch.setitem(sys.modules, "cryptofeed.defines", defines_module)
     monkeypatch.setitem(sys.modules, "cryptofeed.exchanges", exchanges_module)
 
@@ -222,3 +237,93 @@ def test_live_run_exception_does_not_fabricate_reconnect_and_joins_stale_monitor
     assert records[-1].details["errorCode"] == "RuntimeError"
     assert records[-1].details["terminal"] is True
     assert all(record.type != "reconnect" for record in records)
+
+
+def test_live_feed_uses_public_market_data_endpoints_and_captures_constructor_failure(monkeypatch) -> None:
+    records = []
+    endpoint_addresses: dict[str, str] = {}
+
+    class Writer:
+        def write(self, record) -> bool:
+            records.append(record)
+            return True
+
+    class FakeFeedHandler:
+        def add_feed(self, _feed) -> None:
+            raise AssertionError("feed constructor should fail first")
+
+        def run(self) -> None:
+            raise AssertionError("run must not be reached")
+
+    class FakeCallback:
+        def __init__(self, callback) -> None:
+            self.callback = callback
+
+    class FakeRoutes:
+        def __init__(self, route, **kwargs) -> None:
+            self.route = route
+            self.kwargs = kwargs
+
+    class FakeRestEndpoint:
+        def __init__(self, address, **_kwargs) -> None:
+            endpoint_addresses["rest"] = address
+
+    class FakeWebsocketEndpoint:
+        def __init__(self, address, **_kwargs) -> None:
+            endpoint_addresses["websocket"] = address
+
+    class FakeBinance:
+        def __init__(self, **_kwargs) -> None:
+            raise RuntimeError("terminal constructor failure")
+
+    cryptofeed_module = ModuleType("cryptofeed")
+    cryptofeed_module.FeedHandler = FakeFeedHandler
+    callback_module = ModuleType("cryptofeed.callback")
+    callback_module.BookCallback = FakeCallback
+    callback_module.TradeCallback = FakeCallback
+    connection_module = ModuleType("cryptofeed.connection")
+    connection_module.RestEndpoint = FakeRestEndpoint
+    connection_module.Routes = FakeRoutes
+    connection_module.WebsocketEndpoint = FakeWebsocketEndpoint
+    defines_module = ModuleType("cryptofeed.defines")
+    defines_module.L2_BOOK = "l2_book"
+    defines_module.TRADES = "trades"
+    exchanges_module = ModuleType("cryptofeed.exchanges")
+    exchanges_module.Binance = FakeBinance
+
+    monkeypatch.setitem(sys.modules, "cryptofeed", cryptofeed_module)
+    monkeypatch.setitem(sys.modules, "cryptofeed.callback", callback_module)
+    monkeypatch.setitem(sys.modules, "cryptofeed.connection", connection_module)
+    monkeypatch.setitem(sys.modules, "cryptofeed.defines", defines_module)
+    monkeypatch.setitem(sys.modules, "cryptofeed.exchanges", exchanges_module)
+
+    config = parse_config(
+        {
+            "venue": "BINANCE",
+            "symbol": "BTC-USDT",
+            "instrumentType": "spot",
+            "channels": ["trade", "l2-book"],
+            "collectorVersion": "test",
+            "storage": {"directory": "events", "maxBytes": 1024},
+            "health": {"staleAfterMs": 60_000},
+            "liveCollection": {"enabled": True},
+        }
+    )
+
+    try:
+        run_live(config, Writer())
+    except RuntimeError as exc:
+        assert "terminal constructor failure" in str(exc)
+    else:
+        raise AssertionError("expected terminal constructor failure to propagate")
+
+    assert endpoint_addresses == {
+        "rest": "https://data-api.binance.vision",
+        "websocket": "wss://data-stream.binance.vision",
+    }
+    assert [record.type for record in records] == [
+        "observability",
+        "observability",
+        "collector-error",
+    ]
+    assert records[-1].details["errorCode"] == "RuntimeError"
