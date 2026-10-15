@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.9
+Version: 0.9.10
 Last updated: 2026-10-15
-Overall status: M0-M8 and M10.2-M10.9 deployed; M11.2 static parity is complete, while its Linux live observation and M9 evidence remain open
-Current milestone: BLOCKED during M11.2 pending a bounded live Cryptofeed observation on Linux
+Overall status: M0-M8 and M10.2-M10.9 deployed; M11.2 is complete, while M9 live-session evidence remains open
+Current milestone: M11.2 COMPLETE; M11.3 is ready to begin after handoff review
 Production status: M10.9 DEPLOYED AND VERIFIED through GitHub main `cb37892` and Vercel deployment `AMLqXkgxG5GLkvEao6puNxdMn3hY`
 
 ---
@@ -49,7 +49,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Native chart interactions M10.8 | COMPLETE - VERCEL VERIFICATION PENDING | One-shot tools, candle-snapped VP preview, selected-range rail, and whole-range movement pushed through `d2b651e` |
 | Native position interactions M10.9 | COMPLETE - DEPLOYED AND VERIFIED | Single-gesture long/short creation, live Risk Terminal preview, persistent default R:R, and post-creation editing deployed at `options-chart-upload.vercel.app` |
 | JEV and Cryptofeed architecture M11.1 | APPROVED - DOCUMENTATION ONLY | Lean signal stack, staged collector, typed decisions, narration, replay, calibration, and paper-ledger contracts approved; runtime remains disabled |
-| Cryptofeed shadow collector M11.2 | BLOCKED - LINUX LIVE EVIDENCE PENDING | TypeScript, JSON Schema, and Python agree on opaque non-empty sequence strings; Cryptofeed's native order-book dependency cannot run on Windows, so bounded live evidence remains |
+| Cryptofeed shadow collector M11.2 | COMPLETE - LINUX LIVE VERIFIED | Ubuntu run `38793141169` validated 1,465 unique market events across trades and L2, with zero duplicate IDs, schema errors, or collector-error records |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -1083,6 +1083,16 @@ Mitigation:
 
 ## 2026-10-15
 
+### M11.2-LINUX-LIVE-VERIFICATION
+
+- Added Binance's official unauthenticated market-data-only REST and WebSocket hosts to the Cryptofeed shadow adapter after the first Ubuntu probe exposed an HTTP 451 from the default metadata host.
+- Extended terminal error handling to cover callback and feed construction before the stale monitor starts, with a regression test for constructor failure.
+- GitHub Actions run `38793141169` passed 33 collector tests and a bounded 90-second public-data observation on Python 3.12.
+- The retained artifact contains 1,467 valid records: 599 trades, 866 L2-book events, and two explicit observability records. All 1,465 market event IDs are unique; validation errors, duplicate IDs, and collector-error records are zero.
+- The collector ended with GNU `timeout` code 124 as designed. Production Binance candles, Deribit options, Vercel behavior, risk controls, and no-live-execution boundaries were unchanged.
+- Final branch gates passed: 33 Python collector tests, 65 Vitest files with 451 tests, typecheck, lint, production build, progress build/check/policy, and diff check.
+- M11.2 is complete. The push-triggered one-off workflow was removed after evidence capture so it cannot become an accidental recurring collector.
+
 ### M11.2-SEQUENCE-PARITY-CORRECTION
 
 - Selected opaque non-empty sequence strings as the canonical cross-runtime contract while retaining nonnegative integer and null support.
@@ -1681,9 +1691,8 @@ This prevents agents from repeatedly replacing each other's implementations.
 2. Capture M9.7 high-volatility, M9.8 quiet, and M9.9 near-expiry session evidence.
 3. Complete the M9.10 24-hour browser stability run.
 4. Freeze v1 formulas only after the observation gates pass, then complete the `v1.0.0` release tag.
-5. Run the M11.2 bounded Cryptofeed observation on a supported Linux runner without changing production feeds.
-6. Record live-session, reconnect, and shutdown evidence before beginning M11.3; static schema parity, replay, gap, stale, and duplicate gates are complete.
-7. Preserve independent wall signals, compact chart markers, and risk-terminal isolation in subsequent UI refinements.
+5. Begin M11.3 CVD and absorption work only after M11.2 handoff review, preserving the shadow-only collector boundary.
+6. Preserve independent wall signals, compact chart markers, and risk-terminal isolation in subsequent UI refinements.
 
 ---
 

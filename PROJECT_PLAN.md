@@ -1,8 +1,8 @@
 # BTC Options Metrics Dashboard
 ## PROJECT_PLAN.md
 
-Version: 0.9.9
-Status: BLOCKED during M11.2; bounded live Cryptofeed observation requires a Linux runner
+Version: 0.9.10
+Status: M11.2 COMPLETE; M9 live-session certification remains open
 Date: 2026-10-15
 Primary deployment target: Vercel Hobby  
 Primary development workflow: Antigravity + ChatGPT/Codex + GitHub  
@@ -335,7 +335,7 @@ Do not calculate an unlabeled all-expiries Max Pain.
 - The user-facing decision surface stays deliberately compact: market structure, location, order flow, options regime, and trade quality.
 - A general-purpose LLM may narrate an already converged assessment, but it cannot change classifications, prices, risk, or execution state.
 - The approved delivery and verification plan is `docs/implementation/M11_MARKET_INTELLIGENCE_IMPLEMENTATION_PLAN.md`.
-- M11.2 final review cleared storage, replay, schema generation, shutdown, and observability. TypeScript, JSON Schema, and Python now share opaque non-empty sequence-string semantics; the bounded live Cryptofeed observation remains before milestone exit and requires a supported Linux runner because Cryptofeed's native order-book dependency does not support Windows.
+- M11.2 is complete. TypeScript, JSON Schema, and Python share opaque non-empty sequence-string semantics, and GitHub Actions run `38793141169` captured a bounded Linux session with 599 trades, 866 L2-book events, no duplicate IDs, no validation errors, and no collector-error health records through Binance's official market-data-only hosts.
 - CVD, absorption, JEV, narration, UI changes, and production deployment are excluded from M11.2.
 
 ## Historical Gamma
