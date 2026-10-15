@@ -4,7 +4,7 @@
 Version: 0.9.10
 Last updated: 2026-10-15
 Overall status: M0-M8 and M10.2-M10.9 deployed; M11.2 is complete, while M9 live-session evidence remains open
-Current milestone: M11.2 COMPLETE; M11.3 is ready to begin after handoff review
+Current milestone: M11.3 AUTHORIZED; implementation handed to Qwen at accepted base `d536eba`
 Production status: M10.9 DEPLOYED AND VERIFIED through GitHub main `cb37892` and Vercel deployment `AMLqXkgxG5GLkvEao6puNxdMn3hY`
 
 ---
@@ -1092,6 +1092,13 @@ Mitigation:
 - The collector ended with GNU `timeout` code 124 as designed. Production Binance candles, Deribit options, Vercel behavior, risk controls, and no-live-execution boundaries were unchanged.
 - Final branch gates passed: 33 Python collector tests, 65 Vitest files with 451 tests, typecheck, lint, production build, progress build/check/policy, and diff check.
 - M11.2 is complete. The push-triggered one-off workflow was removed after evidence capture so it cannot become an accidental recurring collector.
+
+### M11.3-QWEN-HANDOFF
+
+- The product owner directed Qwen to take over the next implementation batch.
+- M11.3 is authorized from accepted base `d536eba623114325661480f07dc458c21f619af3` on `handoff/qwen-m11` with `M11_2_EXIT_APPROVED=true`.
+- The assignment is restricted to the deterministic `packages/flow-engine` work package, approved workspace references, and its Qwen worklog. JEV, LLM, UI, production feeds, deployment, risk formulas, and execution remain excluded.
+- Qwen may create green local checkpoint commits with required attribution. Push, merge, deployment, M11.4, and milestone-exit authority remain withheld pending explicit approval and independent review.
 
 ### M11.2-SEQUENCE-PARITY-CORRECTION
 

@@ -189,45 +189,22 @@ churn if it was clean before the build. Do not alter a user-owned change.
 Live-network verification is separate from static verification. Never claim a
 live websocket, reconnect, shutdown, or exchange observation unless it actually ran.
 
-## 10. Current Paused Checkpoint
+## 10. Current Approved Checkpoint
 
-M11 is paused during M11.2. Do not begin M11.3 until Codex explicitly records
-M11.2 exit approval.
+M11.2 exit is approved at accepted commit `d536eba623114325661480f07dc458c21f619af3`.
+The canonical sequence contract is nonnegative integer, opaque non-empty string,
+or null; empty strings and booleans are invalid in both runtimes.
 
-Implemented M11.2 surfaces include:
+GitHub Actions run `38793141169` captured the required bounded Linux live
+observation: 599 trades, 866 L2-book events, 1,465 unique market-event IDs, and
+no duplicate IDs, validation errors, or collector-error records. Final gates
+passed 33 Python collector tests, 65 Vitest files with 451 tests, typecheck,
+lint, production build, progress checks, and diff check.
 
-- canonical TypeScript event contracts and generated Python-service schemas;
-- Binance Spot trade and L2 normalization through Cryptofeed;
-- deterministic UTF-8 identities and SQLite exact deduplication;
-- rotating append-only NDJSON storage and deterministic receipt-time replay;
-- corrupt-tail recovery, prefix isolation, stale/error health, and explicit
-  observability records for lifecycle details Cryptofeed does not expose.
-
-Verified before the pause:
-
-- schema synchronization;
-- 17 focused TypeScript tests;
-- 31 Python collector tests after strict-parser corrections;
-- an earlier full run of 65 test files and 450 tests, typecheck, lint, build,
-  progress check, and progress policy.
-
-Remaining M11.2 gates:
-
-1. align sequence-string semantics across TypeScript and Python;
-2. rerun focused and full verification;
-3. install Cryptofeed in a network-enabled environment;
-4. capture a bounded live shadow observation and health report;
-5. obtain Codex review and milestone-exit approval.
-
-Canonical sequence recommendation for the next assigned patch:
-
-- sequence numbers may be nonnegative integers;
-- opaque sequence identifiers may be nonempty strings;
-- empty strings and booleans are invalid;
-- both runtimes must implement and test exactly the same rule.
-
-This recommendation becomes an implementation instruction only when it appears
-in the active Codex assignment packet.
+The product owner authorized Qwen to take over M11.3 on 2026-10-15. The active
+assignment packet is `docs/handoffs/qwen-m11.3-assignment.md`, and the required
+checkpoint log is `docs/handoffs/qwen-m11.3-worklog.md`. Do not broaden the
+assignment into M11.4, JEV, LLM integration, UI work, deployment, or execution.
 
 ## 11. M11 Batch Boundaries
 

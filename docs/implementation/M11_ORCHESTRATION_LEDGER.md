@@ -1,8 +1,8 @@
 # M11 Orchestration Ledger
 
-Last updated: 2026-09-23
-Goal status: PAUSED BY USER
-Automation: `continue-options-chart-m11-build` paused
+Last updated: 2026-10-15
+Goal status: ACTIVE - M11.3 HANDED TO QWEN
+Automation: prior `continue-options-chart-m11-build` automation remains paused; Qwen work is manual and bounded by the assignment packet
 
 ## Resume Protocol
 
@@ -29,7 +29,31 @@ starting the batch again.
 
 ## Active Batch
 
-M11.2 Cryptofeed Shadow Collector
+M11.3 Deterministic CVD And Absorption Engine
+
+### Current Assignment
+
+| Worker | Write scope                                                                                                   | Status              |
+| ------ | ------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Qwen   | `packages/flow-engine/**`, approved root workspace references, and `docs/handoffs/qwen-m11.3-worklog.md`      | AUTHORIZED          |
+| Codex  | Read-only review until Qwen handoff; governance, integration acceptance, and milestone status remain reserved | WAITING FOR HANDOFF |
+
+The controlling packet is `docs/handoffs/qwen-m11.3-assignment.md`. The accepted
+base is `d536eba623114325661480f07dc458c21f619af3` on
+`handoff/qwen-m11`. The pre-existing `.gitignore` modification remains
+user-owned and must not be edited, staged, committed, stashed, or reverted.
+
+## Current Checkpoint
+
+- `M11_2_EXIT_APPROVED=true`.
+- M11.2 live evidence passed in GitHub Actions run `38793141169`.
+- Final M11.2 gates passed 33 Python tests and 451 Vitest tests plus typecheck,
+  lint, build, progress gates, and diff check.
+- Qwen is authorized to begin checkpoint 0 of the M11.3 work package.
+- No merge, deployment, production-feed change, JEV/LLM work, or live execution
+  is authorized.
+
+## Historical M11.2 Workstreams
 
 ### Workstreams
 
@@ -39,7 +63,7 @@ M11.2 Cryptofeed Shadow Collector
 | Python shadow collector    | Agent `01a0c863-1614-7c70-a925-893e441d770f` | `services/cryptofeed-collector/**`, shared fixtures                          | COMPLETE |
 | Integration and governance | Parent thread                                | root configuration, cross-language parity, review, full gates, plan/progress | PAUSED   |
 
-## Current Checkpoint
+## Historical M11.2 Checkpoint (Superseded 2026-10-15)
 
 - M11.1 architecture is approved.
 - ADR-057 through ADR-059 are accepted.
@@ -101,14 +125,15 @@ M11.2 Cryptofeed Shadow Collector
 
 ## Next Actions
 
-1. On explicit resume, choose canonical sequence-string semantics and align both runtimes.
-2. Re-run Python, schema, focused TypeScript, and repository gates.
-3. Install Cryptofeed in a network-enabled environment and capture the bounded
-   live shadow observation and health report.
-4. Record the live evidence and close M11.2 only when both remaining gates pass.
-5. Do not start M11.3 until the M11.2 exit evidence is recorded.
+1. Qwen reads the required context and reports branch, dirty state, write scope,
+   protected files, and planned narrow checks before editing.
+2. Qwen records checkpoint 0 in `docs/handoffs/qwen-m11.3-worklog.md`.
+3. Qwen implements only the M11.3 work package through its bounded checkpoints.
+4. Qwen commits green checkpoints locally with required attribution but does not
+   push, merge, deploy, or begin M11.4 without explicit approval.
+5. Codex independently reviews the final Qwen handoff before any milestone exit.
 
 ## Blockers
 
-- Cryptofeed is declared but not installed. PyPI access is blocked in this
-  environment, so the required bounded live observation cannot run here yet.
+- No known start blocker. Preserve the pre-existing user-owned `.gitignore`
+  modification and stop if repository state differs from the assignment packet.
