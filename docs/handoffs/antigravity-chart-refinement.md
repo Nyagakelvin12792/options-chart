@@ -15,11 +15,13 @@ This engineering handoff documents the implementation of three coordinated chart
 ## Architectural Changes
 
 ### 1. Shift Tracking (`packages/shared/src/level-shift-tracker.ts`)
+
 - **Discrete Level Tracking**: Tracks Call Wall, Put Wall, Max Pain, and Secondary GEX strikes. Resets activation timestamp only when the strike level changes or after an explicit expiry scope / chain transition.
 - **Continuous Level Anti-Jitter**: For Gamma Flip (continuous metric), applies `DEFAULT_GAMMA_FLIP_TOLERANCE_FRACTION = 0.0025` (0.25%, ~$150-$200 on BTC) to prevent micro-fluctuations from constantly resetting the segment origin.
 - **Confluence Shift Tracking**: Tracks active confluence zones by boundary and score changes; preserves activation timestamps across stable consecutive observations.
 
 ### 2. Right-Extending Level Segments (`packages/chart/src/level-segments/`)
+
 - **Primitive Architecture**: Implemented `LevelSegmentsPrimitive` conforming to Lightweight Charts v5.2.1 `ISeriesPrimitive<Time>`.
 - **Canvas Rendering**:
   - `ConfluenceBandsPaneView` rendered at `zOrder: "bottom"` behind candlesticks with subtle opacity.
@@ -29,6 +31,7 @@ This engineering handoff documents the implementation of three coordinated chart
 - **Adapter Integration**: Added `setLevelSegments` and `clearLevelSegments` to `ChartAdapter` and `LightweightChartAdapter`, with full cleanup on chart destruction.
 
 ### 3. Collision-Managed Level Rail (`apps/web/lib/level-rail-layout.ts`, `apps/web/components/gamma-overlay.tsx`)
+
 - **Priority-Driven Layout**: Strict priority resolution:
   - Priority 0: `SPOT`
   - Priority 1: `CALL_WALL` / `PUT_WALL`
@@ -38,6 +41,7 @@ This engineering handoff documents the implementation of three coordinated chart
 - **Responsive Geometry**: Sits cleanly within chart viewport margins (`railRight <= chartRight`, width <= 82px) on mobile (390px) and desktop (1366px, 1920px).
 
 ### 4. Staged Timeframe Pagination (`packages/market-data/src/binance/staged-pagination.ts`, `apps/web/lib/timeframe-manager.ts`)
+
 - **Two-Stage Loading**:
   - Phase 1: `fetchInitialHistoryPage` fetches 1,000 candles immediately (~200ms), sets chart history, and connects the live WebSocket.
   - Phase 2: `streamOlderHistoryPages` progressively queries older historical pages in the background backwards in time toward `BOOTSTRAP_TARGET_BARS` (10,000 bars) without freezing the UI or chart interaction.
@@ -49,6 +53,7 @@ This engineering handoff documents the implementation of three coordinated chart
 ## Verification & Test Results
 
 ### 1. Unit & Parity Tests
+
 - Command: `npx vitest run`
 - Status: **58 passed (58 files), 341 passed (341 tests)**
 - Coverage:
@@ -60,6 +65,7 @@ This engineering handoff documents the implementation of three coordinated chart
   - Parity & reconciliation suites: all 341 tests green.
 
 ### 2. End-to-End Tests (Playwright)
+
 - Command: `npx playwright test`
 - Status: **20/20 standard e2e tests passed**
   - `tests/e2e/gamma-overlay.spec.ts`: 5/5 passed (including dragging synchronization, target viewports, and volume profile retention).
@@ -70,6 +76,7 @@ This engineering handoff documents the implementation of three coordinated chart
   - `tests/e2e/architecture.spec.ts`: 1/1 passed.
 
 ### 3. Typecheck & Lint
+
 - `npm run typecheck`: **0 errors**
 - `npm run lint`: **0 warnings, 0 errors**
 - `npm run build`: **Compiled successfully with zero errors**
@@ -79,6 +86,7 @@ This engineering handoff documents the implementation of three coordinated chart
 ## Visual Artifacts
 
 The following visual artifacts were captured at target viewports confirming layout stability and collision management:
+
 - `1366x768` (Standard Laptop Viewport)
 - `1920x1080` (Full HD Desktop Viewport)
 - `390x844` (Mobile Viewport)

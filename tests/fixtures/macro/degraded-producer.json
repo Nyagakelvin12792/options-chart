@@ -1,0 +1,220 @@
+{
+  "snapshotId": "d35b93a4ee09a572abb020cf",
+  "contractVersion": "1.0.0",
+  "methodologyVersion": "btc-macros-rules-1.0.0-candidate",
+  "createdAt": "2026-10-19T15:10:37.731Z",
+  "maxAgeSeconds": 3600,
+  "brief": "The available evidence is shown below. Required inputs or history are incomplete, so an overall directional assessment is withheld.",
+  "integrity": {
+    "mode": "live",
+    "requiredEvidenceComplete": false,
+    "independentCrossCheck": false
+  },
+  "usable": false,
+  "veto": true,
+  "regime": "ASSESSMENT WITHHELD",
+  "macro": "INSUFFICIENT DATA",
+  "fundamentals": "INSUFFICIENT DATA",
+  "positioning": "INSUFFICIENT DATA",
+  "missing": [
+    "net_liquidity",
+    "hy_oas",
+    "dfii10",
+    "btc_etf_flows",
+    "mvrv",
+    "hash_ribbons",
+    "funding_rate",
+    "fear_greed"
+  ],
+  "evidence": [
+    {
+      "metric": "net_liquidity",
+      "observationId": null,
+      "value": null,
+      "unit": "$B",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/"
+    },
+    {
+      "metric": "walcl",
+      "observationId": null,
+      "value": null,
+      "unit": "$B",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/series/WALCL"
+    },
+    {
+      "metric": "wtregen",
+      "observationId": null,
+      "value": null,
+      "unit": "$B",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/series/WTREGEN"
+    },
+    {
+      "metric": "rrponsl",
+      "observationId": null,
+      "value": null,
+      "unit": "$B",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/series/RRPONTSYD"
+    },
+    {
+      "metric": "dfii10",
+      "observationId": null,
+      "value": null,
+      "unit": "%",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/series/DFII10"
+    },
+    {
+      "metric": "hy_oas",
+      "observationId": null,
+      "value": null,
+      "unit": "%",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
+    },
+    {
+      "metric": "dgs10",
+      "observationId": null,
+      "value": null,
+      "unit": "%",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/series/DGS10"
+    },
+    {
+      "metric": "t10yie",
+      "observationId": null,
+      "value": null,
+      "unit": "%",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/series/T10YIE"
+    },
+    {
+      "metric": "us_dollar",
+      "observationId": null,
+      "value": null,
+      "unit": "index",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://fred.stlouisfed.org/series/DTWEXBGS"
+    },
+    {
+      "metric": "btc_etf_flows",
+      "observationId": null,
+      "value": null,
+      "unit": "$M",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://farside.co.uk/btc/"
+    },
+    {
+      "metric": "stablecoin_mcap",
+      "observationId": null,
+      "value": null,
+      "unit": "$B",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://defillama.com/stablecoins"
+    },
+    {
+      "metric": "hashrate",
+      "observationId": null,
+      "value": null,
+      "unit": "TH/s",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://docs.coinmetrics.io/network-data/network-data-overview/mining/hash-rate"
+    },
+    {
+      "metric": "hash_ribbons",
+      "observationId": null,
+      "value": null,
+      "unit": "ratio",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://docs.coinmetrics.io/"
+    },
+    {
+      "metric": "mvrv",
+      "observationId": null,
+      "value": null,
+      "unit": "ratio",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://docs.coinmetrics.io/"
+    },
+    {
+      "metric": "realized_price",
+      "observationId": null,
+      "value": null,
+      "unit": "USD",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://docs.coinmetrics.io/"
+    },
+    {
+      "metric": "miner_reserve_change",
+      "observationId": null,
+      "value": null,
+      "unit": "BTC",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://cryptoquant.com/"
+    },
+    {
+      "metric": "funding_rate",
+      "observationId": null,
+      "value": null,
+      "unit": "% / interval",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://www.okx.com/docs-v5/en/"
+    },
+    {
+      "metric": "futures_open_interest",
+      "observationId": null,
+      "value": null,
+      "unit": "$B",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://www.okx.com/docs-v5/en/"
+    },
+    {
+      "metric": "fear_greed",
+      "observationId": null,
+      "value": null,
+      "unit": "/ 100",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://alternative.me/crypto/fear-and-greed-index/"
+    },
+    {
+      "metric": "btc_price",
+      "observationId": null,
+      "value": null,
+      "unit": "USD",
+      "asOf": null,
+      "status": "MISSING",
+      "sourceUrl": "https://docs.coinmetrics.io/"
+    }
+  ],
+  "conflicts": [],
+  "limitations": [
+    "Candidate rules are not calibrated probabilities or a validated trading strategy.",
+    "Primary validation is not independent source corroboration.",
+    "Historical plots use revised observations and do not establish what was known at the time.",
+    "US session calendar is explicitly supported for 2024–2027; exceptional closures require updates.",
+    "Funding and open interest cover OKX BTC-USDT-SWAP only; crowd sentiment contains price-derived inputs."
+  ],
+  "scope": "Context only. No option levels, entries, sizing, or orders."
+}

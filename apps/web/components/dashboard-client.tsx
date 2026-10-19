@@ -83,6 +83,7 @@ import {
   type PositionedProfileBar,
   type ProfileMetric,
 } from "@/components/gamma-overlay";
+import { MacroContextPanel } from "@/components/macro-context-panel";
 import { RiskTerminal } from "@/components/risk-terminal";
 import { IndicatorControls } from "@/components/indicator-controls";
 import {
@@ -2978,6 +2979,7 @@ export function DashboardClient({
       </div>
 
       <footer className="status-bar">
+        <MacroContextPanel />
         <span>
           Read-only market analytics · {metricStatus} · {drawingCount} drawing
           {drawingCount === 1 ? "" : "s"}

@@ -57,7 +57,11 @@ export function calculateVolumeProfileFromTrades(
     valueAreaPercent = 70,
   } = input;
 
-  if (valueAreaPercent <= 0 || valueAreaPercent > 100 || !Number.isFinite(valueAreaPercent)) {
+  if (
+    valueAreaPercent <= 0 ||
+    valueAreaPercent > 100 ||
+    !Number.isFinite(valueAreaPercent)
+  ) {
     throw new Error(
       `Invalid valueAreaPercent: ${valueAreaPercent}. Must be in range (0, 100].`,
     );
@@ -178,7 +182,8 @@ export function calculateVolumeProfileFromTrades(
       const binWidth = (maxPrice - minPrice) / targetRowCount;
       for (let i = 0; i < targetRowCount; i++) {
         const rowLow = minPrice + i * binWidth;
-        const rowHigh = i === targetRowCount - 1 ? maxPrice : minPrice + (i + 1) * binWidth;
+        const rowHigh =
+          i === targetRowCount - 1 ? maxPrice : minPrice + (i + 1) * binWidth;
         rows.push({
           low: rowLow,
           high: rowHigh,
@@ -197,12 +202,17 @@ export function calculateVolumeProfileFromTrades(
   } else if (binConfig.mode === "binSize") {
     const { binSize, tickOrigin = 0 } = binConfig;
     if (binSize <= 0 || !Number.isFinite(binSize)) {
-      throw new Error(`Invalid binSize: ${binSize}. Must be positive finite number.`);
+      throw new Error(
+        `Invalid binSize: ${binSize}. Must be positive finite number.`,
+      );
     }
 
     const firstBinIndex = Math.floor((minPrice - tickOrigin) / binSize);
     let lastBinIndex = Math.floor((maxPrice - tickOrigin) / binSize);
-    if (tickOrigin + lastBinIndex * binSize === maxPrice && maxPrice > minPrice) {
+    if (
+      tickOrigin + lastBinIndex * binSize === maxPrice &&
+      maxPrice > minPrice
+    ) {
       lastBinIndex -= 1;
     }
     const rowCount = lastBinIndex - firstBinIndex + 1;
@@ -322,7 +332,8 @@ export function calculateVolumeProfileFromTrades(
 
   const val = lowestRow.low;
   const vah = highestRow.high;
-  const achievedValueAreaPercent = (accumulatedValueAreaVol / totalEligibleVolume) * 100;
+  const achievedValueAreaPercent =
+    (accumulatedValueAreaVol / totalEligibleVolume) * 100;
 
   return {
     rows,

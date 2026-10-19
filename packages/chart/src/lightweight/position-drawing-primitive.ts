@@ -73,9 +73,7 @@ class PositionPaneRenderer implements IPrimitivePaneRenderer {
           context.strokeStyle = color;
           context.lineWidth = Math.max(1, Math.round(1 * horizontalPixelRatio));
           context.setLineDash(
-            dashed
-              ? [4 * horizontalPixelRatio, 3 * horizontalPixelRatio]
-              : [],
+            dashed ? [4 * horizontalPixelRatio, 3 * horizontalPixelRatio] : [],
           );
           context.beginPath();
           context.moveTo(x1, y);
@@ -93,7 +91,10 @@ class PositionPaneRenderer implements IPrimitivePaneRenderer {
           ? "rgba(95, 168, 255, 0.6)"
           : "rgba(120, 140, 160, 0.28)";
         context.lineWidth = Math.max(1, Math.round(1 * horizontalPixelRatio));
-        context.setLineDash([2 * horizontalPixelRatio, 2 * horizontalPixelRatio]);
+        context.setLineDash([
+          2 * horizontalPixelRatio,
+          2 * horizontalPixelRatio,
+        ]);
         const overallTop = Math.min(targetTop, stopTop);
         const overallBottom = Math.max(
           targetTop + targetHeight,

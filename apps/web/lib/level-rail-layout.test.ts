@@ -57,7 +57,8 @@ describe("level-rail-layout", () => {
 
       // Ensure all 4 placements have at least (TAG_HEIGHT + TAG_GAP) separation
       for (let i = 0; i < placements.length - 1; i += 1) {
-        const diff = (placements[i + 1]?.displayY ?? 0) - (placements[i]?.displayY ?? 0);
+        const diff =
+          (placements[i + 1]?.displayY ?? 0) - (placements[i]?.displayY ?? 0);
         expect(diff).toBeGreaterThanOrEqual(TAG_HEIGHT + TAG_GAP - 0.01);
       }
     });
@@ -76,7 +77,9 @@ describe("level-rail-layout", () => {
       expect(placements).toHaveLength(4);
       for (const placement of placements) {
         expect(placement.displayY).toBeGreaterThanOrEqual(TAG_HEIGHT / 2 + 4);
-        expect(placement.displayY).toBeLessThanOrEqual(600 - TAG_HEIGHT / 2 - 4);
+        expect(placement.displayY).toBeLessThanOrEqual(
+          600 - TAG_HEIGHT / 2 - 4,
+        );
       }
     });
   });

@@ -29,7 +29,7 @@ export function buildVolumeProfileCacheKey(input: VolumeProfileInput): string {
       ? input.binConfig.rowCount
       : input.binConfig.binSize;
   const tickOrigin =
-    input.binConfig.mode === "binSize" ? input.binConfig.tickOrigin ?? 0 : 0;
+    input.binConfig.mode === "binSize" ? (input.binConfig.tickOrigin ?? 0) : 0;
 
   // Derive signature of latest eligible/forming candle to detect in-place candle corrections
   let latestCandleSignature = "empty";

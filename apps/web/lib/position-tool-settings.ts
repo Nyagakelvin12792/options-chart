@@ -15,7 +15,10 @@ export const clampRewardRiskRatio = (ratio: number): number => {
   if (!Number.isFinite(ratio) || ratio <= 0) {
     return DEFAULT_POSITION_TOOL_SETTINGS.defaultRewardRiskRatio;
   }
-  return Math.min(Math.max(ratio, MIN_REWARD_RISK_RATIO), MAX_REWARD_RISK_RATIO);
+  return Math.min(
+    Math.max(ratio, MIN_REWARD_RISK_RATIO),
+    MAX_REWARD_RISK_RATIO,
+  );
 };
 
 export const loadPositionToolSettings = (): PositionToolSettings => {
@@ -38,11 +41,15 @@ export const loadPositionToolSettings = (): PositionToolSettings => {
   }
 };
 
-export const savePositionToolSettings = (settings: PositionToolSettings): void => {
+export const savePositionToolSettings = (
+  settings: PositionToolSettings,
+): void => {
   if (typeof window === "undefined" || !window.localStorage) return;
   try {
     const safeSettings: PositionToolSettings = {
-      defaultRewardRiskRatio: clampRewardRiskRatio(settings.defaultRewardRiskRatio),
+      defaultRewardRiskRatio: clampRewardRiskRatio(
+        settings.defaultRewardRiskRatio,
+      ),
     };
     window.localStorage.setItem(
       POSITION_TOOL_SETTINGS_STORAGE_KEY,

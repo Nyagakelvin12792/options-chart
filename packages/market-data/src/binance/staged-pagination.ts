@@ -171,7 +171,10 @@ export async function streamOlderHistoryPages(
 
     // Deduplicate and prepend to older candles
     const earliestOpenTime = pageCandles[0]?.openTime;
-    if (earliestOpenTime === undefined || earliestOpenTime >= currentBeforeOpenTime) {
+    if (
+      earliestOpenTime === undefined ||
+      earliestOpenTime >= currentBeforeOpenTime
+    ) {
       // No progress backwards; stop to prevent infinite loop
       break;
     }

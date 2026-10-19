@@ -147,6 +147,8 @@ describe("Volume Profile Performance Benchmark (10,000 candles)", () => {
     expect(cached?.pocPrice).toBe(initial.pocPrice);
     expect(duration).toBeLessThan(5); // Cache retrieval is sub-millisecond
 
-    console.log(`[Benchmark] Cache retrieval duration: ${duration.toFixed(3)} ms`);
+    console.log(
+      `[Benchmark] Cache retrieval duration: ${duration.toFixed(3)} ms`,
+    );
   });
 });

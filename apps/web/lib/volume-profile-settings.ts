@@ -60,7 +60,10 @@ export const normalizeVolumeProfileSettings = (
 ): VolumeProfileSettings => {
   const source = isRecord(value) ? value : {};
   return {
-    enabled: booleanValue(source.enabled, DEFAULT_VOLUME_PROFILE_SETTINGS.enabled),
+    enabled: booleanValue(
+      source.enabled,
+      DEFAULT_VOLUME_PROFILE_SETTINGS.enabled,
+    ),
     rowCount: Math.round(
       finiteNumber(
         source.rowCount,

@@ -1,6 +1,4 @@
-import {
-  DeribitOptionTickerSchema,
-} from "@options-chart/market-data";
+import { DeribitOptionTickerSchema } from "@options-chart/market-data";
 import { NextResponse } from "next/server";
 
 import { getDashboardAccess } from "@/lib/auth";

@@ -36,7 +36,10 @@ class VolumeProfilePaneRenderer implements IPrimitivePaneRenderer {
 
     const presentation = this.getPresentation();
     const placement = presentation.placement ?? "right";
-    const widthFraction = Math.min(0.5, Math.max(0.05, presentation.widthFraction ?? 0.2));
+    const widthFraction = Math.min(
+      0.5,
+      Math.max(0.05, presentation.widthFraction ?? 0.2),
+    );
     const showPOC = presentation.showPOC ?? true;
     const showVAH = presentation.showVAH ?? true;
     const showVAL = presentation.showVAL ?? true;
@@ -47,9 +50,11 @@ class VolumeProfilePaneRenderer implements IPrimitivePaneRenderer {
     const pocColor = presentation.pocColor ?? "#d97706";
     const vahColor = presentation.vahColor ?? "#3b82f6";
     const valColor = presentation.valColor ?? "#3b82f6";
-    const bullishColor = presentation.bullishColor ?? "rgba(37, 169, 119, 0.75)";
+    const bullishColor =
+      presentation.bullishColor ?? "rgba(37, 169, 119, 0.75)";
     const bearishColor = presentation.bearishColor ?? "rgba(220, 83, 98, 0.75)";
-    const neutralColor = presentation.neutralColor ?? "rgba(156, 163, 175, 0.65)";
+    const neutralColor =
+      presentation.neutralColor ?? "rgba(156, 163, 175, 0.65)";
     const totalColor = presentation.totalColor ?? "rgba(99, 102, 241, 0.65)";
 
     const yPoc = this.getPocCoord();
@@ -82,7 +87,9 @@ class VolumeProfilePaneRenderer implements IPrimitivePaneRenderer {
           context.globalAlpha = opacity;
 
           const hasDirectional =
-            (row.bullishVolume > 0 || row.bearishVolume > 0 || row.neutralVolume > 0) &&
+            (row.bullishVolume > 0 ||
+              row.bearishVolume > 0 ||
+              row.neutralVolume > 0) &&
             row.bullishVolume + row.bearishVolume + row.neutralVolume > 0;
 
           if (hasDirectional) {
@@ -297,19 +304,25 @@ export class VolumeProfilePrimitive implements ISeriesPrimitive<Time> {
         getPocCoord,
         () => `POC ${this.result?.pocPrice?.toFixed(1) ?? ""}`,
         () => this.presentation.pocColor ?? "#d97706",
-        () => (this.presentation.showPOC ?? true) && (this.presentation.showLabels ?? true),
+        () =>
+          (this.presentation.showPOC ?? true) &&
+          (this.presentation.showLabels ?? true),
       ),
       new VolumeProfilePriceAxisView(
         getVahCoord,
         () => `VAH ${this.result?.vah?.toFixed(1) ?? ""}`,
         () => this.presentation.vahColor ?? "#3b82f6",
-        () => (this.presentation.showVAH ?? true) && (this.presentation.showLabels ?? true),
+        () =>
+          (this.presentation.showVAH ?? true) &&
+          (this.presentation.showLabels ?? true),
       ),
       new VolumeProfilePriceAxisView(
         getValCoord,
         () => `VAL ${this.result?.val?.toFixed(1) ?? ""}`,
         () => this.presentation.valColor ?? "#3b82f6",
-        () => (this.presentation.showVAL ?? true) && (this.presentation.showLabels ?? true),
+        () =>
+          (this.presentation.showVAL ?? true) &&
+          (this.presentation.showLabels ?? true),
       ),
     ];
 
@@ -363,9 +376,13 @@ export class VolumeProfilePrimitive implements ISeriesPrimitive<Time> {
         ? series.priceToCoordinate(this.result.pocPrice)
         : null;
     this.yVah =
-      this.result.vah !== null ? series.priceToCoordinate(this.result.vah) : null;
+      this.result.vah !== null
+        ? series.priceToCoordinate(this.result.vah)
+        : null;
     this.yVal =
-      this.result.val !== null ? series.priceToCoordinate(this.result.val) : null;
+      this.result.val !== null
+        ? series.priceToCoordinate(this.result.val)
+        : null;
   }
 
   paneViews(): readonly IPrimitivePaneView[] {

@@ -148,7 +148,9 @@ export const createPositionFromGesture = (options: {
     } else {
       // Dragging below entry explicitly sets target
       takeProfit = options.currentPrice;
-      stopLoss = options.entryPrice + (options.entryPrice - options.currentPrice) / ratio;
+      stopLoss =
+        options.entryPrice +
+        (options.entryPrice - options.currentPrice) / ratio;
     }
   }
 

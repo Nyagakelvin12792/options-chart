@@ -152,8 +152,8 @@ describe("DeribitRestClient", () => {
       client.getOptionTicker("BTC-24APR26-72000-C"),
     ).resolves.toMatchObject({ greeks: { gamma: 0.00012 } });
     expect(requests[0]?.pathname).toBe("/api/v2/public/ticker");
-    await expect(client.getOptionTicker("BTC-PERPETUAL")).rejects.toBeInstanceOf(
-      SchemaValidationError,
-    );
+    await expect(
+      client.getOptionTicker("BTC-PERPETUAL"),
+    ).rejects.toBeInstanceOf(SchemaValidationError);
   });
 });

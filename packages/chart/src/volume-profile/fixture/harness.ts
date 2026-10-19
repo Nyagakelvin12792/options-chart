@@ -11,7 +11,9 @@ import type {
 import { getFixtureCandles } from "./fixture-data";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const container = document.getElementById("chart-container") as HTMLDivElement;
+  const container = document.getElementById(
+    "chart-container",
+  ) as HTMLDivElement;
   const frame = document.getElementById("chart-frame") as HTMLDivElement;
 
   if (!container || !frame) return;
@@ -64,7 +66,8 @@ document.addEventListener("DOMContentLoaded", () => {
       statVah.textContent = res.vah ? res.vah.toFixed(1) : "N/A";
       statValEl.textContent = res.val ? res.val.toFixed(1) : "N/A";
       statVa.textContent = res.achievedValueAreaPercent.toFixed(1) + "%";
-      statCandles.textContent = res.qualityMetadata.eligibleCandleCount.toString();
+      statCandles.textContent =
+        res.qualityMetadata.eligibleCandleCount.toString();
     },
   });
 
@@ -146,7 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const btnWidth = document.getElementById("btn-width")!;
   btnWidth.addEventListener("click", () => {
-    widthFraction = widthFraction === 0.25 ? 0.35 : widthFraction === 0.35 ? 0.15 : 0.25;
+    widthFraction =
+      widthFraction === 0.25 ? 0.35 : widthFraction === 0.35 ? 0.15 : 0.25;
     btnWidth.textContent = `Width: ${(widthFraction * 100).toFixed(0)}%`;
     updateInput();
   });
@@ -176,9 +180,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnDirection = document.getElementById("btn-direction")!;
   btnDirection.addEventListener("click", () => {
     directionMode = directionMode === "total" ? "candle-direction" : "total";
-    btnDirection.classList.toggle("active", directionMode === "candle-direction");
+    btnDirection.classList.toggle(
+      "active",
+      directionMode === "candle-direction",
+    );
     btnDirection.textContent =
-      directionMode === "candle-direction" ? "Direction: Candle" : "Direction: Total";
+      directionMode === "candle-direction"
+        ? "Direction: Candle"
+        : "Direction: Total";
     updateInput();
   });
 
@@ -186,8 +195,10 @@ document.addEventListener("DOMContentLoaded", () => {
   selBins.addEventListener("change", () => {
     const val = selBins.value;
     if (val === "rowCount-24") binConfig = { mode: "rowCount", rowCount: 24 };
-    else if (val === "rowCount-50") binConfig = { mode: "rowCount", rowCount: 50 };
-    else if (val === "rowCount-100") binConfig = { mode: "rowCount", rowCount: 100 };
+    else if (val === "rowCount-50")
+      binConfig = { mode: "rowCount", rowCount: 50 };
+    else if (val === "rowCount-100")
+      binConfig = { mode: "rowCount", rowCount: 100 };
     else if (val === "binSize-25") binConfig = { mode: "binSize", binSize: 25 };
     updateInput();
   });

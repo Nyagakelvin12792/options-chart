@@ -1713,3 +1713,11 @@ This prevents agents from repeatedly replacing each other's implementations.
   5. **Resilience & Hysteresis:** Forced disconnects trigger subscription replay, REST reconciliation, and clean transition through recovery hysteresis back to `LIVE`.
   6. **Test Verification:** 87 Vitest unit tests (all 22 test files), 3 Playwright browser checks, TypeScript typecheck, and ESLint pass with 0 errors.
 - **Formal Exit Approval:** Milestone 2 is hereby **APPROVED**. Milestone 3 (Options Mathematics Engine) is cleared to begin.
+
+## M10.10 BTC macros context consumer, 2026-10-19
+
+Implementation in review. Added a local JSON import panel with version, units, duplicate, freshness, source-evidence and veto checks. Imported context expires in the active tab and never changes option calculations or risk sizing. Eight focused unit checks pass. Full suite passed 441 tests and production build passed during implementation. Browser integration is queued for CI because the local Chromium download failed. Task journal: docs/progress/M10/M10.10.md. No production or release completion is claimed.
+
+M10.10 follow-up: initial CI passed 22 browser checks and the consumer integration, but failed on existing formatting debt. Fixed formatting with AST-equivalence evidence and patched Next.js/eslint-config-next to 16.3.8. Final local validation passed 442 tests, build, lint, types, formatting, and progress gates. Production dependency audit is clean. Five high dev-toolchain advisories remain documented in the task journal. Final CI remains the acceptance authority. The macro release remains blocked on actual M5 observation/research evidence.
+
+M10.10 layout refinement: macro context opens in a native status-bar dialog, preserving the chart grid. The consumer displays the overall brief and its blocked-state label. Browser coverage asserts unchanged chart bounds before and after use.

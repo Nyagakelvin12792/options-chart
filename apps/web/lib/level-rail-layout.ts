@@ -60,9 +60,7 @@ export const layoutCollisionItems = (
   const placed: CollisionPlacement[] = [];
 
   const collides = (candidate: number): boolean =>
-    placed.some(
-      ({ displayY }) => Math.abs(displayY - candidate) < slotSize,
-    );
+    placed.some(({ displayY }) => Math.abs(displayY - candidate) < slotSize);
 
   // Sort by priority ascending (0 highest), then trueY ascending
   const sorted = [...items].sort(

@@ -93,7 +93,10 @@ export const installDeribitFixtureMock = async (page: Page): Promise<void> => {
   );
 
   await page.route("**/api/deribit/public/ticker**", async (route) => {
-    await route.fulfill({ status: 503, body: "Fixture gamma audit unavailable" });
+    await route.fulfill({
+      status: 503,
+      body: "Fixture gamma audit unavailable",
+    });
   });
 
   await page.route("https://www.deribit.com/api/v2/**", async (route) => {

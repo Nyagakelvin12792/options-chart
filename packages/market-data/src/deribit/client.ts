@@ -252,7 +252,8 @@ export class DeribitRestClient {
     options: DeribitRecentOptionTradesOptions = {},
   ): Promise<DeribitRecentOptionTradesResult> {
     const hasTimestampWindow =
-      options.startTimestamp !== undefined || options.endTimestamp !== undefined;
+      options.startTimestamp !== undefined ||
+      options.endTimestamp !== undefined;
     const hasIdWindow =
       options.startId !== undefined || options.endId !== undefined;
     const queryInput = {
