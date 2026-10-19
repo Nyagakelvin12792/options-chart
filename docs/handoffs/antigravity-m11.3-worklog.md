@@ -224,8 +224,63 @@ Status: COMPLETE
 - **Failures and classification:** None.
 - **Reviewer findings:** Agent F adversarial review completed: APPROVED with 0 blocking findings and 0 defects.
 - **Remaining limitations:** M11.3 implementation is complete and verified. Milestone M11.4 integration awaits coordinator authorization.
-- **Next exact command and file:** Present final handoff report to coordinator.
+- **Next exact command and file:** Execute review feedback reconciliation and regression hardening.
 
+## Checkpoint 7 - Review Feedback Reconciliation & Regression Hardening
 
+Status: COMPLETE
 
-
+- **Branch and HEAD (prior to Checkpoint 7 commit):** `handoff/antigravity-m11` at `117bd0e6c561b3699c855a02eebec334f664bf87`
+- **Completed workstreams:**
+  - Item 1: Deterministic Trade-Event Deduplication: Added deduplication tracking using a bounded history queue (`seenEventIds`, max 10,000 entries). Ingesting duplicate trade event IDs records transparent health evidence (`health.duplicateCount`) without mutating CVD volume, candle buckets, response calculations, classifications, liquidity volume, or evidence IDs. Added integration test.
+  - Item 2: Incremental Late-Event Policy: Enforced strict policy in incremental mode (`mode: "incremental"`). Trades arriving behind finalized cursor are recorded as late/ignored (`health.lateIgnoredEventCount`), never rewinding `lastTradePrice`, mutating closed candle buckets, or altering classifications. Exposed explicit `mode: "replay"` mode for historical batch processing and tested both modes.
+  - Item 3: Cutoff-Prefix Equivalence: Relocated `cutoffExcludedEventCount` out-of-band to an engine and tracker getter, removing it from `FeatureHealthSnapshotV1`. Proved that replaying `[eligible events + events after cutoff]` produces identical `FlowFeatureSnapshotV1` snapshots and SHA-256 audit digests as streaming only the eligible live prefix.
+  - Item 4: Schema-Conforming Health Records: Removed unreachable fake `channel: "health"` branch and replaced unsafe casts with typed methods `ingestHealthEvent(event: MarketHealthEventV1)` and `ingestStorageRecord(record: MarketStorageRecordV1)` conforming to repository Zod schemas. Updated fixtures and tests with valid schema-parsed events.
+  - Item 5: Lockfile Verification: Synchronized `package-lock.json` via `npm install --package-lock-only`. Verified `npm ci --dry-run --ignore-scripts` passes with exit code 0 and changes 0 files.
+  - Item 6: Formatting & Committed-Range Verification: Resolved trailing blank line at EOF in worklog. Proved `git diff --check 57f096cfbb72a03427dd74ba1a851455f8e96995` passes with exit code 0.
+  - Item 7: Strengthened Benchmark: Enhanced `benchmark.test.ts` to capture and emit Node/OS/CPU environment (`process.version`, `os.platform()`, `os.release()`, `os.arch()`, CPU model and core count), elapsed time (ms & s), throughput (events/sec), peak retained internal state (trades, evidence IDs, dedup history, order book levels), and heap evidence (initial, peak, final heap in MB) distinguishing peak memory from net delta.
+  - Item 8: Comprehensive Regression Test Suite: Added 5 regression tests in `engine.test.ts` verifying:
+    1. Duplicate trade deduplication (transparent health increment, invariant signal outputs).
+    2. Late incremental trades (ignored behind cursor, no price rewind, no closed candle mutation, explicit replay mode support).
+    3. Prefix equivalence between live ingestion and cutoff replay (`computeSnapshotAuditDigest(S_live) === computeSnapshotAuditDigest(S_replay)`).
+    4. Schema-valid health records (`MarketHealthEventV1Schema.parse`).
+    5. Bounded retained internal state over long time spans.
+- **Files changed:**
+  - `package-lock.json`
+  - `packages/flow-engine/fixtures/replay-session.json`
+  - `packages/flow-engine/src/contracts.ts`
+  - `packages/flow-engine/src/contracts.test.ts`
+  - `packages/flow-engine/src/cvd.ts`
+  - `packages/flow-engine/src/feature-health.ts`
+  - `packages/flow-engine/src/engine.ts`
+  - `packages/flow-engine/src/engine.test.ts`
+  - `packages/flow-engine/src/benchmark.test.ts`
+  - `docs/handoffs/antigravity-m11.3-worklog.md`
+- **Commands and exact results:**
+  - `npm exec vitest run packages/flow-engine`: Exit code 0 (6 test files passed, 41 tests passed in 9.74s)
+  - `npm run schemas:market-events:check`: Exit code 0 (checked market-event-v1 and market-health-event-v1 schemas)
+  - `npm exec vitest run packages/market-data/src/market-events`: Exit code 0 (1 test file passed, 18 tests passed)
+  - `python -m pytest -p no:cacheprovider --basetemp ... services/cryptofeed-collector -q`: Exit code 0 (33 passed in 2.37s)
+  - `npm run test`: Exit code 0 (71 test files passed, 492 tests passed in 55.85s)
+  - `npm run typecheck`: Exit code 0 (0 TypeScript errors across root and all workspace packages)
+  - `npm run lint`: Exit code 0 (0 ESLint errors, 0 warnings across all files)
+  - `npm run build`: Exit code 0 (packages and Next.js web application built successfully in 14.7s; restored verified Next.js `apps/web/next-env.d.ts` churn)
+  - `npm run progress:check`: Exit code 0
+  - `npm run progress:policy`: Exit code 0
+  - `npm run format:check`: Exit code 1 (due to Windows filesystem EPERM on `.pytest_cache`); `All matched files use Prettier code style!` reported. Targeted check `npx prettier --check "packages/flow-engine/**" "docs/handoffs/antigravity-m11.3-worklog.md" package-lock.json` exited with code 0.
+  - `git diff --check 57f096cfbb72a03427dd74ba1a851455f8e96995`: Exit code 0 (0 whitespace / newline errors)
+  - `npm ci --dry-run --ignore-scripts`: Exit code 0 (added 1 package in 7s, 0 files changed)
+  - Benchmark over 100,000 events:
+    - Environment: Node v24.13.1, OS win32 10.0.19045 (x64), CPU: AMD A12-9720P RADEON R7, 12 COMPUTE CORES 4C+8G (4 cores)
+    - Elapsed Time: 2955.65 ms (2.956 s)
+    - Throughput: 33,833 events/sec
+    - Peak Retained Internal State: 70,000 trades, 128 evidence IDs, 2,048 dedup IDs, book bids=7, book asks=7
+    - Heap Evidence: initial=66 MB, peak=111 MB, final=111 MB (net heap delta: +45 MB)
+- **Failures and classification:**
+  - `npm run format:check` returned code 1 strictly due to unreadable `.pytest_cache` directory created by prior Python pytest runs without `-p no:cacheprovider` on Windows (EPERM scandir). All actual project code and files passed Prettier formatting with zero style violations.
+- **Reviewer findings:**
+  - All 8 review items fully resolved, tested, and verified.
+- **Remaining limitations:**
+  - M11.3 deterministic flow engine package is complete, verified, and hardened. Integration with M11.4 awaits coordinator authorization.
+- **Next exact command and file:**
+  - Present final handoff report for independent Codex review.
