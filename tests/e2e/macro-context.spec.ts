@@ -37,7 +37,9 @@ function fixture() {
     scope: "Context only. No option levels, entries, sizing, or orders.",
   };
 }
-test("macro import remains isolated, rejects degradation, and clears", async ({ page }, info) => {
+test("macro import remains isolated, rejects degradation, and clears", async ({
+  page,
+}, info) => {
   await installBinanceKlineMock(page);
   await installDeribitFixtureMock(page);
   await page.goto("/");
