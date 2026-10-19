@@ -1126,7 +1126,9 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
         expect.objectContaining({ type: "position" }),
       );
 
-      mocks.container.dispatchEvent(makePointerEvent("pointercancel", 100, 300));
+      mocks.container.dispatchEvent(
+        makePointerEvent("pointercancel", 100, 300),
+      );
 
       expect(previewSpy).toHaveBeenLastCalledWith(null);
       expect(modeSpy).toHaveBeenCalledWith("pointer");
@@ -1286,12 +1288,14 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
         toTimestamp: 1_700_001_800_000,
       });
 
-      mocks.candleSeries.priceToCoordinate.mockImplementation((price: number) => {
-        if (price === 60_000) return 200;
-        if (price === 58_000) return 300;
-        if (price === 64_000) return 100;
-        return null;
-      });
+      mocks.candleSeries.priceToCoordinate.mockImplementation(
+        (price: number) => {
+          if (price === 60_000) return 200;
+          if (price === 58_000) return 300;
+          if (price === 64_000) return 100;
+          return null;
+        },
+      );
 
       mocks.candleSeries.coordinateToPrice.mockReturnValue(57_000);
       mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
@@ -1396,10 +1400,12 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
         createdAt: 1,
       });
 
-      mocks.candleSeries.priceToCoordinate.mockImplementation((price: number) => {
-        if (price === 58_000) return 300;
-        return 200;
-      });
+      mocks.candleSeries.priceToCoordinate.mockImplementation(
+        (price: number) => {
+          if (price === 58_000) return 300;
+          return 200;
+        },
+      );
 
       mocks.candleSeries.coordinateToPrice.mockReturnValue(62_000); // attempt to drag stopLoss above entry
       mocks.timeScale.coordinateToTime.mockReturnValue(1_700_000_000);
@@ -1502,8 +1508,8 @@ describe("Batch 1: one-shot tools, candle-snap, and VP preview", () => {
       });
       const drawingsSpy = vi.fn();
       adapter.subscribeDrawingsChange(drawingsSpy);
-      mocks.candleSeries.priceToCoordinate.mockImplementation((price: number) =>
-        price === 58_000 ? 300 : 200,
+      mocks.candleSeries.priceToCoordinate.mockImplementation(
+        (price: number) => (price === 58_000 ? 300 : 200),
       );
       mocks.candleSeries.coordinateToPrice.mockReturnValue(57_000);
 

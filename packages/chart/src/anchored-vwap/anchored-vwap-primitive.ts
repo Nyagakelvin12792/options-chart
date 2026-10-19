@@ -58,7 +58,8 @@ class AnchoredVwapPaneRenderer implements IPrimitivePaneRenderer {
     const showFill = presentation.showFill ?? false;
     const bandFillColor = presentation.bandFillColor ?? DEFAULT_FILL_COLOR;
     const showAnchorLine = presentation.showAnchorLine ?? true;
-    const anchorLineColor = presentation.anchorLineColor ?? DEFAULT_ANCHOR_COLOR;
+    const anchorLineColor =
+      presentation.anchorLineColor ?? DEFAULT_ANCHOR_COLOR;
 
     target.useBitmapCoordinateSpace(
       ({ context, horizontalPixelRatio, verticalPixelRatio, bitmapSize }) => {
@@ -125,9 +126,13 @@ class AnchoredVwapPaneRenderer implements IPrimitivePaneRenderer {
           const numBands = coords[0]?.bandCoords.length ?? 0;
 
           for (let b = 0; b < numBands; b++) {
-            const color = bandColors[b % bandColors.length] ?? DEFAULT_BAND_COLORS[0]!;
+            const color =
+              bandColors[b % bandColors.length] ?? DEFAULT_BAND_COLORS[0]!;
             context.strokeStyle = color;
-            context.lineWidth = Math.max(1, bandLineWidth * horizontalPixelRatio);
+            context.lineWidth = Math.max(
+              1,
+              bandLineWidth * horizontalPixelRatio,
+            );
             context.setLineDash([
               3 * horizontalPixelRatio,
               3 * horizontalPixelRatio,
@@ -351,7 +356,11 @@ export class AnchoredVwapPrimitive implements ISeriesPrimitive<Time> {
   }
 
   updateAllViews(): void {
-    if (!this.attachedParams || !this.result || this.result.points.length === 0) {
+    if (
+      !this.attachedParams ||
+      !this.result ||
+      this.result.points.length === 0
+    ) {
       this.computedCoords = [];
       this.anchorX = null;
       this.latestY = null;

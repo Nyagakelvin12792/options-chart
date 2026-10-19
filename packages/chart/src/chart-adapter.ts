@@ -145,7 +145,9 @@ export interface ChartAdapter {
   subscribeDrawingPreviewChange?(
     listener: (preview: ChartDrawingPreview) => void,
   ): () => void;
-  setPositionSettings?(settings: { readonly defaultRewardRiskRatio: number }): void;
+  setPositionSettings?(settings: {
+    readonly defaultRewardRiskRatio: number;
+  }): void;
   setVolumeProfile?(id: string, renderInput: VolumeProfileRenderInput): void;
   removeVolumeProfile?(id: string): void;
   setAnchoredVwap?(id: string, renderInput: AnchoredVwapRenderInput): void;

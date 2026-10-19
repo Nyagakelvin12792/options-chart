@@ -58,8 +58,8 @@ describe("Volume Profile settings", () => {
       widthPercent: 24,
       placement: "left" as const,
     };
-    expect(parseVolumeProfileSettings(serializeVolumeProfileSettings(settings))).toEqual(
-      settings,
-    );
+    expect(
+      parseVolumeProfileSettings(serializeVolumeProfileSettings(settings)),
+    ).toEqual(settings);
   });
 });

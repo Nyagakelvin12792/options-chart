@@ -5,6 +5,7 @@
 This document specifies the exported APIs and integration steps for connecting the Anchored VWAP (AVWAP) indicator into the dashboard application (`apps/web`).
 
 Per repository architecture and indicator integration guidelines:
+
 - The indicator is fully contained under `packages/chart/src/anchored-vwap/`.
 - Minimal extensions have been made to `ChartAdapter` and `LightweightChartsAdapter`.
 - Protected dashboard files (`dashboard-client.tsx`, `risk-terminal.tsx`, etc.) were not modified by this feature branch. Main-branch integration and dashboard wiring remain owned by the dashboard maintainer (Codex).
@@ -26,6 +27,7 @@ import {
 ```
 
 #### `calculateAnchoredVwap(input: AnchoredVwapInput): AnchoredVwapResult`
+
 - **Inputs (`AnchoredVwapInput`)**:
   - `anchorTimestamp`: `number` (UTC timestamp in ms). Anchor point for accumulation.
   - `candles`: `readonly Candle[]` (normalized domain candles from Binance BTCUSDT Spot).
@@ -68,6 +70,7 @@ import {
 ```
 
 #### `AnchoredVwapController`
+
 - **Options**:
   - `vwapId: string`
   - `debounceMs?: number` (default 100ms)

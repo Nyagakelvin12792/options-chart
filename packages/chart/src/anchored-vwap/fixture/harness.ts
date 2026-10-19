@@ -111,8 +111,12 @@ recompute();
 // UI Controls
 const btnDesktop = document.getElementById("btn-desktop");
 const btnMobile = document.getElementById("btn-mobile");
-const selAnchor = document.getElementById("sel-anchor") as HTMLSelectElement | null;
-const selSource = document.getElementById("sel-source") as HTMLSelectElement | null;
+const selAnchor = document.getElementById(
+  "sel-anchor",
+) as HTMLSelectElement | null;
+const selSource = document.getElementById(
+  "sel-source",
+) as HTMLSelectElement | null;
 const btnBands = document.getElementById("btn-bands");
 const btnFill = document.getElementById("btn-fill");
 const btnAnchorLine = document.getElementById("btn-anchor-line");

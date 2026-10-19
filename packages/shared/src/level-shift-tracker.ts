@@ -189,7 +189,8 @@ export class LevelShiftTracker {
       // Continuous level (Gamma Flip, Secondary GEX)
       if (level.kind === "gamma-flip") {
         const priceDelta = Math.abs(level.price - existing.price);
-        const relativeThreshold = existing.price * this.gammaFlipToleranceFraction;
+        const relativeThreshold =
+          existing.price * this.gammaFlipToleranceFraction;
         const effectiveThreshold = Math.max(
           this.gammaFlipMinDollarTolerance,
           relativeThreshold,
@@ -376,10 +377,7 @@ export class LevelShiftTracker {
     }
   }
 
-  private buildLevelSemanticId(
-    level: GammaLevel,
-    expiryScope: string,
-  ): string {
+  private buildLevelSemanticId(level: GammaLevel, expiryScope: string): string {
     if (level.kind === "call-wall") return `call-wall-${expiryScope}`;
     if (level.kind === "put-wall") return `put-wall-${expiryScope}`;
     if (level.kind === "gamma-flip") return `gamma-flip-${expiryScope}`;

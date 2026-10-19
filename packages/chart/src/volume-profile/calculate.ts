@@ -59,7 +59,11 @@ export function calculateVolumeProfile(
     valueAreaPercent = 70,
   } = input;
 
-  if (valueAreaPercent <= 0 || valueAreaPercent > 100 || !Number.isFinite(valueAreaPercent)) {
+  if (
+    valueAreaPercent <= 0 ||
+    valueAreaPercent > 100 ||
+    !Number.isFinite(valueAreaPercent)
+  ) {
     throw new Error(
       `Invalid valueAreaPercent: ${valueAreaPercent}. Must be in range (0, 100].`,
     );
@@ -113,7 +117,11 @@ export function calculateVolumeProfile(
     const rawVolume =
       volumeUnit === "quote" ? candle.quoteVolume : candle.volume;
 
-    if (rawVolume === undefined || rawVolume === null || Number.isNaN(rawVolume)) {
+    if (
+      rawVolume === undefined ||
+      rawVolume === null ||
+      Number.isNaN(rawVolume)
+    ) {
       exclusions.missingVolumeCount += 1;
       continue;
     }
@@ -272,7 +280,8 @@ export function calculateVolumeProfile(
       const binWidth = (maxHigh - minLow) / targetRowCount;
       for (let i = 0; i < targetRowCount; i++) {
         const rowLow = minLow + i * binWidth;
-        const rowHigh = i === targetRowCount - 1 ? maxHigh : minLow + (i + 1) * binWidth;
+        const rowHigh =
+          i === targetRowCount - 1 ? maxHigh : minLow + (i + 1) * binWidth;
         rows.push({
           low: rowLow,
           high: rowHigh,
@@ -295,7 +304,8 @@ export function calculateVolumeProfile(
     }
 
     if (maxHigh === minLow) {
-      const rowLow = Math.floor((minLow - tickOrigin) / binSize) * binSize + tickOrigin;
+      const rowLow =
+        Math.floor((minLow - tickOrigin) / binSize) * binSize + tickOrigin;
       const rowHigh = rowLow + binSize;
       rows.push({
         low: rowLow,
@@ -393,8 +403,10 @@ export function calculateVolumeProfile(
       }
 
       lastIntersectedIdx = i;
-      const overlap =
-        Math.max(0, Math.min(candle.high, row.high) - Math.max(candle.low, row.low));
+      const overlap = Math.max(
+        0,
+        Math.min(candle.high, row.high) - Math.max(candle.low, row.low),
+      );
       const weight = overlap / candleSpan;
       const binVol = vol * weight;
 
@@ -489,7 +501,8 @@ export function calculateVolumeProfile(
 
   const val = lowestRow.low;
   const vah = highestRow.high;
-  const achievedValueAreaPercent = (accumulatedValueAreaVol / totalEligibleVolume) * 100;
+  const achievedValueAreaPercent =
+    (accumulatedValueAreaVol / totalEligibleVolume) * 100;
 
   return {
     rows,

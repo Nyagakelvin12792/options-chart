@@ -16,8 +16,7 @@ export interface VolumeProfileBinSizeConfig {
 }
 
 export type VolumeProfileBinConfig =
-  | VolumeProfileRowCountConfig
-  | VolumeProfileBinSizeConfig;
+  VolumeProfileRowCountConfig | VolumeProfileBinSizeConfig;
 
 export interface VolumeProfileRange {
   readonly from: number;

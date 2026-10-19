@@ -10,6 +10,7 @@
 ## 1. Executive Summary
 
 The Anchored Volume Weighted Average Price (AVWAP) indicator has been implemented as an isolated, modular feature under `packages/chart/src/anchored-vwap/`. It provides:
+
 - A pure calculation engine supporting multiple price sources (`typical`, `close`, `hl2`, `ohlc4`, `weighted`), West-Welford numerically stable weighted variance, standard deviation bands, and strict replay cutoff filtering.
 - An LRU memoization cache and debounced generation-tracking controller.
 - A Lightweight Charts (v5.2.1) series primitive (`AnchoredVwapPrimitive`) rendering crisp high-DPI canvas lines, optional band fills, vertical anchor lines, anchor origin bullseyes, and price axis badges without altering chart autoscale.
@@ -23,7 +24,7 @@ The Anchored Volume Weighted Average Price (AVWAP) indicator has been implemente
 
 1. **Worktree Isolation**:
    - The main checkout `work/options-chart` contains dirty, uncommitted changes from another agent (`PositionDrawing` breaking typecheck).
-   - In accordance with handoff instructions (*"If another agent owns the current worktree, create a sibling worktree from its committed base. Do not stash, reset, move, or commit another agent's changes"*), an isolated sibling worktree was created at `work/options-chart-anchored-vwap` on branch `feature/anchored-vwap` branched from `9a773ffefd6ec870dbba03f6e49f35aea7e1fe3b`.
+   - In accordance with handoff instructions (_"If another agent owns the current worktree, create a sibling worktree from its committed base. Do not stash, reset, move, or commit another agent's changes"_), an isolated sibling worktree was created at `work/options-chart-anchored-vwap` on branch `feature/anchored-vwap` branched from `9a773ffefd6ec870dbba03f6e49f35aea7e1fe3b`.
 2. **Node Modules Junctions**:
    - `npm install` was not run across worktrees. Directory junctions were linked from `work/options-chart/node_modules` into `work/options-chart-anchored-vwap/node_modules`, with `@options-chart/*` scoped packages junctioned directly to the local packages of the worktree.
 3. **Protected Files Compliance**:
@@ -35,6 +36,7 @@ The Anchored Volume Weighted Average Price (AVWAP) indicator has been implemente
 ## 3. Scope of Edits
 
 ### Protected Files (Zero Edits Confirmed):
+
 - `apps/web/components/dashboard-client.tsx` (Unchanged)
 - `apps/web/components/risk-terminal.tsx` (Unchanged)
 - `apps/web/lib/risk-calculator.ts` (Unchanged)
@@ -45,11 +47,13 @@ The Anchored Volume Weighted Average Price (AVWAP) indicator has been implemente
 - Volume Profile files on `feature/volume-profile` (Unchanged)
 
 ### Modified Files:
+
 - `packages/chart/src/chart-adapter.ts`: Added optional capability methods `setAnchoredVwap?(id, renderInput)` and `removeAnchoredVwap?(id)`.
 - `packages/chart/src/lightweight/lightweight-chart-adapter.ts`: Implemented `setAnchoredVwap`, `removeAnchoredVwap`, primitive tracking, and cleanup on `destroy()`.
 - `packages/chart/src/index.ts`: Re-exported Anchored VWAP types, calculations, cache, controller, primitive, and adapter extension.
 
 ### Created Files under `packages/chart/src/anchored-vwap/`:
+
 - `types.ts`: Domain types, inputs, results, band points, exclusions, presentation options, and render inputs.
 - `calculate.ts`: Pure calculation engine implementing West-Welford running variance, standard deviation bands, price source extraction, anchor binary search, and replay cutoff filtering.
 - `cache.ts`: Bounded LRU memo cache keyed on symbol, timeframe, anchor timestamp, price source, band multipliers, replay cutoff, and latest candle signature.

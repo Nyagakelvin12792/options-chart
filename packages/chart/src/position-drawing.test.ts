@@ -192,7 +192,9 @@ describe("position drawing", () => {
       expect(position).not.toBeNull();
       expect(position!.fromTimestamp).toBe(1_000);
       expect(position!.toTimestamp).toBe(5_000);
-      expect(position!.fromTimestamp!).toBeLessThanOrEqual(position!.toTimestamp!);
+      expect(position!.fromTimestamp!).toBeLessThanOrEqual(
+        position!.toTimestamp!,
+      );
     });
   });
 
@@ -215,7 +217,11 @@ describe("position drawing", () => {
       expect(movedLeft.toTimestamp).toBe(2_000);
 
       // Move left boundary past right boundary -> normalizes so from <= to
-      const movedPast = movePositionTimeBoundary(drawing, "fromTimestamp", 3_000);
+      const movedPast = movePositionTimeBoundary(
+        drawing,
+        "fromTimestamp",
+        3_000,
+      );
       expect(movedPast.fromTimestamp).toBe(2_000);
       expect(movedPast.toTimestamp).toBe(3_000);
     });
@@ -233,7 +239,11 @@ describe("position drawing", () => {
       });
 
       // Move right boundary further right
-      const movedRight = movePositionTimeBoundary(drawing, "toTimestamp", 3_000);
+      const movedRight = movePositionTimeBoundary(
+        drawing,
+        "toTimestamp",
+        3_000,
+      );
       expect(movedRight.fromTimestamp).toBe(1_000);
       expect(movedRight.toTimestamp).toBe(3_000);
 
@@ -259,12 +269,16 @@ describe("position drawing", () => {
       const shifted = moveCompletePositionRange(drawing, 2_500);
       expect(shifted.fromTimestamp).toBe(3_500);
       expect(shifted.toTimestamp).toBe(5_500);
-      expect(shifted.toTimestamp! - shifted.fromTimestamp!).toBe(originalDuration);
+      expect(shifted.toTimestamp! - shifted.fromTimestamp!).toBe(
+        originalDuration,
+      );
 
       const shiftedBack = moveCompletePositionRange(shifted, -1_500);
       expect(shiftedBack.fromTimestamp).toBe(2_000);
       expect(shiftedBack.toTimestamp).toBe(4_000);
-      expect(shiftedBack.toTimestamp! - shiftedBack.fromTimestamp!).toBe(originalDuration);
+      expect(shiftedBack.toTimestamp! - shiftedBack.fromTimestamp!).toBe(
+        originalDuration,
+      );
     });
   });
 

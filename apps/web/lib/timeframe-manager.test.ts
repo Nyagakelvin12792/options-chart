@@ -36,22 +36,24 @@ describe("TimeframeManager", () => {
 
     const onReady = vi.fn();
     const mockClient = {
-      fetchKlines: vi.fn().mockResolvedValue([
-        [
-          3_000,
-          "60000",
-          "60100",
-          "59900",
-          "60050",
-          "10",
-          62_999,
-          "600500",
-          50,
-          "5",
-          "300250",
-          "0",
-        ],
-      ]),
+      fetchKlines: vi
+        .fn()
+        .mockResolvedValue([
+          [
+            3_000,
+            "60000",
+            "60100",
+            "59900",
+            "60050",
+            "10",
+            62_999,
+            "600500",
+            50,
+            "5",
+            "300250",
+            "0",
+          ],
+        ]),
     } as unknown as BinanceRestClient;
 
     await manager.switchTimeframe({
@@ -69,7 +71,10 @@ describe("TimeframeManager", () => {
 
   it("preserves and returns cached viewports per interval", () => {
     const manager = new TimeframeManager();
-    manager.setCachedViewport("15m", { fromTimestamp: 1000, toTimestamp: 5000 });
+    manager.setCachedViewport("15m", {
+      fromTimestamp: 1000,
+      toTimestamp: 5000,
+    });
     expect(manager.getCachedViewport("15m")).toEqual({
       fromTimestamp: 1000,
       toTimestamp: 5000,

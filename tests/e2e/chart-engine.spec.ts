@@ -210,9 +210,15 @@ test("anchors Volume Profile by drag and syncs explicit position levels to risk"
   ).toBe(1);
 
   await page.getByRole("button", { name: "Long position" }).click();
-  await page.mouse.move(bounds.x + bounds.width * 0.42, bounds.y + bounds.height * 0.5);
+  await page.mouse.move(
+    bounds.x + bounds.width * 0.42,
+    bounds.y + bounds.height * 0.5,
+  );
   await page.mouse.down();
-  await page.mouse.move(bounds.x + bounds.width * 0.62, bounds.y + bounds.height * 0.65);
+  await page.mouse.move(
+    bounds.x + bounds.width * 0.62,
+    bounds.y + bounds.height * 0.65,
+  );
   await page.mouse.up();
 
   await expect(page.getByText("Long chart position synced")).toBeVisible();
@@ -230,9 +236,15 @@ test("anchors Volume Profile by drag and syncs explicit position levels to risk"
   await expect(page.getByText("Size limited by")).toBeVisible();
 
   await page.getByRole("button", { name: "Short position" }).click();
-  await page.mouse.move(bounds.x + bounds.width * 0.44, bounds.y + bounds.height * 0.5);
+  await page.mouse.move(
+    bounds.x + bounds.width * 0.44,
+    bounds.y + bounds.height * 0.5,
+  );
   await page.mouse.down();
-  await page.mouse.move(bounds.x + bounds.width * 0.64, bounds.y + bounds.height * 0.35);
+  await page.mouse.move(
+    bounds.x + bounds.width * 0.64,
+    bounds.y + bounds.height * 0.35,
+  );
   await page.mouse.up();
 
   await expect(page.getByText("Short chart position synced")).toBeVisible();

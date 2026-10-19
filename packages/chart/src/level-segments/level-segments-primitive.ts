@@ -7,10 +7,7 @@ import type {
   UTCTimestamp,
 } from "lightweight-charts";
 
-import type {
-  LevelSegment,
-  LevelSegmentsPresentationOptions,
-} from "./types";
+import type { LevelSegment, LevelSegmentsPresentationOptions } from "./types";
 
 const DEFAULT_LEVEL_COLORS: Record<string, string> = {
   "call-wall": "#10b981",
@@ -45,7 +42,12 @@ class ConfluenceBandsRenderer implements IPrimitivePaneRenderer {
       ({ context, horizontalPixelRatio, verticalPixelRatio, bitmapSize }) => {
         for (const item of coords) {
           const { segment, yTop, yBottom, startX, isOffscreenRight } = item;
-          if (segment.kind !== "confluence-zone" || yTop === null || yBottom === null || isOffscreenRight) {
+          if (
+            segment.kind !== "confluence-zone" ||
+            yTop === null ||
+            yBottom === null ||
+            isOffscreenRight
+          ) {
             continue;
           }
 
@@ -84,7 +86,10 @@ class ConfluenceBandsRenderer implements IPrimitivePaneRenderer {
           // Boundaries
           context.strokeStyle = borderColor;
           context.lineWidth = Math.max(1, horizontalPixelRatio);
-          context.setLineDash([4 * horizontalPixelRatio, 3 * horizontalPixelRatio]);
+          context.setLineDash([
+            4 * horizontalPixelRatio,
+            3 * horizontalPixelRatio,
+          ]);
 
           // Top line
           context.beginPath();
@@ -130,7 +135,11 @@ class LevelLinesRenderer implements IPrimitivePaneRenderer {
       ({ context, horizontalPixelRatio, verticalPixelRatio, bitmapSize }) => {
         for (const item of coords) {
           const { segment, y, startX, isOffscreenRight } = item;
-          if (segment.kind === "confluence-zone" || y === null || isOffscreenRight) {
+          if (
+            segment.kind === "confluence-zone" ||
+            y === null ||
+            isOffscreenRight
+          ) {
             continue;
           }
 
@@ -144,9 +153,7 @@ class LevelLinesRenderer implements IPrimitivePaneRenderer {
           context.save();
 
           const color =
-            segment.color ??
-            DEFAULT_LEVEL_COLORS[segment.kind] ??
-            "#94a3b8";
+            segment.color ?? DEFAULT_LEVEL_COLORS[segment.kind] ?? "#94a3b8";
           const isPrimary = segment.importance !== "secondary";
           const rawWidth = segment.lineWidth ?? (isPrimary ? 1.5 : 1);
           const lineWidth = Math.max(1, rawWidth * horizontalPixelRatio);
@@ -154,10 +161,19 @@ class LevelLinesRenderer implements IPrimitivePaneRenderer {
           context.strokeStyle = color;
           context.lineWidth = lineWidth;
 
-          if (segment.lineStyle === "dashed" || (!segment.lineStyle && !isPrimary)) {
-            context.setLineDash([5 * horizontalPixelRatio, 4 * horizontalPixelRatio]);
+          if (
+            segment.lineStyle === "dashed" ||
+            (!segment.lineStyle && !isPrimary)
+          ) {
+            context.setLineDash([
+              5 * horizontalPixelRatio,
+              4 * horizontalPixelRatio,
+            ]);
           } else if (segment.lineStyle === "dotted") {
-            context.setLineDash([2 * horizontalPixelRatio, 3 * horizontalPixelRatio]);
+            context.setLineDash([
+              2 * horizontalPixelRatio,
+              3 * horizontalPixelRatio,
+            ]);
           } else {
             context.setLineDash([]);
           }

@@ -5,6 +5,7 @@
 This document specifies the exact exported APIs and integration steps for connecting the Volume Profile indicator (`VP-001`) into the dashboard application (`apps/web`).
 
 Per repository architecture guidelines:
+
 - The indicator is fully contained under `packages/chart/src/volume-profile/`.
 - Minimal extensions have been made to `ChartAdapter` and `LightweightChartsAdapter`.
 - Protected dashboard files (`dashboard-client.tsx`, `risk-terminal.tsx`, etc.) were not modified by this feature branch. Main-branch integration and dashboard wiring remain owned by the dashboard maintainer (Codex).
@@ -24,6 +25,7 @@ import {
 ```
 
 #### `calculateVolumeProfile(input: VolumeProfileInput): VolumeProfileResult`
+
 - **Inputs**:
   - `candles`: `readonly Candle[]` (strictly normalized domain candles from Binance BTCUSDT Spot).
   - `range`: `{ from: number; to: number }` (epoch ms in UTC).
@@ -62,6 +64,7 @@ import {
 ```
 
 #### `VolumeProfileController`
+
 Manages calculation debouncing (~100ms), generation counting (to discard stale out-of-order results), LRU memo caching, and style updates:
 
 ```typescript
@@ -102,6 +105,7 @@ export interface ChartAdapter {
 ```
 
 And helper guard:
+
 ```typescript
 import { isVolumeProfileCapable } from "@options-chart/chart";
 
@@ -111,6 +115,7 @@ if (isVolumeProfileCapable(adapter)) {
 ```
 
 `LightweightChartsAdapter` implements these methods natively using `VolumeProfilePrimitive`, which:
+
 1. Attaches to the main candlestick series.
 2. Renders pixel-crisp canvas bars respecting device pixel ratio via `useBitmapCoordinateSpace`.
 3. Displays POC, VAH, and VAL price axis labels on the right price scale.

@@ -38,16 +38,11 @@ export class TimeframeManager {
     this.candleCache.set(interval, candles);
   }
 
-  getCachedViewport(
-    interval: CandleInterval,
-  ): ChartVisibleRange | undefined {
+  getCachedViewport(interval: CandleInterval): ChartVisibleRange | undefined {
     return this.viewportCache.get(interval);
   }
 
-  setCachedViewport(
-    interval: CandleInterval,
-    range: ChartVisibleRange,
-  ): void {
+  setCachedViewport(interval: CandleInterval, range: ChartVisibleRange): void {
     this.viewportCache.set(interval, range);
   }
 

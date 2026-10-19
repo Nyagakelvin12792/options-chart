@@ -203,14 +203,18 @@ describe("LevelShiftTracker (Shift-Aware Level Model)", () => {
     const freshTracker = new LevelShiftTracker();
     const success = freshTracker.loadPersisted(json);
     expect(success).toBe(true);
-    expect(freshTracker.getRecord("call-wall-all")?.activationTimestamp).toBe(t0);
+    expect(freshTracker.getRecord("call-wall-all")?.activationTimestamp).toBe(
+      t0,
+    );
 
     // Corrupted JSON fallback
     const corruptedFallback = freshTracker.loadPersisted("{ invalid json ");
     expect(corruptedFallback).toBe(false);
 
     // Invalid schema fallback
-    const badSchema = freshTracker.loadPersisted(JSON.stringify({ version: 2 }));
+    const badSchema = freshTracker.loadPersisted(
+      JSON.stringify({ version: 2 }),
+    );
     expect(badSchema).toBe(false);
   });
 });

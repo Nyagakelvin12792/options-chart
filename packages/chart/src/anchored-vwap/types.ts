@@ -1,12 +1,7 @@
 import type { Candle } from "@options-chart/domain";
 
 export type AnchoredVwapPriceSource =
-  | "typical"
-  | "hlc3"
-  | "close"
-  | "hl2"
-  | "ohlc4"
-  | "weighted";
+  "typical" | "hlc3" | "close" | "hl2" | "ohlc4" | "weighted";
 
 export interface AnchoredVwapBandPoint {
   readonly multiplier: number;

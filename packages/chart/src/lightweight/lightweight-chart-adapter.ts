@@ -1130,9 +1130,7 @@ export class LightweightChartsAdapter implements ChartAdapter {
             fromIndex: this.binarySearchCandleIndex(
               drawing.fromTimestamp / 1_000,
             ),
-            toIndex: this.binarySearchCandleIndex(
-              drawing.toTimestamp / 1_000,
-            ),
+            toIndex: this.binarySearchCandleIndex(drawing.toTimestamp / 1_000),
           };
           this.positionDragChanged = false;
           this.selectDrawing(drawing.id);
@@ -1225,7 +1223,8 @@ export class LightweightChartsAdapter implements ChartAdapter {
             currentPrice: nextPrice,
             fromTimestamp: pending.fromTimestamp,
             toTimestamp,
-            defaultRewardRiskRatio: this.positionSettings.defaultRewardRiskRatio,
+            defaultRewardRiskRatio:
+              this.positionSettings.defaultRewardRiskRatio,
           });
           if (drawing) {
             if (!this.positionPreviewPrimitive) {
@@ -1485,7 +1484,8 @@ export class LightweightChartsAdapter implements ChartAdapter {
               currentPrice: finalPrice,
               fromTimestamp: pending.fromTimestamp,
               toTimestamp,
-              defaultRewardRiskRatio: this.positionSettings.defaultRewardRiskRatio,
+              defaultRewardRiskRatio:
+                this.positionSettings.defaultRewardRiskRatio,
             })
           : null;
 

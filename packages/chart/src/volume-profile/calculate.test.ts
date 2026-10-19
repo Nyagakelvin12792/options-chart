@@ -109,7 +109,15 @@ describe("calculateVolumeProfile", () => {
   });
 
   it("handles zero-range candle (H = L) by allocating wholly to containing bin", () => {
-    const zeroRangeCandle = createMockCandle(1000, 2000, 115, 115, 115, 115, 50);
+    const zeroRangeCandle = createMockCandle(
+      1000,
+      2000,
+      115,
+      115,
+      115,
+      115,
+      50,
+    );
     const normalCandle = createMockCandle(2000, 3000, 100, 130, 100, 120, 60);
 
     const input: VolumeProfileInput = {
@@ -305,7 +313,10 @@ describe("calculateVolumeProfile", () => {
     expect(r1.vah).toBe(r2.vah);
     expect(r1.achievedValueAreaPercent).toBe(r2.achievedValueAreaPercent);
     for (let i = 0; i < r1.rows.length; i++) {
-      expect(r1.rows[i]?.totalVolume).toBeCloseTo(r2.rows[i]?.totalVolume ?? 0, 9);
+      expect(r1.rows[i]?.totalVolume).toBeCloseTo(
+        r2.rows[i]?.totalVolume ?? 0,
+        9,
+      );
     }
   });
 
@@ -393,10 +404,34 @@ describe("calculateVolumeProfile", () => {
 
   it("calculates volume profile from genuine Binance aggregate trades", () => {
     const trades = [
-      { tradeId: 1, price: 105, quantity: 10, timestamp: 1500, isBuyerMaker: true }, // taker-sell
-      { tradeId: 2, price: 115, quantity: 30, timestamp: 2500, isBuyerMaker: false }, // taker-buy
-      { tradeId: 3, price: 125, quantity: 40, timestamp: 3500, isBuyerMaker: false }, // taker-buy
-      { tradeId: 4, price: 135, quantity: 20, timestamp: 4500, isBuyerMaker: true }, // taker-sell
+      {
+        tradeId: 1,
+        price: 105,
+        quantity: 10,
+        timestamp: 1500,
+        isBuyerMaker: true,
+      }, // taker-sell
+      {
+        tradeId: 2,
+        price: 115,
+        quantity: 30,
+        timestamp: 2500,
+        isBuyerMaker: false,
+      }, // taker-buy
+      {
+        tradeId: 3,
+        price: 125,
+        quantity: 40,
+        timestamp: 3500,
+        isBuyerMaker: false,
+      }, // taker-buy
+      {
+        tradeId: 4,
+        price: 135,
+        quantity: 20,
+        timestamp: 4500,
+        isBuyerMaker: true,
+      }, // taker-sell
     ];
 
     const result = calculateVolumeProfileFromTrades({
