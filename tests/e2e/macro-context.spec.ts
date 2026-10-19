@@ -37,12 +37,13 @@ function fixture() {
     scope: "Context only. No option levels, entries, sizing, or orders.",
   };
 }
-test("macro import remains isolated, rejects degradation, and clears", async ({
-  page,
-}) => {
+test("macro import remains isolated, rejects degradation, and clears", async ({ page }, info) => {
   await installBinanceKlineMock(page);
   await installDeribitFixtureMock(page);
   await page.goto("/");
+  await expect(page.getByTestId("candle-count")).toHaveText("10000");
+  const before = await page.getByTestId("candlestick-chart").boundingBox();
+  await page.getByRole("button", { name: "Open macro context" }).click();
   const panel = page.getByRole("region", { name: "Macro context" });
   await expect(panel.getByRole("status")).toHaveText("No snapshot");
   const input = panel.getByLabel("Import macro snapshot");
@@ -53,6 +54,13 @@ test("macro import remains isolated, rejects degradation, and clears", async ({
     buffer: Buffer.from(JSON.stringify(payload)),
   });
   await expect(panel.getByRole("status")).toHaveText("Context available");
+  await expect(
+    panel.getByText("Software fixture", { exact: true }),
+  ).toBeVisible();
+  const screenshot = await page.screenshot({
+    path: info.outputPath("macro-context.png"),
+  });
+  console.log("OPTIONS_MACRO_PREVIEW:" + screenshot.toString("base64"));
   await input.setInputFiles({
     name: "stale.json",
     mimeType: "application/json",
@@ -70,5 +78,9 @@ test("macro import remains isolated, rejects degradation, and clears", async ({
     buffer: Buffer.from("{}"),
   });
   await expect(panel.getByRole("alert")).toContainText("valid JSON snapshot");
+  await page.getByRole("button", { name: "Close macro context" }).click();
   await expect(page.getByTestId("candlestick-chart")).toBeVisible();
+  expect(await page.getByTestId("candlestick-chart").boundingBox()).toEqual(
+    before,
+  );
 });

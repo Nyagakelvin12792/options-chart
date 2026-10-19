@@ -2978,9 +2978,8 @@ export function DashboardClient({
         />
       </div>
 
-      <MacroContextPanel />
-
       <footer className="status-bar">
+        <MacroContextPanel />
         <span>
           Read-only market analytics · {metricStatus} · {drawingCount} drawing
           {drawingCount === 1 ? "" : "s"}
