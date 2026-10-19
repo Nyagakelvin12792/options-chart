@@ -86,6 +86,7 @@ Commit: `998a59cb4b493554dc0109bb2f95828a8326f8e2`
 ## Checkpoint 2 - CVD And Buckets
 
 Status: COMPLETE
+Commit: `869fb1ec1526c27ed4bdd25858fd95910f57bdcd`
 
 - **Branch and HEAD (prior to Checkpoint 2 commit):** `handoff/antigravity-m11` at `998a59cb4b493554dc0109bb2f95828a8326f8e2`
 - **Completed workstreams:**
@@ -109,3 +110,30 @@ Status: COMPLETE
 - **Reviewer findings:** None at Checkpoint 2.
 - **Remaining limitations:** Order-book, liquidity, response-efficiency, classifications, health, and integrated engine modules are recorded in Checkpoints 3–5.
 - **Next exact command and file:** Verify and commit Agent C order-book and liquidity modules (`packages/flow-engine/src/order-book.ts`, `liquidity.ts`, `order-book.test.ts`, `fixtures/book-golden.json`) with `npm exec vitest run packages/flow-engine/src/order-book.test.ts`.
+
+## Checkpoint 3 - Order Book And Liquidity Behavior
+
+Status: COMPLETE
+
+- **Branch and HEAD (prior to Checkpoint 3 commit):** `handoff/antigravity-m11` at `869fb1ec1526c27ed4bdd25858fd95910f57bdcd`
+- **Completed workstreams:**
+  - Agent C (`10b57908-a900-43ad-9b74-34fbd1339347`): Implemented bounded order-book depth maintenance using binary-search level insertions/deletions (`order-book.ts`), top-N and bps-band imbalance calculations, spread/midprice/microprice metrics, sequence and staleness handling; implemented displayed liquidity tracking (`liquidity.ts`), rolling additions/removals across bps bands, replenishment detection (`observed-displayed-liquidity-replenishment`), and separation of passive cancellation/removal from executed aggressive trades; created hand-calculated golden fixture (`fixtures/book-golden.json`) and unit tests (`order-book.test.ts`).
+  - Orchestrator: Re-exported `./order-book` and `./liquidity` in `packages/flow-engine/src/index.ts`.
+- **Files changed at Checkpoint 3:**
+  - Agent C:
+    - `packages/flow-engine/src/order-book.ts`
+    - `packages/flow-engine/src/liquidity.ts`
+    - `packages/flow-engine/src/order-book.test.ts`
+    - `packages/flow-engine/fixtures/book-golden.json`
+  - Orchestrator:
+    - `packages/flow-engine/src/index.ts`
+    - `docs/handoffs/antigravity-m11.3-worklog.md`
+- **Commands and exact results:**
+  - `npx tsc -b packages/flow-engine` -> PASS (0 errors)
+  - `npm exec vitest run packages/flow-engine/src/order-book.test.ts` -> PASS (`1 passed (1)`, `7 passed (7)`, duration `2.26s`)
+  - `npm exec eslint -- packages/flow-engine/src/order-book.ts packages/flow-engine/src/liquidity.ts packages/flow-engine/src/order-book.test.ts packages/flow-engine/src/index.ts` -> PASS (0 errors, 0 warnings)
+- **Failures and classification:** None.
+- **Reviewer findings:** None at Checkpoint 3.
+- **Remaining limitations:** Response efficiency, level classifications, health, engine integration, audit serialization, and benchmarks are scheduled for Checkpoints 4–5.
+- **Next exact command and file:** Verify and commit Agent D response efficiency and classifications modules (`packages/flow-engine/src/response-efficiency.ts`, `level-context.ts`, `classifications.ts`, `classifications.test.ts`, `fixtures/classifications-golden.json`) with `npm exec vitest run packages/flow-engine/src/classifications.test.ts`.
+

@@ -1,0 +1,270 @@
+{
+  "configOverrides": {
+    "topNDepths": [1, 2, 5],
+    "bpsBands": [5, 10, 25],
+    "expectedBookDepthForFullCoverage": 2,
+    "maxBookLevelsPerSide": 5
+  },
+  "events": [
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000001",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000000000,
+      "receiptTimestampMs": 1700000000010,
+      "sequence": 100,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "snapshot",
+        "sequence": 100,
+        "bids": [
+          ["99990", "1.5"],
+          ["100000", "2.0"]
+        ],
+        "asks": [
+          ["100020", "1.0"],
+          ["100010", "3.0"]
+        ]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "2.4.0",
+        "connectionId": "conn-golden-1",
+        "recordedAtMs": 1700000000010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000002",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000001000,
+      "receiptTimestampMs": 1700000001010,
+      "sequence": 101,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "delta",
+        "previousSequence": 100,
+        "sequence": 101,
+        "bids": [["100000", "0.5"]],
+        "asks": [["100015", "1.0"]]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "2.4.0",
+        "connectionId": "conn-golden-1",
+        "recordedAtMs": 1700000001010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000003",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000003000,
+      "receiptTimestampMs": 1700000003010,
+      "sequence": 102,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "delta",
+        "previousSequence": 101,
+        "sequence": 102,
+        "bids": [["100000", "1.7"]],
+        "asks": [["100020", "0"]]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "2.4.0",
+        "connectionId": "conn-golden-1",
+        "recordedAtMs": 1700000003010
+      }
+    }
+  ],
+  "executedTrades": [
+    {
+      "eventId": "market-event-v1:0000000000000010",
+      "receiptTimestampMs": 1700000001005,
+      "featureTimestampMs": 1700000001000,
+      "featureTimeSource": "exchange",
+      "price": 100000,
+      "baseQuantity": 0.4,
+      "quoteVolume": 40000,
+      "takerSide": "sell",
+      "takerSideSource": "explicit-taker-side",
+      "signedQuoteDelta": -40000
+    }
+  ],
+  "expectedBookSnapshot": {
+    "availability": "available",
+    "statusReason": "ok",
+    "lastUpdateTimestampMs": 1700000003000,
+    "lastReceiptTimestampMs": 1700000003010,
+    "lastSequence": 102,
+    "bestBid": {
+      "price": 100000,
+      "quantity": 1.7,
+      "quoteNotional": 170000
+    },
+    "bestAsk": {
+      "price": 100010,
+      "quantity": 3,
+      "quoteNotional": 300030
+    },
+    "midPrice": 100005,
+    "spreadAmount": 10,
+    "spreadBps": 0.99995,
+    "microprice": 100003.61702128,
+    "retainedBidLevels": 2,
+    "retainedAskLevels": 2,
+    "bookCoverageRatio": 1,
+    "topNImbalances": [
+      {
+        "depthN": 1,
+        "bidQuantity": 1.7,
+        "askQuantity": 3,
+        "bidNotional": 170000,
+        "askNotional": 300030,
+        "quantityImbalance": -0.276596,
+        "notionalImbalance": -0.276642,
+        "availableBidLevels": 1,
+        "availableAskLevels": 1,
+        "coverageRatio": 1
+      },
+      {
+        "depthN": 2,
+        "bidQuantity": 3.2,
+        "askQuantity": 4,
+        "bidNotional": 319985,
+        "askNotional": 400045,
+        "quantityImbalance": -0.111111,
+        "notionalImbalance": -0.11119,
+        "availableBidLevels": 2,
+        "availableAskLevels": 2,
+        "coverageRatio": 1
+      },
+      {
+        "depthN": 5,
+        "bidQuantity": 3.2,
+        "askQuantity": 4,
+        "bidNotional": 319985,
+        "askNotional": 400045,
+        "quantityImbalance": -0.111111,
+        "notionalImbalance": -0.11119,
+        "availableBidLevels": 2,
+        "availableAskLevels": 2,
+        "coverageRatio": 0.4
+      }
+    ],
+    "bpsBandImbalances": [
+      {
+        "bandBps": 5,
+        "bidQuantity": 3.2,
+        "askQuantity": 4,
+        "bidNotional": 319985,
+        "askNotional": 400045,
+        "quantityImbalance": -0.111111,
+        "notionalImbalance": -0.11119,
+        "includedBidLevels": 2,
+        "includedAskLevels": 2
+      },
+      {
+        "bandBps": 10,
+        "bidQuantity": 3.2,
+        "askQuantity": 4,
+        "bidNotional": 319985,
+        "askNotional": 400045,
+        "quantityImbalance": -0.111111,
+        "notionalImbalance": -0.11119,
+        "includedBidLevels": 2,
+        "includedAskLevels": 2
+      },
+      {
+        "bandBps": 25,
+        "bidQuantity": 3.2,
+        "askQuantity": 4,
+        "bidNotional": 319985,
+        "askNotional": 400045,
+        "quantityImbalance": -0.111111,
+        "notionalImbalance": -0.11119,
+        "includedBidLevels": 2,
+        "includedAskLevels": 2
+      }
+    ]
+  },
+  "expectedLiquiditySnapshot": {
+    "availability": "available",
+    "referencePrice": 100005,
+    "windowDurationMs": 60000,
+    "bands": [
+      {
+        "bandBps": 5,
+        "bidAddedQuantity": 1.2,
+        "bidRemovedQuantity": 1.5,
+        "bidNetQuantity": -0.3,
+        "askAddedQuantity": 1,
+        "askRemovedQuantity": 1,
+        "askNetQuantity": 0,
+        "bidAddedNotional": 120000,
+        "bidRemovedNotional": 150000,
+        "askAddedNotional": 100015,
+        "askRemovedNotional": 100020
+      },
+      {
+        "bandBps": 10,
+        "bidAddedQuantity": 1.2,
+        "bidRemovedQuantity": 1.5,
+        "bidNetQuantity": -0.3,
+        "askAddedQuantity": 1,
+        "askRemovedQuantity": 1,
+        "askNetQuantity": 0,
+        "bidAddedNotional": 120000,
+        "bidRemovedNotional": 150000,
+        "askAddedNotional": 100015,
+        "askRemovedNotional": 100020
+      },
+      {
+        "bandBps": 25,
+        "bidAddedQuantity": 1.2,
+        "bidRemovedQuantity": 1.5,
+        "bidNetQuantity": -0.3,
+        "askAddedQuantity": 1,
+        "askRemovedQuantity": 1,
+        "askNetQuantity": 0,
+        "bidAddedNotional": 120000,
+        "bidRemovedNotional": 150000,
+        "askAddedNotional": 100015,
+        "askRemovedNotional": 100020
+      }
+    ],
+    "recentReplenishments": [
+      {
+        "replenishmentId": "replenishment-1",
+        "side": "bid",
+        "removalEventId": "market-event-v1:0000000000000002",
+        "replenishEventId": "market-event-v1:0000000000000003",
+        "removalTimestampMs": 1700000001000,
+        "replenishTimestampMs": 1700000003000,
+        "elapsedMs": 2000,
+        "referencePriceAtRemoval": 100005,
+        "removedPrice": 100000,
+        "replenishedPrice": 100000,
+        "priceDistanceBps": 0,
+        "removedQuantity": 1.5,
+        "replenishedQuantity": 1.2,
+        "replenishmentRatio": 0.8,
+        "classificationLabel": "observed-displayed-liquidity-replenishment"
+      }
+    ],
+    "executedAggressiveBuyQuoteVolume": 0,
+    "executedAggressiveSellQuoteVolume": 40000,
+    "cancellationOrRemovalBidQuantity": 1.1,
+    "cancellationOrRemovalAskQuantity": 1
+  }
+}
