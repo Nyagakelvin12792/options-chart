@@ -1,9 +1,24 @@
 # Antigravity M11.3 Checkpoint Worklog
 
-Status: IN PROGRESS - CHECKPOINT 2 COMPLETE
+Status: REVIEW REQUIRED (REVISION 3 COMPLETE)
 Branch: `handoff/antigravity-m11`
 Accepted base: `d536eba623114325661480f07dc458c21f619af3`
+Starting commit: `57f096cfbb72a03427dd74ba1a851455f8e96995`
 Last updated: 2026-10-19 by Antigravity
+
+## Branch Commit History Table
+
+| Commit    | Checkpoint / Revision | Subject                                                                                 |
+| --------- | --------------------- | --------------------------------------------------------------------------------------- |
+| `998a59c` | Checkpoint 1          | `feat(flow-engine): add versioned contracts and configuration`                          |
+| `869fb1e` | Checkpoint 2          | `feat(flow-engine): implement deterministic CVD aggregation`                            |
+| `41a0a34` | Checkpoint 3          | `feat(flow-engine): add bounded order-book features`                                    |
+| `db3f615` | Checkpoint 4          | `feat(flow-engine): classify level interaction outcomes`                                |
+| `40a0f23` | Checkpoint 5          | `feat(flow-engine): integrate engine, replay, and audit`                                |
+| `94bfef2` | Checkpoint 6          | `test(flow-engine): add replay, audit, and benchmark verification`                      |
+| `117bd0e` | Checkpoint 7 (Rev 2)  | `fix(flow-engine): address review findings and strengthen replay determinism`           |
+| `1faec1e` | Checkpoint 7 (Rev 2)  | `docs(flow-engine): record checkpoint 7 review reconciliation and regression hardening` |
+| `ce99baf` | Checkpoint 8 (Rev 3)  | `fix(flow-engine): enforce health cutoff, bounded retention, and deduplication policy`  |
 
 ## Coordinator Handoff
 
@@ -283,4 +298,77 @@ Status: COMPLETE
 - **Remaining limitations:**
   - M11.3 deterministic flow engine package is complete, verified, and hardened. Integration with M11.4 awaits coordinator authorization.
 - **Next exact command and file:**
-  - Present final handoff report for independent Codex review.
+  - Execute Revision 3 implementation and verification ladder.
+
+## Checkpoint 8 - Revision 3: Health Cutoff, Bounded Retention, and Public Deduplication Guarantee
+
+Status: COMPLETE
+Commit: `ce99baf`
+
+- **Branch and HEAD (prior to Checkpoint 8 worklog commit):** `handoff/antigravity-m11` at `ce99baf`
+- **Completed workstreams:**
+  - Finding 1: Universal Replay Cutoff for All Storage Records (`MarketHealthEventV1`):
+    - Defined deterministic eligibility for `MarketHealthEventV1` using `detectedAtMs <= replayCutoffMs`.
+    - When `detectedAtMs > replayCutoffMs`, `ingestHealthEvent` and `ingestStorageRecord` return `null`, increment out-of-band `cutoffExcludedEventCount`, and leave book, health, CVD, classifications, evidence IDs, and audit snapshot digest completely unmutated.
+  - Finding 2: Temporal Coherence in Snapshots:
+    - Updated `FeatureHealthTracker` and `FlowEngine` so snapshot timestamps advance on eligible health records.
+    - Added `ActiveHealthEventEntry` with `detectedAtMs`. In `computeSnapshot(asOfReceiptTimestampMs)`, `activeHealthEventIds` are filtered strictly by `entry.detectedAtMs <= asOfReceiptTimestampMs`, guaranteeing no health event detected in the future appears in an earlier snapshot.
+  - Finding 3: Health Record Deduplication:
+    - Deduplicates health events deterministically by `healthEventId` across `ingestHealthEvent`, `ingestStorageRecord`, and `replayEvents`.
+    - Duplicate health records transparently increment `health.duplicateCount` without re-applying status effects or corrupting state.
+  - Finding 4: Bounded Deduplication with Public Guarantee and Transparent Degradation:
+    - Moved deduplication capacity into versioned `FlowEngineConfigV1` (`maxDeduplicationHistory: number`, default `10_000`), validated via `posInt`.
+    - Documented exact in-memory deduplication horizon and input precondition: exact deduplication is guaranteed within the in-memory FIFO horizon of `maxDeduplicationHistory` events; long-term exact deduplication is delegated to the M11.2 SQLite store (`store_records(records)`).
+    - If the FIFO deduplication capacity is evicted, the engine sets `isDeduplicationExhausted = true`, marks health `availability: "degraded"`, and records `"deduplication-capacity-exhausted"` in `degradationReasons` rather than silently double-counting.
+    - Added eviction-boundary regression test (test 18).
+  - Finding 5: Absolute, Versioned `maxRetainedTrades` Bound:
+    - Added `maxRetainedTrades: number` (default `20_000`, validated via `posInt`) to `FlowEngineConfigV1`.
+    - When raw trade history exceeds `maxRetainedTrades`, older trades are evicted while cumulative anchor counters (`includedTradeCount`, `buyQuoteVolume`, `sellQuoteVolume`, `rawCvdQuote`) remain completely preserved.
+    - If trade eviction truncates a rolling duration, response efficiency, or classification baseline window, the engine flags `hasTruncatedTrades` / `"truncated-retention-window"`, returns `unavailableReason: "truncated-window"` for response efficiency, and blocks absorption candidates near levels rather than treating truncated data as complete.
+  - Finding 6: Strengthened Performance Benchmark and Regression Tests:
+    - Extended `benchmark.test.ts` to include health records: reconnect event at 10,000, duplicate health record at 10,001, and 5,000 dense same-timestamp trades between 20,000 and 24,999. Proved retained trades remain bounded at <= 20,000 (while cumulative trade count exceeds 60,000), peak heap < 500 MB, throughput > 20,000 events/sec, and elapsed time < 5 seconds.
+    - Added second benchmark test proving mixed market and post-cutoff health record replay produces identical snapshot and SHA-256 audit digest as the live eligible prefix.
+    - Added regression tests 14-19 in `engine.test.ts` covering dense same-timestamp traffic, health deduplication, post-cutoff health exclusion, mixed replay vs live-prefix equivalence, deduplication boundary degradation, and temporal coherence.
+  - Finding 7: Corrected Handoff Evidence & Format Check Documentation:
+    - Confirmed repository-wide `npm run format:check` reports 42 pre-existing formatting failures in `packages/chart`, `packages/market-data`, `packages/shared`, `apps/web`, and `docs/handoffs` outside M11.3 write scope, plus Windows `.pytest_cache` EPERM during recursive traversal. These pre-existing failures are reported as known baseline issues requiring coordinator waiver.
+    - Confirmed targeted check `npx prettier --check "packages/flow-engine/**" "docs/handoffs/antigravity-m11.3-worklog.md" package-lock.json` passes with exit code 0 on all M11.3-owned files.
+  - Finding 8: Corrected Checkpoint Commit Table:
+    - Corrected the branch history table to reflect all commits: `998a59c`, `869fb1e`, `41a0a34`, `db3f615`, `40a0f23`, `94bfef2`, `117bd0e`, `1faec1e`, `ce99baf`, and the Checkpoint 8 worklog commit.
+- **Files changed:**
+  - `packages/flow-engine/src/configuration.ts`
+  - `packages/flow-engine/src/contracts.ts`
+  - `packages/flow-engine/src/contracts.test.ts`
+  - `packages/flow-engine/src/feature-health.ts`
+  - `packages/flow-engine/src/cvd.ts`
+  - `packages/flow-engine/src/response-efficiency.ts`
+  - `packages/flow-engine/src/classifications.ts`
+  - `packages/flow-engine/src/engine.ts`
+  - `packages/flow-engine/src/engine.test.ts`
+  - `packages/flow-engine/src/benchmark.test.ts`
+  - `docs/handoffs/antigravity-m11.3-worklog.md`
+- **Commands and exact results:**
+  - `npx prettier --check "packages/flow-engine/**" "docs/handoffs/antigravity-m11.3-worklog.md" package-lock.json`: Exit code 0 (All matched files use Prettier code style)
+  - `npm run format:check`: Exit code 1 (Known baseline repository failure: 42 pre-existing formatting failures in `packages/chart`, `packages/market-data`, `packages/shared`, `apps/web`, and Windows `.pytest_cache` EPERM outside M11.3 scope, requiring coordinator waiver)
+  - `npm run lint`: Exit code 0 (0 errors, 0 warnings across whole workspace)
+  - `npx tsc -b packages/flow-engine`: Exit code 0 (0 TypeScript errors)
+  - `npm run build`: Exit code 0 (All packages and Next.js web application built successfully in 14.3s; `apps/web/next-env.d.ts` restored)
+  - `npm exec vitest run packages/flow-engine`: Exit code 0 (6 test files passed, 48 tests passed in 14.42s)
+  - `npm exec vitest run packages/market-data`: Exit code 0 (20 test files passed, 105 tests passed in 19.65s)
+  - `npm run test`: Exit code 0 (71 test files passed, 499 tests passed across repository in 46.17s)
+  - `npm ci --dry-run --ignore-scripts`: Exit code 0 (added 1 package in 4s, 0 files changed)
+  - `pytest -q services/cryptofeed-collector/tests --basetemp "<scratch>/pytest-tmp"`: Exit code 0 (33 passed in 2.17s)
+  - `git diff --check 57f096cfbb72a03427dd74ba1a851455f8e96995..HEAD`: Exit code 0 (0 whitespace / formatting errors across full committed range)
+  - 100,000 Event Benchmark:
+    - Environment: Node v24.13.1, OS win32 10.0.19045 (x64), CPU: AMD A12-9720P RADEON R7, 12 COMPUTE CORES 4C+8G (4 cores)
+    - Elapsed Time: 3332.51 ms (3.333 s)
+    - Throughput: 30,007 events/sec
+    - Peak Retained Internal State: 20,000 trades (max configured: 20,000), 128 evidence IDs, 10,000 dedup IDs, book bids=7, book asks=7
+    - Heap Evidence: initial=66 MB, peak=114 MB, final=90 MB (net heap delta: +24 MB)
+- **Failures and classification:**
+  - `npm run format:check` returned code 1 strictly due to 42 pre-existing unformatted files in `apps/web`, `packages/chart`, `packages/market-data`, and `packages/shared`, plus recursive scandir EPERM on `.pytest_cache` in Windows. None of these files belong to M11.3 write scope; they require coordinator waiver. All files within M11.3 write scope pass targeted Prettier formatting check cleanly with exit code 0.
+- **Reviewer findings:**
+  - All 8 independent-review findings fully resolved, tested, verified, and benchmarked.
+- **Remaining limitations:**
+  - M11.3 deterministic flow engine package is complete, verified, and hardened. Milestone M11.4 integration awaits coordinator authorization.
+- **Next exact command and file:**
+  - Present Revision 3 final handoff report for independent Codex review.
