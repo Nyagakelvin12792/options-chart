@@ -1,0 +1,552 @@
+{
+  "description": "Multi-event flow engine replay session fixture",
+  "levels": [
+    {
+      "id": "res-68500",
+      "price": 68500,
+      "kind": "gamma-wall",
+      "observedAtMs": 1700000000000,
+      "validFromMs": 1700000000000,
+      "validUntilMs": 1700003600000,
+      "sourceVersion": "level-v1",
+      "role": "resistance"
+    },
+    {
+      "id": "sup-67500",
+      "price": 67500,
+      "kind": "gamma-wall",
+      "observedAtMs": 1700000000000,
+      "validFromMs": 1700000000000,
+      "validUntilMs": 1700003600000,
+      "sourceVersion": "level-v1",
+      "role": "support"
+    }
+  ],
+  "events": [
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000001",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000000000,
+      "receiptTimestampMs": 1700000000010,
+      "sequence": 100,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "snapshot",
+        "sequence": 100,
+        "bids": [
+          ["67990.00", "1.00"],
+          ["67980.00", "2.00"],
+          ["67970.00", "1.50"]
+        ],
+        "asks": [
+          ["68010.00", "1.00"],
+          ["68020.00", "2.00"],
+          ["68030.00", "1.50"]
+        ]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000000010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000002",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000001000,
+      "receiptTimestampMs": 1700000001010,
+      "sequence": 101,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 1,
+        "price": "68010.00",
+        "quantity": "0.50",
+        "tradeTimestampMs": 1700000001000,
+        "takerSide": "buy",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000001010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000003",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000002000,
+      "receiptTimestampMs": 1700000002010,
+      "sequence": 102,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 2,
+        "price": "67990.00",
+        "quantity": "0.30",
+        "tradeTimestampMs": 1700000002000,
+        "takerSide": "sell",
+        "isBuyerMaker": true
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000002010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000004",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000003000,
+      "receiptTimestampMs": 1700000003010,
+      "sequence": 103,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "delta",
+        "sequence": 103,
+        "previousSequence": 100,
+        "bids": [["67995.00", "0.80"]],
+        "asks": [["68005.00", "0.80"]]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000003010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000005",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000004000,
+      "receiptTimestampMs": 1700000004010,
+      "sequence": 104,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 3,
+        "price": "68005.00",
+        "quantity": "0.40",
+        "tradeTimestampMs": 1700000004000,
+        "takerSide": "buy",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000004010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000006",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000005000,
+      "receiptTimestampMs": 1700000005010,
+      "sequence": 105,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 4,
+        "price": "68000.00",
+        "quantity": "0.10",
+        "tradeTimestampMs": 1700000005000,
+        "takerSide": null
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000005010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000007",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000006000,
+      "receiptTimestampMs": 1700000006010,
+      "sequence": 106,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "delta",
+        "sequence": 106,
+        "previousSequence": 103,
+        "bids": [["67995.00", "1.20"]],
+        "asks": [["68005.00", "1.20"]]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000006010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000008",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000007000,
+      "receiptTimestampMs": 1700000007010,
+      "sequence": 107,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 5,
+        "price": "68005.00",
+        "quantity": "0.60",
+        "tradeTimestampMs": 1700000007000,
+        "takerSide": "buy",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000007010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000009",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000008000,
+      "receiptTimestampMs": 1700000008010,
+      "sequence": 108,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 6,
+        "price": "67995.00",
+        "quantity": "0.20",
+        "tradeTimestampMs": 1700000008000,
+        "takerSide": "sell",
+        "isBuyerMaker": true
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000008010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:000000000000000a",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000009000,
+      "receiptTimestampMs": 1700000009010,
+      "sequence": 109,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 7,
+        "price": "68005.00",
+        "quantity": "0.50",
+        "tradeTimestampMs": 1700000009000,
+        "takerSide": "buy",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000009010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:000000000000000b",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "health",
+      "exchangeTimestampMs": 1700000010000,
+      "receiptTimestampMs": 1700000010010,
+      "sequence": 110,
+      "payload": {
+        "healthStatus": "gap"
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000010010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:000000000000000c",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000011000,
+      "receiptTimestampMs": 1700000011010,
+      "sequence": 111,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 8,
+        "price": "68000.00",
+        "quantity": "0.15",
+        "tradeTimestampMs": 1700000011000,
+        "takerSide": "buy",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000011010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:000000000000000d",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000012000,
+      "receiptTimestampMs": 1700000012010,
+      "sequence": 115,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "delta",
+        "sequence": 115,
+        "previousSequence": 114,
+        "bids": [["67990.00", "0.50"]],
+        "asks": [["68010.00", "0.50"]]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000012010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:000000000000000e",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000013000,
+      "receiptTimestampMs": 1700000013010,
+      "sequence": 200,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "snapshot",
+        "sequence": 200,
+        "bids": [
+          ["67992.00", "1.50"],
+          ["67985.00", "2.50"]
+        ],
+        "asks": [
+          ["68008.00", "1.50"],
+          ["68015.00", "2.50"]
+        ]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000013010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:000000000000000f",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000014000,
+      "receiptTimestampMs": 1700000014010,
+      "sequence": 201,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 9,
+        "price": "68008.00",
+        "quantity": "0.35",
+        "tradeTimestampMs": 1700000014000,
+        "takerSide": "buy",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000014010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000010",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000015000,
+      "receiptTimestampMs": 1700000015010,
+      "sequence": 202,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 10,
+        "price": "67992.00",
+        "quantity": "0.25",
+        "tradeTimestampMs": 1700000015000,
+        "takerSide": "sell",
+        "isBuyerMaker": true
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000015010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000011",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "l2-book",
+      "exchangeTimestampMs": 1700000016000,
+      "receiptTimestampMs": 1700000016010,
+      "sequence": 203,
+      "payload": {
+        "schemaVersion": "binance-spot-l2-book-payload-v1",
+        "updateType": "delta",
+        "sequence": 203,
+        "previousSequence": 200,
+        "bids": [["67994.00", "0.75"]],
+        "asks": [["68006.00", "0.75"]]
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000016010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000012",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000017000,
+      "receiptTimestampMs": 1700000017010,
+      "sequence": 204,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 11,
+        "price": "68006.00",
+        "quantity": "0.45",
+        "tradeTimestampMs": 1700000017000,
+        "takerSide": "buy",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000017010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000013",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000018000,
+      "receiptTimestampMs": 1700000018010,
+      "sequence": 205,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 12,
+        "price": "67994.00",
+        "quantity": "0.15",
+        "tradeTimestampMs": 1700000018000,
+        "takerSide": "sell",
+        "isBuyerMaker": true
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000018010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000014",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700000019000,
+      "receiptTimestampMs": 1700000019010,
+      "sequence": 206,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 13,
+        "price": "68006.00",
+        "quantity": "0.30",
+        "tradeTimestampMs": 1700000019000,
+        "takerSide": "buy",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "1.0.0",
+        "connectionId": "conn-binance-0",
+        "recordedAtMs": 1700000019010
+      }
+    }
+  ],
+  "milestones": {
+    "afterInitialTradesIndex": 2,
+    "atGapIndex": 10,
+    "afterRecoverySnapshotIndex": 13,
+    "finalIndex": 19
+  }
+}
