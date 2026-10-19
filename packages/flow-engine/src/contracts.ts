@@ -690,7 +690,6 @@ export interface FeatureHealthSnapshotV1 {
   readonly malformedEventCount: number;
   readonly outOfOrderEventCount: number;
   readonly lateIgnoredEventCount: number;
-  readonly cutoffExcludedEventCount: number;
   readonly confidenceScore: number;
   readonly degradationReasons: readonly string[];
   readonly activeHealthEventIds: readonly string[];
@@ -715,7 +714,6 @@ export const FeatureHealthSnapshotV1Schema = z
     malformedEventCount: nonNegInt,
     outOfOrderEventCount: nonNegInt,
     lateIgnoredEventCount: nonNegInt,
-    cutoffExcludedEventCount: nonNegInt,
     confidenceScore: unitRatio,
     degradationReasons: z.array(nonEmptyStr),
     activeHealthEventIds: z.array(nonEmptyStr),

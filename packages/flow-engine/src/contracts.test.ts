@@ -438,7 +438,6 @@ describe("flow-engine configuration and contracts", () => {
         malformedEventCount: 0,
         outOfOrderEventCount: 0,
         lateIgnoredEventCount: 0,
-        cutoffExcludedEventCount: 0,
         confidenceScore: 1,
         degradationReasons: [],
         activeHealthEventIds: [],

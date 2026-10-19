@@ -119,8 +119,13 @@ export class CvdEngine {
       this.isMonotonic = false;
     }
     this.trades.push(trade);
-    this.lastTradePrice = trade.price;
-    this.lastTradeTimestampMs = trade.featureTimestampMs;
+    if (
+      this.lastTradeTimestampMs === null ||
+      trade.featureTimestampMs >= this.lastTradeTimestampMs
+    ) {
+      this.lastTradePrice = trade.price;
+      this.lastTradeTimestampMs = trade.featureTimestampMs;
+    }
 
     applyTradeToAnchorState(this.activeAnchor, trade);
 

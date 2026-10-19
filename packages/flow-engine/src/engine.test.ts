@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { MarketEventV1 } from "@options-chart/market-data";
+import type {
+  MarketEventV1,
+  MarketHealthEventV1,
+  MarketStorageRecordV1,
+} from "@options-chart/market-data";
+import { MarketHealthEventV1Schema } from "@options-chart/market-data";
 import {
   computeSnapshotAuditDigest,
   deserializeFlowFeatureSnapshotAudit,
@@ -94,27 +99,25 @@ function makeTradeEvent(params: {
 function makeHealthGapEvent(params: {
   readonly eventId: string;
   readonly receiptTimestampMs: number;
-}): MarketEventV1 {
-  return {
-    schemaVersion: "market-event-v1",
-    eventId: params.eventId,
+}): MarketHealthEventV1 {
+  const event = {
+    schemaVersion: "market-health-event-v1" as const,
+    healthEventId: params.eventId,
     venue: "binance",
     symbol: "BTC-USDT",
-    instrumentType: "spot",
-    channel: "health" as unknown as MarketEventV1["channel"],
-    exchangeTimestampMs: params.receiptTimestampMs - 10,
-    receiptTimestampMs: params.receiptTimestampMs,
-    sequence: 999,
-    payload: {
-      healthStatus: "gap",
-    },
-    provenance: {
-      collector: "cryptofeed",
-      collectorVersion: "1.0.0",
-      connectionId: "conn-binance-0",
-      recordedAtMs: params.receiptTimestampMs,
+    channel: "l2-book",
+    detectedAtMs: params.receiptTimestampMs,
+    connectionId: "conn-binance-0",
+    severity: "warning" as const,
+    type: "gap" as const,
+    details: {
+      previousSequence: 100,
+      expectedSequence: 101,
+      actualSequence: 105,
+      missingCount: 4,
     },
   };
+  return MarketHealthEventV1Schema.parse(event);
 }
 
 describe("FlowEngine Integration, Replay, and Audit", () => {
@@ -143,17 +146,23 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     expect(res2).toBeNull();
 
     const snap = engine.snapshot();
-    expect(snap.health.cutoffExcludedEventCount).toBe(1);
+    expect(engine.cutoffExcludedEventCount).toBe(1);
     expect(snap.cvd.activeAnchor.includedTradeCount).toBe(1);
   });
 
   it("2. produces bit-for-bit equivalence between 1-by-1 streaming and replayEvents", () => {
-    const events = fixtureData.events as unknown as readonly MarketEventV1[];
+    const events = fixtureData.events as unknown as readonly (
+      MarketEventV1 | MarketStorageRecordV1
+    )[];
     const levels = fixtureData.levels;
 
     const liveEngine = new FlowEngine(undefined, levels);
     for (const ev of events) {
-      liveEngine.ingest(ev);
+      if (ev.schemaVersion === "market-health-event-v1") {
+        liveEngine.ingestHealthEvent(ev);
+      } else {
+        liveEngine.ingest(ev);
+      }
     }
     const liveSnapshot = liveEngine.snapshot();
 
@@ -179,25 +188,26 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     expect(snap1?.book.availability).toBe("available");
 
     const gapEvent = makeHealthGapEvent({
-      eventId: "market-event-v1:0000000000000002",
+      eventId: "market-health-event-v1:0000000000000002",
       receiptTimestampMs: 1_700_000_001_000,
     });
-    const snap2 = engine.ingest(gapEvent);
-    expect(snap2).not.toBeNull();
-    expect(snap2?.health.hasUnresolvedGap).toBe(true);
-    expect(snap2?.book.availability).toBe("unavailable");
-    expect(snap2?.book.statusReason).toBe("sequence-gap");
-    expect(snap2?.health.availability).toBe("unavailable");
-    expect(snap2?.health.degradationReasons).toContain(
-      "unresolved-sequence-gap",
-    );
+    const healthSnap2 = engine.ingestHealthEvent(gapEvent);
+    expect(healthSnap2).not.toBeNull();
+    expect(healthSnap2.hasUnresolvedGap).toBe(true);
+    expect(healthSnap2.availability).toBe("unavailable");
+    expect(healthSnap2.degradationReasons).toContain("unresolved-sequence-gap");
+
+    const snap2 = engine.snapshot();
+    expect(snap2.book.availability).toBe("unavailable");
+    expect(snap2.book.statusReason).toBe("sequence-gap");
+    expect(snap2.health.availability).toBe("unavailable");
   });
 
   it("4. recovers from sequence gap when a snapshot arrives", () => {
     const engine = new FlowEngine();
-    engine.ingest(
+    engine.ingestHealthEvent(
       makeHealthGapEvent({
-        eventId: "market-event-v1:0000000000000001",
+        eventId: "market-health-event-v1:0000000000000001",
         receiptTimestampMs: 1_700_000_000_000,
       }),
     );
@@ -289,7 +299,9 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
   });
 
   it("7. validates deterministic audit serialization and deserialization round-trip", () => {
-    const events = fixtureData.events as unknown as readonly MarketEventV1[];
+    const events = fixtureData.events as unknown as readonly (
+      MarketEventV1 | MarketStorageRecordV1
+    )[];
     const engine = new FlowEngine(undefined, fixtureData.levels);
     const snapshot = engine.replayEvents(events);
 
@@ -331,5 +343,205 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     engine.setLevels(newLevels);
     expect(engine.getLevels()).toHaveLength(1);
     expect(engine.getLevels()[0]?.id).toBe("res-68001");
+  });
+
+  it("9. regression: deduplicates trade events deterministically without mutating CVD, candles, or evidence IDs", () => {
+    const engine = new FlowEngine();
+    const trade1 = makeTradeEvent({
+      eventId: "market-event-v1:trade-dedup-001",
+      receiptTimestampMs: 1_700_000_010_000,
+      price: 68_000,
+      quantity: 1.5,
+      takerSide: "buy",
+    });
+    const snap1 = engine.ingest(trade1);
+    expect(snap1).not.toBeNull();
+    expect(snap1?.health.duplicateCount).toBe(0);
+    expect(snap1?.cvd.activeAnchor.includedTradeCount).toBe(1);
+    expect(snap1?.cvd.activeAnchor.buyQuoteVolume).toBe(102_000);
+    expect(snap1?.evidenceEventIds).toEqual([
+      "market-event-v1:trade-dedup-001",
+    ]);
+
+    // Ingest the exact same trade again
+    const snap2 = engine.ingest(trade1);
+    expect(snap2).not.toBeNull();
+    expect(snap2?.health.duplicateCount).toBe(1);
+    expect(snap2?.cvd.activeAnchor.includedTradeCount).toBe(1);
+    expect(snap2?.cvd.activeAnchor.buyQuoteVolume).toBe(102_000);
+    expect(snap2?.cvd.activeAnchor.rawCvdQuote).toBe(102_000);
+    expect(snap2?.evidenceEventIds).toEqual([
+      "market-event-v1:trade-dedup-001",
+    ]);
+    expect(snap2?.liquidity.executedAggressiveBuyQuoteVolume).toBe(102_000);
+  });
+
+  it("10. regression: handles late incremental trades behind finalized cursor without mutating closed candles or rewinding lastTradePrice", () => {
+    const engine = new FlowEngine();
+    const trade1 = makeTradeEvent({
+      eventId: "market-event-v1:trade-order-001",
+      receiptTimestampMs: 1_700_000_010_000,
+      price: 68_000,
+      quantity: 1.0,
+      takerSide: "buy",
+    });
+    const trade2 = makeTradeEvent({
+      eventId: "market-event-v1:trade-order-002",
+      receiptTimestampMs: 1_700_000_020_000,
+      price: 68_500,
+      quantity: 1.0,
+      takerSide: "buy",
+    });
+    engine.ingest(trade1);
+    const snap2 = engine.ingest(trade2);
+    expect(snap2?.cvd.lastTradePrice).toBe(68_500);
+    expect(snap2?.cvd.activeAnchor.includedTradeCount).toBe(2);
+
+    // Trade 3 is late (effective timestamp 1_700_000_005_000 is behind cursor 1_700_000_020_000)
+    const lateTrade = makeTradeEvent({
+      eventId: "market-event-v1:trade-order-003-late",
+      receiptTimestampMs: 1_700_000_005_000,
+      price: 67_000,
+      quantity: 2.0,
+      takerSide: "sell",
+    });
+
+    // In incremental mode: ignored as late
+    const snap3 = engine.ingest(lateTrade, { mode: "incremental" });
+    expect(snap3?.health.lateIgnoredEventCount).toBe(1);
+    expect(snap3?.cvd.lastTradePrice).toBe(68_500); // Does NOT rewind to 67_000!
+    expect(snap3?.cvd.activeAnchor.includedTradeCount).toBe(2); // Did NOT mutate included count
+
+    // In replay mode: late trade can be processed
+    const replayEngine = new FlowEngine(undefined, undefined, {
+      defaultMode: "replay",
+    });
+    replayEngine.ingest(trade1);
+    replayEngine.ingest(trade2);
+    const snapReplay = replayEngine.ingest(lateTrade);
+    expect(snapReplay?.health.lateIgnoredEventCount).toBe(0);
+    expect(snapReplay?.cvd.activeAnchor.includedTradeCount).toBe(3);
+  });
+
+  it("11. regression: proves cutoff replay versus live-prefix digest equality", () => {
+    const baseTs = 1_700_000_000_000;
+    const events: MarketEventV1[] = [];
+    events.push(
+      makeL2SnapshotEvent({
+        eventId: "market-event-v1:event-001",
+        receiptTimestampMs: baseTs,
+        sequence: 100,
+      }),
+    );
+    for (let i = 1; i <= 8; i += 1) {
+      events.push(
+        makeTradeEvent({
+          eventId: `market-event-v1:event-00${i + 1}`,
+          receiptTimestampMs: baseTs + i * 1_000,
+          price: 68_000 + i * 10,
+          quantity: 0.1,
+          takerSide: i % 2 === 0 ? "buy" : "sell",
+        }),
+      );
+    }
+
+    const cutoffMs = baseTs + 4_000; // First 5 events are eligible (baseTs + 0, 1000, 2000, 3000, 4000)
+    const eligibleEvents = events.filter(
+      (e) => e.receiptTimestampMs <= cutoffMs,
+    );
+    expect(eligibleEvents).toHaveLength(5);
+
+    // Live prefix: ingest only eligible events
+    const liveEngine = new FlowEngine();
+    for (const ev of eligibleEvents) {
+      liveEngine.ingest(ev);
+    }
+    const snapLive = liveEngine.snapshot();
+    const digestLive = computeSnapshotAuditDigest(snapLive);
+
+    // Replay with cutoff: replay all events (eligible + past cutoff)
+    const replayEngine = new FlowEngine();
+    const snapReplay = replayEngine.replayEvents(events, {
+      replayCutoffMs: cutoffMs,
+    });
+    const digestReplay = computeSnapshotAuditDigest(snapReplay);
+
+    expect(snapReplay).toEqual(snapLive);
+    expect(digestReplay).toBe(digestLive);
+    expect(replayEngine.cutoffExcludedEventCount).toBe(4);
+  });
+
+  it("12. regression: verifies schema-valid health records via ingestHealthEvent and ingestStorageRecord", () => {
+    const engine = new FlowEngine();
+    const validGapEvent = makeHealthGapEvent({
+      eventId: "market-health-event-v1:0000000000000020",
+      receiptTimestampMs: 1_700_000_001_000,
+    });
+    expect(MarketHealthEventV1Schema.safeParse(validGapEvent).success).toBe(
+      true,
+    );
+
+    const healthSnapGap = engine.ingestHealthEvent(validGapEvent);
+    expect(healthSnapGap.hasUnresolvedGap).toBe(true);
+    expect(healthSnapGap.gapCount).toBe(1);
+
+    const validReconnectEvent: MarketHealthEventV1 =
+      MarketHealthEventV1Schema.parse({
+        schemaVersion: "market-health-event-v1",
+        healthEventId: "market-health-event-v1:0000000000000021",
+        venue: "binance",
+        symbol: "BTC-USDT",
+        channel: null,
+        detectedAtMs: 1_700_000_002_000,
+        connectionId: "conn-0",
+        severity: "info",
+        type: "reconnect",
+        details: {
+          reason: "connection re-established",
+          attempt: 1,
+          backoffMs: 100,
+        },
+      });
+
+    const snapReconnect = engine.ingestStorageRecord(validReconnectEvent);
+    expect(snapReconnect).not.toBeNull();
+    expect(snapReconnect?.health.reconnectCount).toBe(1);
+  });
+
+  it("13. regression: bounds retained internal state over long time spans", () => {
+    const engine = new FlowEngine();
+    const startTs = 1_700_000_000_000;
+    // Ingest 2,000 trades spaced by 1 second = 2,000,000 ms.
+    // FlowEngine default max retention is 900,000 ms (15 minutes).
+    for (let i = 0; i < 2_000; i += 1) {
+      engine.ingest(
+        makeTradeEvent({
+          eventId: `market-event-v1:retention-${i}`,
+          receiptTimestampMs: startTs + i * 1_000,
+          price: 68_000 + (i % 20),
+          quantity: 0.05,
+          takerSide: "buy",
+        }),
+        { deferSnapshot: true, mode: "replay" },
+      );
+    }
+    const snap = engine.snapshot();
+    expect(snap.cvd.activeAnchor.includedTradeCount).toBe(2_000);
+
+    // Retained sliding window trades should be bounded to ~900s of trades + compaction buffer (<< 2,000)
+    const retainedTrades = engine.getRetainedTradeCount();
+    expect(retainedTrades).toBeLessThan(1_500);
+    expect(retainedTrades).toBeGreaterThan(800);
+
+    // Evidence IDs bounded to maxEvidenceEventIds (128)
+    expect(engine.getRetainedEvidenceIdCount()).toBeLessThanOrEqual(
+      engine.config.maxEvidenceEventIds,
+    );
+    expect(snap.evidenceEventIds.length).toBeLessThanOrEqual(
+      engine.config.maxEvidenceEventIds,
+    );
+
+    // Deduplication history bounded to 10,000
+    expect(engine.getDeduplicationHistoryCount()).toBeLessThanOrEqual(10_000);
   });
 });

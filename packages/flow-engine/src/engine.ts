@@ -1,4 +1,9 @@
-import type { MarketEventV1 } from "@options-chart/market-data";
+import {
+  type MarketEventV1,
+  type MarketHealthEventV1,
+  type MarketStorageRecordV1,
+  MarketHealthEventV1Schema,
+} from "@options-chart/market-data";
 import {
   createFlowEngineConfig,
   type FlowEngineConfigV1,
@@ -8,6 +13,7 @@ import {
   FlowFeatureSnapshotV1Schema,
   type CvdAnchorV1,
   type CvdResetReason,
+  type FeatureHealthSnapshotV1,
   type FlowFeatureSnapshotV1,
   type RelevantLevelV1,
 } from "./contracts";
@@ -22,12 +28,18 @@ import { ClassificationsEngine } from "./classifications";
 
 export const FLOW_ENGINE_VERSION = "flow-engine-v1" as const;
 
+export type FlowEngineMode = "incremental" | "replay";
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
 export class FlowEngine {
   private readonly _config: FlowEngineConfigV1;
+  private readonly defaultMode: FlowEngineMode;
+  private readonly seenEventIds = new Set<string>();
+  private readonly seenEventIdsQueue: string[] = [];
+  private readonly maxDeduplicationHistory: number;
   private readonly cvdEngine: CvdEngine;
   private readonly orderBookEngine: OrderBookEngine;
   private readonly liquidityEngine: LiquidityEngine;
@@ -42,8 +54,16 @@ export class FlowEngine {
   public constructor(
     config?: Partial<FlowEngineConfigV1>,
     initialLevels?: readonly unknown[],
+    options?: {
+      readonly defaultMode?: FlowEngineMode;
+      readonly maxDeduplicationHistory?: number;
+    },
   ) {
     this._config = createFlowEngineConfig(config);
+    this.defaultMode = options?.defaultMode ?? "incremental";
+    this.maxDeduplicationHistory =
+      options?.maxDeduplicationHistory ??
+      Math.max(2048, this._config.maxEvidenceEventIds * 16);
     this.cvdEngine = new CvdEngine(this._config);
     this.orderBookEngine = new OrderBookEngine(this._config);
     this.liquidityEngine = new LiquidityEngine(this._config);
@@ -60,6 +80,14 @@ export class FlowEngine {
     return this.healthTracker;
   }
 
+  public get cutoffExcludedEventCount(): number {
+    return this.healthTracker.cutoffExcludedEventCount;
+  }
+
+  public get mode(): FlowEngineMode {
+    return this.defaultMode;
+  }
+
   public setLevels(newLevels: readonly unknown[]): void {
     this.levels = validateRelevantLevels(newLevels);
   }
@@ -68,10 +96,23 @@ export class FlowEngine {
     return this.levels;
   }
 
+  public getRetainedTradeCount(): number {
+    return this.cvdEngine.getAllRetainedTrades().length;
+  }
+
+  public getRetainedEvidenceIdCount(): number {
+    return this.recentEvidenceEventIds.length;
+  }
+
+  public getDeduplicationHistoryCount(): number {
+    return this.seenEventIds.size;
+  }
+
   public ingest(
     event: MarketEventV1,
     options?: {
       readonly replayCutoffMs?: number | null;
+      readonly mode?: FlowEngineMode;
       readonly deferSnapshot?: boolean;
     },
   ): FlowFeatureSnapshotV1 | null {
@@ -80,33 +121,54 @@ export class FlowEngine {
       return null;
     }
 
+    if (this.seenEventIds.has(event.eventId)) {
+      this.healthTracker.recordDuplicate(event.eventId);
+      if (options?.deferSnapshot) {
+        return null;
+      }
+      return this.snapshot({
+        asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
+      });
+    }
+    this.seenEventIds.add(event.eventId);
+    this.seenEventIdsQueue.push(event.eventId);
+    if (this.seenEventIdsQueue.length > this.maxDeduplicationHistory) {
+      const oldest = this.seenEventIdsQueue.shift();
+      if (oldest !== undefined) {
+        this.seenEventIds.delete(oldest);
+      }
+    }
+
+    const mode: FlowEngineMode = options?.mode ?? this.defaultMode;
+    const eff = resolveEffectiveTime(event);
+
+    if (event.channel === "trade" && mode === "incremental") {
+      if (
+        this.lastFeatureTimestampMs > 0 &&
+        eff.featureTimestampMs < this.lastFeatureTimestampMs
+      ) {
+        this.healthTracker.recordLateIgnored(event.eventId);
+        if (options?.deferSnapshot) {
+          return null;
+        }
+        return this.snapshot({
+          asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
+        });
+      }
+    }
+
     this.pushEvidenceEventId(event.eventId);
     this.lastAsOfReceiptTimestampMs = Math.max(
       this.lastAsOfReceiptTimestampMs,
       event.receiptTimestampMs,
     );
-
-    const eff = resolveEffectiveTime(event);
     this.lastFeatureTimestampMs = Math.max(
       this.lastFeatureTimestampMs,
       eff.featureTimestampMs,
     );
     this.lastFeatureTimeSource = eff.featureTimeSource;
 
-    const channel = event.channel as string;
-    if (channel === "health") {
-      this.healthTracker.recordHealthEvent(event);
-      if (isRecord(event.payload) && event.payload["healthStatus"] === "gap") {
-        this.orderBookEngine.markSequenceGap();
-        if (this._config.resetCvdOnGap) {
-          this.cvdEngine.resetAnchor(
-            `gap-anchor-${String(eff.featureTimestampMs)}`,
-            eff.featureTimestampMs,
-            "gap-reset",
-          );
-        }
-      }
-    } else if (channel === "trade") {
+    if (event.channel === "trade") {
       this.healthTracker.recordTradeReceipt(event.receiptTimestampMs);
       const norm = this.cvdEngine.ingestTradeEvent(event);
       if (norm.ok) {
@@ -114,7 +176,7 @@ export class FlowEngine {
       } else {
         this.healthTracker.recordMalformed();
       }
-    } else if (channel === "l2-book") {
+    } else if (event.channel === "l2-book") {
       this.healthTracker.recordBookReceipt(event.receiptTimestampMs);
       const applyRes = this.orderBookEngine.applyL2BookEvent(event);
       if (applyRes.accepted) {
@@ -127,19 +189,7 @@ export class FlowEngine {
         this.liquidityEngine.recordBookUpdate(event, applyRes);
       } else {
         if (applyRes.statusReason === "sequence-gap") {
-          this.healthTracker.recordHealthEvent({
-            schemaVersion: "market-event-v1",
-            eventId: `gap-${event.eventId}`,
-            venue: event.venue,
-            symbol: event.symbol,
-            instrumentType: event.instrumentType,
-            channel: "health" as unknown as MarketEventV1["channel"],
-            exchangeTimestampMs: event.exchangeTimestampMs,
-            receiptTimestampMs: event.receiptTimestampMs,
-            sequence: event.sequence,
-            payload: { healthStatus: "gap" },
-            provenance: event.provenance,
-          });
+          this.healthTracker.recordSequenceGap(event.eventId);
           if (this._config.resetCvdOnGap) {
             this.cvdEngine.resetAnchor(
               `gap-anchor-${String(eff.featureTimestampMs)}`,
@@ -148,7 +198,7 @@ export class FlowEngine {
             );
           }
         } else if (applyRes.sequenceTransition.kind === "duplicate") {
-          this.healthTracker.recordDuplicate();
+          this.healthTracker.recordDuplicate(event.eventId);
         } else if (applyRes.sequenceTransition.kind === "out-of-order") {
           this.healthTracker.recordOutOfOrder();
         } else if (applyRes.statusReason === "malformed-book") {
@@ -166,6 +216,59 @@ export class FlowEngine {
     return this.snapshot({
       asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
     });
+  }
+
+  public ingestHealthEvent(
+    healthEvent: MarketHealthEventV1,
+  ): FeatureHealthSnapshotV1 {
+    MarketHealthEventV1Schema.parse(healthEvent);
+    this.healthTracker.recordHealthEvent(healthEvent);
+    if (healthEvent.type === "gap") {
+      this.orderBookEngine.markSequenceGap();
+      if (this._config.resetCvdOnGap) {
+        this.cvdEngine.resetAnchor(
+          `gap-anchor-${String(healthEvent.detectedAtMs)}`,
+          healthEvent.detectedAtMs,
+          "gap-reset",
+        );
+      }
+    }
+    const asOfMs = this.lastAsOfReceiptTimestampMs || healthEvent.detectedAtMs;
+    const cvdSnap = this.cvdEngine.snapshot(
+      this.lastFeatureTimestampMs || healthEvent.detectedAtMs,
+    );
+    const bookSnap = this.orderBookEngine.snapshot(asOfMs, {
+      hasUnresolvedGap: this.healthTracker.hasUnresolvedGap,
+    });
+    return this.healthTracker.computeSnapshot(
+      asOfMs,
+      cvdSnap.activeAnchor.directionalCoverageRatio,
+      bookSnap.bookCoverageRatio,
+    );
+  }
+
+  public ingestStorageRecord(
+    record: MarketStorageRecordV1,
+    options?: {
+      readonly replayCutoffMs?: number | null;
+      readonly mode?: FlowEngineMode;
+      readonly deferSnapshot?: boolean;
+    },
+  ): FlowFeatureSnapshotV1 | null {
+    if (record.schemaVersion === "market-health-event-v1") {
+      this.ingestHealthEvent(record);
+      if (options?.deferSnapshot) {
+        return null;
+      }
+      return this.snapshot({
+        asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
+      });
+    }
+    return this.ingest(record, options);
+  }
+
+  public getRetainedTradesCount(): number {
+    return this.cvdEngine.getAllRetainedTrades().length;
   }
 
   public snapshot(options?: {
@@ -250,11 +353,19 @@ export class FlowEngine {
   }
 
   public replayEvents(
-    events: readonly MarketEventV1[],
-    options?: { readonly replayCutoffMs?: number | null },
+    events: readonly (MarketEventV1 | MarketStorageRecordV1)[],
+    options?: {
+      readonly replayCutoffMs?: number | null;
+      readonly mode?: FlowEngineMode;
+    },
   ): FlowFeatureSnapshotV1 {
+    const mode: FlowEngineMode = options?.mode ?? "replay";
     for (const event of events) {
-      this.ingest(event, { ...options, deferSnapshot: true });
+      if (event.schemaVersion === "market-health-event-v1") {
+        this.ingestHealthEvent(event);
+      } else {
+        this.ingest(event, { ...options, mode, deferSnapshot: true });
+      }
     }
     return this.snapshot({
       asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,

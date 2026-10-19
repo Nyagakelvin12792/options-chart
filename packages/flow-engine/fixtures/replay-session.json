@@ -287,23 +287,20 @@
       }
     },
     {
-      "schemaVersion": "market-event-v1",
-      "eventId": "market-event-v1:000000000000000b",
+      "schemaVersion": "market-health-event-v1",
+      "healthEventId": "market-health-event-v1:000000000000000b",
       "venue": "binance",
       "symbol": "BTC-USDT",
-      "instrumentType": "spot",
-      "channel": "health",
-      "exchangeTimestampMs": 1700000010000,
-      "receiptTimestampMs": 1700000010010,
-      "sequence": 110,
-      "payload": {
-        "healthStatus": "gap"
-      },
-      "provenance": {
-        "collector": "cryptofeed",
-        "collectorVersion": "1.0.0",
-        "connectionId": "conn-binance-0",
-        "recordedAtMs": 1700000010010
+      "channel": "l2-book",
+      "detectedAtMs": 1700000010010,
+      "connectionId": "conn-binance-0",
+      "severity": "warning",
+      "type": "gap",
+      "details": {
+        "previousSequence": 105,
+        "expectedSequence": 106,
+        "actualSequence": 110,
+        "missingCount": 4
       }
     },
     {

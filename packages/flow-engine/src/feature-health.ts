@@ -1,4 +1,4 @@
-import type { MarketEventV1 } from "@options-chart/market-data";
+import type { MarketHealthEventV1 } from "@options-chart/market-data";
 import {
   DEFAULT_FLOW_ENGINE_CONFIG_V1,
   type FlowEngineConfigV1,
@@ -7,10 +7,6 @@ import type { FeatureAvailability, FeatureHealthSnapshotV1 } from "./contracts";
 import { roundDecimal } from "./decimal";
 
 export const FEATURE_HEALTH_POLICY_VERSION = "flow-feature-health-v1" as const;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 export class FeatureHealthTracker {
   private readonly config: FlowEngineConfigV1;
@@ -58,39 +54,32 @@ export class FeatureHealthTracker {
     );
   }
 
-  public recordHealthEvent(
-    event:
-      | MarketEventV1
-      | {
-          readonly eventId: string;
-          readonly channel?: string | null;
-          readonly receiptTimestampMs?: number;
-          readonly payload?: unknown;
-        },
-  ): void {
-    if ((event.channel as string) !== "health") {
-      return;
-    }
-    if (typeof event.receiptTimestampMs === "number") {
-      this.recordEventReceipt(event.receiptTimestampMs);
-    }
-    if (!isRecord(event.payload)) {
-      return;
-    }
-    const healthStatus = event.payload["healthStatus"];
-    if (healthStatus === "gap") {
+  public recordHealthEvent(event: MarketHealthEventV1): void {
+    this.recordEventReceipt(event.detectedAtMs);
+    if (event.type === "gap") {
       this.gapCount += 1;
       this.hasUnresolvedGap = true;
-      this.pushHealthEventId(event.eventId);
-    } else if (healthStatus === "stale") {
+      this.pushHealthEventId(event.healthEventId);
+    } else if (event.type === "stale") {
       this.staleCount += 1;
-      this.pushHealthEventId(event.eventId);
-    } else if (healthStatus === "reconnect") {
+      this.pushHealthEventId(event.healthEventId);
+    } else if (event.type === "reconnect") {
       this.reconnectCount += 1;
-      this.pushHealthEventId(event.eventId);
-    } else if (healthStatus === "collector-error") {
+      this.pushHealthEventId(event.healthEventId);
+    } else if (event.type === "duplicate") {
+      this.duplicateCount += 1;
+      this.pushHealthEventId(event.healthEventId);
+    } else if (event.type === "collector-error") {
       this.hasCollectorError = true;
-      this.pushHealthEventId(event.eventId);
+      this.pushHealthEventId(event.healthEventId);
+    }
+  }
+
+  public recordSequenceGap(relatedEventId?: string): void {
+    this.gapCount += 1;
+    this.hasUnresolvedGap = true;
+    if (relatedEventId !== undefined) {
+      this.pushHealthEventId(relatedEventId);
     }
   }
 
@@ -98,8 +87,11 @@ export class FeatureHealthTracker {
     this.hasUnresolvedGap = false;
   }
 
-  public recordDuplicate(): void {
+  public recordDuplicate(relatedEventId?: string): void {
     this.duplicateCount += 1;
+    if (relatedEventId !== undefined) {
+      this.pushHealthEventId(relatedEventId);
+    }
   }
 
   public recordMalformed(): void {
@@ -110,8 +102,11 @@ export class FeatureHealthTracker {
     this.outOfOrderEventCount += 1;
   }
 
-  public recordLateIgnored(): void {
+  public recordLateIgnored(relatedEventId?: string): void {
     this.lateIgnoredEventCount += 1;
+    if (relatedEventId !== undefined) {
+      this.pushHealthEventId(relatedEventId);
+    }
   }
 
   public recordCutoffExcluded(): void {
@@ -235,7 +230,6 @@ export class FeatureHealthTracker {
       malformedEventCount: this.malformedEventCount,
       outOfOrderEventCount: this.outOfOrderEventCount,
       lateIgnoredEventCount: this.lateIgnoredEventCount,
-      cutoffExcludedEventCount: this.cutoffExcludedEventCount,
       confidenceScore,
       degradationReasons: Object.freeze(degradationReasons),
       activeHealthEventIds: Object.freeze([...this.activeHealthEventIds]),

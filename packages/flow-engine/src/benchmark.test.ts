@@ -1,3 +1,4 @@
+import os from "node:os";
 import { describe, expect, it } from "vitest";
 import type { MarketEventV1 } from "@options-chart/market-data";
 import { FlowFeatureSnapshotV1Schema } from "./contracts";
@@ -121,16 +122,64 @@ describe("FlowEngine Performance Benchmark", () => {
     const eventCount = 100_000;
     const events = generateSyntheticEvents(eventCount);
 
-    const memBefore = process.memoryUsage().heapUsed;
+    const cpus = os.cpus();
+    const envInfo = {
+      nodeVersion: process.version,
+      platform: os.platform(),
+      release: os.release(),
+      arch: os.arch(),
+      cpuModel: cpus[0]?.model ?? "unknown",
+      cpuCores: cpus.length,
+    };
+
+    const initialHeapUsed = process.memoryUsage().heapUsed;
+    let peakHeapUsed = initialHeapUsed;
+    let peakRetainedTrades = 0;
+
     const startTime = performance.now();
-
     const engine = new FlowEngine();
-    const finalSnapshot = engine.replayEvents(events);
 
+    for (let i = 0; i < events.length; i += 1) {
+      engine.ingest(events[i]!, { deferSnapshot: true, mode: "replay" });
+      if (i % 10_000 === 0 || i === events.length - 1) {
+        const currentHeap = process.memoryUsage().heapUsed;
+        if (currentHeap > peakHeapUsed) {
+          peakHeapUsed = currentHeap;
+        }
+        const currentRetained = engine.getRetainedTradeCount();
+        if (currentRetained > peakRetainedTrades) {
+          peakRetainedTrades = currentRetained;
+        }
+      }
+    }
+
+    const finalSnapshot = engine.snapshot();
     const elapsedMs = performance.now() - startTime;
-    const memAfter = process.memoryUsage().heapUsed;
+    const finalHeapUsed = process.memoryUsage().heapUsed;
+    if (finalHeapUsed > peakHeapUsed) {
+      peakHeapUsed = finalHeapUsed;
+    }
+
     const throughput = Math.round((eventCount / elapsedMs) * 1000);
-    const heapDeltaMb = Math.round((memAfter - memBefore) / 1024 / 1024);
+    const initialHeapMb = Math.round(initialHeapUsed / 1024 / 1024);
+    const peakHeapMb = Math.round(peakHeapUsed / 1024 / 1024);
+    const finalHeapMb = Math.round(finalHeapUsed / 1024 / 1024);
+    const netHeapDeltaMb = finalHeapMb - initialHeapMb;
+
+    console.log("=== FlowEngine 100k Benchmark Metrics ===");
+    console.log(
+      `Environment: Node ${envInfo.nodeVersion}, OS ${envInfo.platform} ${envInfo.release} (${envInfo.arch}), CPU: ${envInfo.cpuModel} (${envInfo.cpuCores} cores)`,
+    );
+    console.log(
+      `Elapsed Time: ${elapsedMs.toFixed(2)} ms (${(elapsedMs / 1000).toFixed(3)} s)`,
+    );
+    console.log(`Throughput: ${throughput.toLocaleString()} events/sec`);
+    console.log(
+      `Peak Retained Internal State: ${peakRetainedTrades} trades, ${engine.getRetainedEvidenceIdCount()} evidence IDs, ${engine.getDeduplicationHistoryCount()} dedup IDs, book bids=${finalSnapshot.book.retainedBidLevels}, book asks=${finalSnapshot.book.retainedAskLevels}`,
+    );
+    console.log(
+      `Heap Evidence: initial=${initialHeapMb} MB, peak=${peakHeapMb} MB, final=${finalHeapMb} MB (net heap delta: ${netHeapDeltaMb >= 0 ? "+" : ""}${netHeapDeltaMb} MB)`,
+    );
 
     expect(elapsedMs).toBeLessThan(15_000);
     expect(throughput).toBeGreaterThan(15_000);
@@ -142,10 +191,14 @@ describe("FlowEngine Performance Benchmark", () => {
     expect(finalSnapshot.evidenceEventIds.length).toBeLessThanOrEqual(
       engine.config.maxEvidenceEventIds,
     );
+    expect(engine.getRetainedEvidenceIdCount()).toBeLessThanOrEqual(
+      engine.config.maxEvidenceEventIds,
+    );
+    expect(engine.getDeduplicationHistoryCount()).toBeLessThanOrEqual(10_000);
     expect(finalSnapshot.cvd.activeAnchor.includedTradeCount).toBe(70_000);
     expect(finalSnapshot.book.availability).toBe("available");
 
-    // Verify memory growth remained reasonable
-    expect(heapDeltaMb).toBeLessThan(250);
+    // Verify peak heap during benchmark remained reasonable (< 500 MB)
+    expect(peakHeapMb).toBeLessThan(500);
   }, 30_000);
 });
