@@ -3,6 +3,8 @@
   "references": [
     { "path": "packages/domain" },
     { "path": "packages/shared" },
+    { "path": "packages/market-data" },
+    { "path": "packages/flow-engine" },
     { "path": "packages/options-engine" },
     { "path": "packages/chart" }
   ]
