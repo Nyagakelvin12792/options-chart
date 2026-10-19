@@ -1,16 +1,16 @@
-# Qwen Assignment Packet - M11.3
+# Antigravity Assignment Packet - M11.3
 
 Status: AUTHORIZED TO START
-Date: 2026-10-15
+Date: 2026-10-19
 Coordinator: Codex
-Implementation worker: Qwen
+Implementation worker: Antigravity
 
 ## Start Authorization
 
 ```text
 M11_2_EXIT_APPROVED=true
 ACCEPTED_M11_2_COMMIT=d536eba623114325661480f07dc458c21f619af3
-BRANCH=handoff/qwen-m11
+BRANCH=handoff/antigravity-m11
 LIVE_OBSERVATION_RUN=38793141169
 ```
 
@@ -23,7 +23,7 @@ errors, and no collector-error records.
 Task: M11.3 Deterministic CVD And Absorption Engine.
 
 Implement `@options-chart/flow-engine` exactly within
-`docs/implementation/M11.3_QWEN_MULTI_AGENT_WORK_PACKAGE.md`. Produce pure,
+`docs/implementation/M11.3_ANTIGRAVITY_MULTI_AGENT_WORK_PACKAGE.md`. Produce pure,
 deterministic, auditable order-flow features from validated `MarketEventV1`
 records. This is a shadow decision-support feature package, not an execution
 engine.
@@ -34,10 +34,22 @@ engine.
 - root `package.json` scripts only when required for the new package;
 - root `tsconfig.json` project references only when required;
 - package entrypoints required to consume existing validated contracts;
-- `docs/handoffs/qwen-m11.3-worklog.md`.
+- `docs/handoffs/antigravity-m11.3-worklog.md`.
 
-Checkpoint commits are allowed on `handoff/qwen-m11` after their focused gates
+Checkpoint commits are allowed on `handoff/antigravity-m11` after their focused gates
 pass. Every commit must include the attribution required by `AGENTS.md`.
+
+## Antigravity Execution Mode
+
+Use the Antigravity Agent Manager only if it is available. Open this exact
+repository path in both the Antigravity IDE and Agent Manager so file watchers
+observe the same checkout. Freeze disjoint file ownership before parallel work.
+
+Use no more than five implementation agents plus one read-only adversarial
+reviewer, following the Agent A-F ownership map in the work package. The
+orchestrator alone owns `src/index.ts`, root workspace references, integration,
+and the worklog. If Agent Manager is unavailable, execute the same checkpoints
+sequentially in the Antigravity IDE.
 
 ## Protected Scope
 
@@ -93,19 +105,19 @@ results are evidence, not a universal performance guarantee.
 
 ## Repository State At Handoff
 
-- Local HEAD and remote `origin/handoff/qwen-m11` both point to the accepted
+- Local HEAD and remote `origin/handoff/antigravity-m11` both point to the accepted
   handoff history before this assignment commit.
 - The only pre-existing working-tree modification is `.gitignore`, owned by the
-  user. Preserve it exactly and keep it out of every Qwen commit.
+  user. Preserve it exactly and keep it out of every Antigravity commit.
 - M11.2 final gates passed 33 Python collector tests, 65 Vitest files with 451
   tests, typecheck, lint, production build, progress gates, and diff check.
 
-Before editing, Qwen must read all context required by `QWEN.md`, run
+Before editing, Antigravity must read all context required by `ANTIGRAVITY.md`, run
 `git status --short --branch`, report the observed state and planned narrow
 checks, then record checkpoint 0 in the worklog.
 
 ## Required Final Handoff
 
-Use the exact format in `QWEN.md` plus the additions required by section 17 of
+Use the exact format in `ANTIGRAVITY.md` plus the additions required by section 17 of
 the M11.3 work package. Report partial work honestly and stop at the current
 checkpoint if blocked. Do not self-approve the milestone.

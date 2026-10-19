@@ -1,8 +1,8 @@
 # M11 Orchestration Ledger
 
-Last updated: 2026-10-15
-Goal status: ACTIVE - M11.3 HANDED TO QWEN
-Automation: prior `continue-options-chart-m11-build` automation remains paused; Qwen work is manual and bounded by the assignment packet
+Last updated: 2026-10-19
+Goal status: ACTIVE - M11.3 HANDED TO ANTIGRAVITY
+Automation: prior `continue-options-chart-m11-build` automation remains paused; Antigravity work is manual and bounded by the assignment packet
 
 ## Resume Protocol
 
@@ -20,12 +20,12 @@ starting the batch again.
 
 ## Model Routing
 
-- Qwen: bounded implementation worker for approved code, fixtures, tests, and
-  task-specific documentation under the root `QWEN.md` contract.
+- Antigravity: bounded implementation worker for approved code, fixtures, tests, and
+  task-specific documentation under the root `ANTIGRAVITY.md` contract.
 - GPT-5.5 medium: implementation, fixtures, focused tests, and documentation.
 - GPT-5.6 high: final financial-math, security, architecture, and integration review.
 - Do not duplicate the same task across agents merely to increase concurrency.
-- Do not allow Qwen and another agent to edit the same file concurrently.
+- Do not allow Antigravity and another agent to edit the same file concurrently.
 
 ## Active Batch
 
@@ -33,14 +33,14 @@ M11.3 Deterministic CVD And Absorption Engine
 
 ### Current Assignment
 
-| Worker | Write scope                                                                                                   | Status              |
-| ------ | ------------------------------------------------------------------------------------------------------------- | ------------------- |
-| Qwen   | `packages/flow-engine/**`, approved root workspace references, and `docs/handoffs/qwen-m11.3-worklog.md`      | AUTHORIZED          |
-| Codex  | Read-only review until Qwen handoff; governance, integration acceptance, and milestone status remain reserved | WAITING FOR HANDOFF |
+| Worker      | Write scope                                                                                                          | Status              |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Antigravity | `packages/flow-engine/**`, approved root workspace references, and `docs/handoffs/antigravity-m11.3-worklog.md`      | AUTHORIZED          |
+| Codex       | Read-only review until Antigravity handoff; governance, integration acceptance, and milestone status remain reserved | WAITING FOR HANDOFF |
 
-The controlling packet is `docs/handoffs/qwen-m11.3-assignment.md`. The accepted
+The controlling packet is `docs/handoffs/antigravity-m11.3-assignment.md`. The accepted
 base is `d536eba623114325661480f07dc458c21f619af3` on
-`handoff/qwen-m11`. The pre-existing `.gitignore` modification remains
+`handoff/antigravity-m11`. The pre-existing `.gitignore` modification remains
 user-owned and must not be edited, staged, committed, stashed, or reverted.
 
 ## Current Checkpoint
@@ -49,7 +49,7 @@ user-owned and must not be edited, staged, committed, stashed, or reverted.
 - M11.2 live evidence passed in GitHub Actions run `38793141169`.
 - Final M11.2 gates passed 33 Python tests and 451 Vitest tests plus typecheck,
   lint, build, progress gates, and diff check.
-- Qwen is authorized to begin checkpoint 0 of the M11.3 work package.
+- Antigravity is authorized to begin checkpoint 0 of the M11.3 work package.
 - No merge, deployment, production-feed change, JEV/LLM work, or live execution
   is authorized.
 
@@ -125,13 +125,13 @@ user-owned and must not be edited, staged, committed, stashed, or reverted.
 
 ## Next Actions
 
-1. Qwen reads the required context and reports branch, dirty state, write scope,
+1. Antigravity reads the required context and reports branch, dirty state, write scope,
    protected files, and planned narrow checks before editing.
-2. Qwen records checkpoint 0 in `docs/handoffs/qwen-m11.3-worklog.md`.
-3. Qwen implements only the M11.3 work package through its bounded checkpoints.
-4. Qwen commits green checkpoints locally with required attribution but does not
+2. Antigravity records checkpoint 0 in `docs/handoffs/antigravity-m11.3-worklog.md`.
+3. Antigravity implements only the M11.3 work package through its bounded checkpoints.
+4. Antigravity commits green checkpoints locally with required attribution but does not
    push, merge, deploy, or begin M11.4 without explicit approval.
-5. Codex independently reviews the final Qwen handoff before any milestone exit.
+5. Codex independently reviews the final Antigravity handoff before any milestone exit.
 
 ## Blockers
 
