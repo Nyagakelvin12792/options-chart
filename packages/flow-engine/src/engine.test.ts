@@ -10,7 +10,10 @@ import {
   deserializeFlowFeatureSnapshotAudit,
   serializeFlowFeatureSnapshotForAudit,
 } from "./audit";
-import { DEFAULT_FLOW_ENGINE_CONFIG_V1 } from "./configuration";
+import {
+  DEFAULT_FLOW_ENGINE_CONFIG_V1,
+  createFlowEngineConfig,
+} from "./configuration";
 import { FlowEngine } from "./engine";
 import fixtureData from "../fixtures/replay-session.json";
 
@@ -193,9 +196,11 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     });
     const healthSnap2 = engine.ingestHealthEvent(gapEvent);
     expect(healthSnap2).not.toBeNull();
-    expect(healthSnap2.hasUnresolvedGap).toBe(true);
-    expect(healthSnap2.availability).toBe("unavailable");
-    expect(healthSnap2.degradationReasons).toContain("unresolved-sequence-gap");
+    expect(healthSnap2!.hasUnresolvedGap).toBe(true);
+    expect(healthSnap2!.availability).toBe("unavailable");
+    expect(healthSnap2!.degradationReasons).toContain(
+      "unresolved-sequence-gap",
+    );
 
     const snap2 = engine.snapshot();
     expect(snap2.book.availability).toBe("unavailable");
@@ -482,8 +487,9 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     );
 
     const healthSnapGap = engine.ingestHealthEvent(validGapEvent);
-    expect(healthSnapGap.hasUnresolvedGap).toBe(true);
-    expect(healthSnapGap.gapCount).toBe(1);
+    expect(healthSnapGap).not.toBeNull();
+    expect(healthSnapGap!.hasUnresolvedGap).toBe(true);
+    expect(healthSnapGap!.gapCount).toBe(1);
 
     const validReconnectEvent: MarketHealthEventV1 =
       MarketHealthEventV1Schema.parse({
@@ -543,5 +549,242 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
 
     // Deduplication history bounded to 10,000
     expect(engine.getDeduplicationHistoryCount()).toBeLessThanOrEqual(10_000);
+  });
+
+  it("14. regression: proves retained trades remain at or below configured maxRetainedTrades under dense same-timestamp traffic while preserving anchor cumulative counters", () => {
+    const customConfig = createFlowEngineConfig({
+      maxRetainedTrades: 100,
+    });
+    const engine = new FlowEngine(customConfig);
+    const baseTs = 1_700_000_000_000;
+    for (let i = 0; i < 500; i += 1) {
+      engine.ingest(
+        makeTradeEvent({
+          eventId: `market-event-v1:dense-trade-${i}`,
+          receiptTimestampMs: baseTs,
+          price: 68_000,
+          quantity: 0.1,
+          takerSide: "buy",
+        }),
+        { deferSnapshot: true, mode: "replay" },
+      );
+    }
+    const snap = engine.snapshot();
+    expect(engine.getRetainedTradeCount()).toBeLessThanOrEqual(100);
+    expect(snap.cvd.activeAnchor.includedTradeCount).toBe(500);
+    expect(snap.cvd.activeAnchor.buyQuoteVolume).toBe(500 * 6_800);
+    expect(snap.cvd.activeAnchor.rawCvdQuote).toBe(500 * 6_800);
+    expect(snap.health.degradationReasons).toContain(
+      "truncated-retention-window",
+    );
+  });
+
+  it("15. regression: deduplicates health records across ingestHealthEvent, ingestStorageRecord, and replayEvents", () => {
+    const engine = new FlowEngine();
+    const gapEvent = makeHealthGapEvent({
+      eventId: "market-health-event-v1:0000000000000099",
+      receiptTimestampMs: 1_700_000_001_000,
+    });
+
+    const snap1 = engine.ingestHealthEvent(gapEvent);
+    expect(snap1?.gapCount).toBe(1);
+    expect(snap1?.duplicateCount).toBe(0);
+
+    const snap2 = engine.ingestHealthEvent(gapEvent);
+    expect(snap2?.gapCount).toBe(1);
+    expect(snap2?.duplicateCount).toBe(1);
+
+    const snap3 = engine.ingestStorageRecord(gapEvent);
+    expect(snap3?.health.gapCount).toBe(1);
+    expect(snap3?.health.duplicateCount).toBe(2);
+
+    const snap4 = engine.replayEvents([gapEvent]);
+    expect(snap4.health.gapCount).toBe(1);
+    expect(snap4.health.duplicateCount).toBe(3);
+  });
+
+  it("16. regression: enforces replay cutoff on health records and proves post-cutoff health events do not mutate state", () => {
+    const engine = new FlowEngine();
+    const baseTs = 1_700_000_000_000;
+    engine.ingest(
+      makeL2SnapshotEvent({
+        eventId: "market-event-v1:cut-snap-001",
+        receiptTimestampMs: baseTs,
+        sequence: 100,
+      }),
+    );
+    const snapBefore = engine.snapshot();
+    const digestBefore = computeSnapshotAuditDigest(snapBefore);
+
+    const postCutoffHealth = makeHealthGapEvent({
+      eventId: "market-health-event-v1:0000000000000088",
+      receiptTimestampMs: baseTs + 10_000,
+    });
+
+    const res = engine.ingestHealthEvent(postCutoffHealth, {
+      replayCutoffMs: baseTs + 5_000,
+    });
+    expect(res).toBeNull();
+    expect(engine.cutoffExcludedEventCount).toBe(1);
+    expect(engine.health.gapCount).toBe(0);
+
+    const snapAfter = engine.snapshot();
+    const digestAfter = computeSnapshotAuditDigest(snapAfter);
+    expect(digestAfter).toBe(digestBefore);
+  });
+
+  it("17. regression: proves mixed market and health cutoff replay matches live-prefix snapshot and digest equality", () => {
+    const baseTs = 1_700_000_000_000;
+    const records: MarketStorageRecordV1[] = [];
+    records.push(
+      makeL2SnapshotEvent({
+        eventId: "market-event-v1:mix-001",
+        receiptTimestampMs: baseTs,
+        sequence: 100,
+      }),
+    );
+    records.push(
+      makeTradeEvent({
+        eventId: "market-event-v1:mix-002",
+        receiptTimestampMs: baseTs + 1_000,
+        price: 68_000,
+        quantity: 0.5,
+        takerSide: "buy",
+      }),
+    );
+    records.push(
+      makeHealthGapEvent({
+        eventId: "market-health-event-v1:0000000000000077",
+        receiptTimestampMs: baseTs + 2_000,
+      }),
+    );
+    records.push(
+      makeL2SnapshotEvent({
+        eventId: "market-event-v1:mix-004",
+        receiptTimestampMs: baseTs + 3_000,
+        sequence: 120,
+      }),
+    );
+    records.push(
+      makeTradeEvent({
+        eventId: "market-event-v1:mix-005",
+        receiptTimestampMs: baseTs + 4_000,
+        price: 68_100,
+        quantity: 0.25,
+        takerSide: "sell",
+      }),
+    );
+    records.push(
+      makeHealthGapEvent({
+        eventId: "market-health-event-v1:0000000000000078",
+        receiptTimestampMs: baseTs + 8_000,
+      }),
+    );
+    records.push(
+      makeTradeEvent({
+        eventId: "market-event-v1:mix-007",
+        receiptTimestampMs: baseTs + 9_000,
+        price: 68_200,
+        quantity: 1.0,
+        takerSide: "buy",
+      }),
+    );
+
+    const cutoffMs = baseTs + 4_000;
+    const eligibleRecords = records.filter((r) => {
+      const ts =
+        r.schemaVersion === "market-health-event-v1"
+          ? r.detectedAtMs
+          : r.receiptTimestampMs;
+      return ts <= cutoffMs;
+    });
+    expect(eligibleRecords).toHaveLength(5);
+
+    const liveEngine = new FlowEngine();
+    for (const rec of eligibleRecords) {
+      liveEngine.ingestStorageRecord(rec);
+    }
+    const snapLive = liveEngine.snapshot();
+    const digestLive = computeSnapshotAuditDigest(snapLive);
+
+    const replayEngine = new FlowEngine();
+    const snapReplay = replayEngine.replayEvents(records, {
+      replayCutoffMs: cutoffMs,
+    });
+    const digestReplay = computeSnapshotAuditDigest(snapReplay);
+
+    expect(snapReplay).toEqual(snapLive);
+    expect(digestReplay).toBe(digestLive);
+    expect(replayEngine.cutoffExcludedEventCount).toBe(2);
+  });
+
+  it("18. regression: tests deduplication horizon eviction boundary and transparent health degradation", () => {
+    const baseTs = 1_700_000_000_000;
+    const engine = new FlowEngine(undefined, undefined, {
+      maxDeduplicationHistory: 5,
+    });
+
+    const makeEv = (i: number) =>
+      makeTradeEvent({
+        eventId: `market-event-v1:evict-${i}`,
+        receiptTimestampMs: baseTs + i * 1_000,
+        price: 68_000,
+        quantity: 0.1,
+        takerSide: "buy",
+      });
+
+    for (let i = 1; i <= 5; i += 1) {
+      engine.ingest(makeEv(i));
+    }
+    expect(engine.getDeduplicationHistoryCount()).toBe(5);
+    expect(engine.health.isDeduplicationExhausted).toBe(false);
+
+    const snapDup = engine.ingest(makeEv(2));
+    expect(snapDup?.health.duplicateCount).toBe(1);
+    expect(engine.health.isDeduplicationExhausted).toBe(false);
+
+    engine.ingest(makeEv(6));
+    expect(engine.health.isDeduplicationExhausted).toBe(true);
+    const snapEvicted = engine.snapshot();
+    expect(snapEvicted.health.degradationReasons).toContain(
+      "deduplication-capacity-exhausted",
+    );
+    expect(snapEvicted.health.availability).toBe("degraded");
+
+    const snapEv1Again = engine.ingest(makeEv(1));
+    expect(snapEv1Again?.health.duplicateCount).toBe(1);
+  });
+
+  it("19. regression: verifies temporal coherence of health records in snapshots", () => {
+    const engine = new FlowEngine();
+    engine.ingest(
+      makeTradeEvent({
+        eventId: "market-event-v1:temp-001",
+        receiptTimestampMs: 1_700_000_001_000,
+        price: 68_000,
+        quantity: 0.1,
+        takerSide: "buy",
+      }),
+    );
+
+    const healthEv = makeHealthGapEvent({
+      eventId: "market-health-event-v1:0000000000000066",
+      receiptTimestampMs: 1_700_000_005_000,
+    });
+    engine.ingestHealthEvent(healthEv);
+
+    const snapAt1000 = engine.snapshot({
+      asOfReceiptTimestampMs: 1_700_000_001_000,
+    });
+    expect(snapAt1000.health.activeHealthEventIds).not.toContain(
+      "market-health-event-v1:0000000000000066",
+    );
+
+    const snapAt5000 = engine.snapshot({
+      asOfReceiptTimestampMs: 1_700_000_005_000,
+    });
+    expect(snapAt5000.health.activeHealthEventIds).toContain(
+      "market-health-event-v1:0000000000000066",
+    );
   });
 });

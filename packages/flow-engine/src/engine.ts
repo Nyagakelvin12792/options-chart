@@ -27,7 +27,6 @@ import { computeResponseEfficiencySnapshot } from "./response-efficiency";
 import { ClassificationsEngine } from "./classifications";
 
 export const FLOW_ENGINE_VERSION = "flow-engine-v1" as const;
-
 export type FlowEngineMode = "incremental" | "replay";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -62,8 +61,7 @@ export class FlowEngine {
     this._config = createFlowEngineConfig(config);
     this.defaultMode = options?.defaultMode ?? "incremental";
     this.maxDeduplicationHistory =
-      options?.maxDeduplicationHistory ??
-      Math.max(2048, this._config.maxEvidenceEventIds * 16);
+      options?.maxDeduplicationHistory ?? this._config.maxDeduplicationHistory;
     this.cvdEngine = new CvdEngine(this._config);
     this.orderBookEngine = new OrderBookEngine(this._config);
     this.liquidityEngine = new LiquidityEngine(this._config);
@@ -79,31 +77,27 @@ export class FlowEngine {
   public get health(): FeatureHealthTracker {
     return this.healthTracker;
   }
-
   public get cutoffExcludedEventCount(): number {
     return this.healthTracker.cutoffExcludedEventCount;
   }
-
   public get mode(): FlowEngineMode {
     return this.defaultMode;
   }
-
   public setLevels(newLevels: readonly unknown[]): void {
     this.levels = validateRelevantLevels(newLevels);
   }
-
   public getLevels(): readonly RelevantLevelV1[] {
     return this.levels;
   }
-
   public getRetainedTradeCount(): number {
     return this.cvdEngine.getAllRetainedTrades().length;
   }
-
+  public getRetainedTradesCount(): number {
+    return this.getRetainedTradeCount();
+  }
   public getRetainedEvidenceIdCount(): number {
     return this.recentEvidenceEventIds.length;
   }
-
   public getDeduplicationHistoryCount(): number {
     return this.seenEventIds.size;
   }
@@ -123,21 +117,13 @@ export class FlowEngine {
 
     if (this.seenEventIds.has(event.eventId)) {
       this.healthTracker.recordDuplicate(event.eventId);
-      if (options?.deferSnapshot) {
-        return null;
-      }
-      return this.snapshot({
-        asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
-      });
+      return options?.deferSnapshot
+        ? null
+        : this.snapshot({
+            asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
+          });
     }
-    this.seenEventIds.add(event.eventId);
-    this.seenEventIdsQueue.push(event.eventId);
-    if (this.seenEventIdsQueue.length > this.maxDeduplicationHistory) {
-      const oldest = this.seenEventIdsQueue.shift();
-      if (oldest !== undefined) {
-        this.seenEventIds.delete(oldest);
-      }
-    }
+    this.recordSeenEventId(event.eventId);
 
     const mode: FlowEngineMode = options?.mode ?? this.defaultMode;
     const eff = resolveEffectiveTime(event);
@@ -148,12 +134,11 @@ export class FlowEngine {
         eff.featureTimestampMs < this.lastFeatureTimestampMs
       ) {
         this.healthTracker.recordLateIgnored(event.eventId);
-        if (options?.deferSnapshot) {
-          return null;
-        }
-        return this.snapshot({
-          asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
-        });
+        return options?.deferSnapshot
+          ? null
+          : this.snapshot({
+              asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
+            });
       }
     }
 
@@ -209,19 +194,43 @@ export class FlowEngine {
       this.healthTracker.recordEventReceipt(event.receiptTimestampMs);
     }
 
-    if (options?.deferSnapshot) {
-      return null;
-    }
-
-    return this.snapshot({
-      asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
-    });
+    return options?.deferSnapshot
+      ? null
+      : this.snapshot({
+          asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
+        });
   }
 
   public ingestHealthEvent(
     healthEvent: MarketHealthEventV1,
-  ): FeatureHealthSnapshotV1 {
+    options?: { readonly replayCutoffMs?: number | null },
+  ): FeatureHealthSnapshotV1 | null {
     MarketHealthEventV1Schema.parse(healthEvent);
+
+    if (!isReplayEligible(healthEvent.detectedAtMs, options?.replayCutoffMs)) {
+      this.healthTracker.recordCutoffExcluded();
+      return null;
+    }
+
+    if (this.seenEventIds.has(healthEvent.healthEventId)) {
+      this.healthTracker.recordDuplicate(
+        healthEvent.healthEventId,
+        healthEvent.detectedAtMs,
+      );
+      return this.computeHealthSnapshot();
+    }
+    this.recordSeenEventId(healthEvent.healthEventId);
+
+    this.pushEvidenceEventId(healthEvent.healthEventId);
+    this.lastAsOfReceiptTimestampMs = Math.max(
+      this.lastAsOfReceiptTimestampMs,
+      healthEvent.detectedAtMs,
+    );
+    this.lastFeatureTimestampMs = Math.max(
+      this.lastFeatureTimestampMs,
+      healthEvent.detectedAtMs,
+    );
+
     this.healthTracker.recordHealthEvent(healthEvent);
     if (healthEvent.type === "gap") {
       this.orderBookEngine.markSequenceGap();
@@ -233,9 +242,14 @@ export class FlowEngine {
         );
       }
     }
-    const asOfMs = this.lastAsOfReceiptTimestampMs || healthEvent.detectedAtMs;
+
+    return this.computeHealthSnapshot();
+  }
+
+  private computeHealthSnapshot(): FeatureHealthSnapshotV1 {
+    const asOfMs = this.lastAsOfReceiptTimestampMs;
     const cvdSnap = this.cvdEngine.snapshot(
-      this.lastFeatureTimestampMs || healthEvent.detectedAtMs,
+      this.lastFeatureTimestampMs || asOfMs,
     );
     const bookSnap = this.orderBookEngine.snapshot(asOfMs, {
       hasUnresolvedGap: this.healthTracker.hasUnresolvedGap,
@@ -256,24 +270,22 @@ export class FlowEngine {
     },
   ): FlowFeatureSnapshotV1 | null {
     if (record.schemaVersion === "market-health-event-v1") {
-      this.ingestHealthEvent(record);
-      if (options?.deferSnapshot) {
-        return null;
-      }
-      return this.snapshot({
-        asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
-      });
+      const healthSnap = this.ingestHealthEvent(record, options);
+      return healthSnap === null || options?.deferSnapshot
+        ? null
+        : this.snapshot({
+            asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
+          });
     }
     return this.ingest(record, options);
-  }
-
-  public getRetainedTradesCount(): number {
-    return this.cvdEngine.getAllRetainedTrades().length;
   }
 
   public snapshot(options?: {
     readonly asOfReceiptTimestampMs?: number;
   }): FlowFeatureSnapshotV1 {
+    if (this.cvdEngine.hasTruncatedTrades) {
+      this.healthTracker.recordRetentionTruncation();
+    }
     const asOfReceiptTimestampMs =
       options?.asOfReceiptTimestampMs ?? this.lastAsOfReceiptTimestampMs;
     const asOfFeatureTimestampMs = this.lastFeatureTimestampMs;
@@ -303,6 +315,11 @@ export class FlowEngine {
       {
         isStaleOrGapped:
           healthSnapshot.isStale || healthSnapshot.hasUnresolvedGap,
+        isWindowTruncated: (windowDurationMs) =>
+          this.cvdEngine.isWindowTruncated(
+            windowDurationMs,
+            asOfFeatureTimestampMs,
+          ),
       },
     );
 
@@ -321,6 +338,10 @@ export class FlowEngine {
       recentReplenishments: liquiditySnapshot.recentReplenishments,
       hasUnresolvedGap: healthSnapshot.hasUnresolvedGap,
       isStale: healthSnapshot.isStale,
+      isBaselineTruncated: this.cvdEngine.isWindowTruncated(
+        this._config.absorptionBaselineWindowMs,
+        asOfFeatureTimestampMs,
+      ),
     });
 
     const snapshotRaw: FlowFeatureSnapshotV1 = {
@@ -339,9 +360,7 @@ export class FlowEngine {
       health: healthSnapshot,
       evidenceEventIds: Object.freeze([...this.recentEvidenceEventIds]),
     };
-
-    const parsed = FlowFeatureSnapshotV1Schema.parse(snapshotRaw);
-    return Object.freeze(parsed);
+    return Object.freeze(FlowFeatureSnapshotV1Schema.parse(snapshotRaw));
   }
 
   public resetAnchor(
@@ -362,7 +381,7 @@ export class FlowEngine {
     const mode: FlowEngineMode = options?.mode ?? "replay";
     for (const event of events) {
       if (event.schemaVersion === "market-health-event-v1") {
-        this.ingestHealthEvent(event);
+        this.ingestHealthEvent(event, options);
       } else {
         this.ingest(event, { ...options, mode, deferSnapshot: true });
       }
@@ -370,6 +389,18 @@ export class FlowEngine {
     return this.snapshot({
       asOfReceiptTimestampMs: this.lastAsOfReceiptTimestampMs,
     });
+  }
+
+  private recordSeenEventId(id: string): void {
+    this.seenEventIds.add(id);
+    this.seenEventIdsQueue.push(id);
+    if (this.seenEventIdsQueue.length > this.maxDeduplicationHistory) {
+      const oldest = this.seenEventIdsQueue.shift();
+      if (oldest !== undefined) {
+        this.seenEventIds.delete(oldest);
+        this.healthTracker.recordDeduplicationEviction();
+      }
+    }
   }
 
   private pushEvidenceEventId(id: string): void {

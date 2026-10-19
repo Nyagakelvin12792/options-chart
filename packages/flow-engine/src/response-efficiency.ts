@@ -21,6 +21,8 @@ export const RESPONSE_EFFICIENCY_POLICY_VERSION =
 export interface ResponseEfficiencyOptionsV1 {
   readonly isStaleOrGapped?: boolean;
   readonly forceDegraded?: boolean;
+  readonly isWindowTruncated?:
+    ((windowDurationMs: number) => boolean) | undefined;
 }
 
 function findFirstIndexAtOrAfter(
@@ -181,6 +183,13 @@ export function computeResponseEfficiencyWindow(
     excludedTradeCount,
     directionalCoverageRatio,
   };
+
+  if (options?.isWindowTruncated?.(windowDurationMs) === true) {
+    return createUnavailableWindow({
+      ...baseMetrics,
+      unavailableReason: "truncated-window",
+    });
+  }
 
   if (options?.isStaleOrGapped === true) {
     return createUnavailableWindow({

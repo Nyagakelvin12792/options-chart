@@ -515,6 +515,7 @@ export const ResponseUnavailableReasonSchema = z.enum([
   "zero-or-small-denominator",
   "low-directional-coverage",
   "stale-or-gapped",
+  "truncated-window",
 ]);
 export type ResponseUnavailableReason = z.infer<
   typeof ResponseUnavailableReasonSchema

@@ -72,6 +72,7 @@ export class CvdEngine {
   private lastTradePrice: number | null = null;
   private lastTradeTimestampMs: number | null = null;
   private isMonotonic = true;
+  public hasTruncatedTrades = false;
 
   public constructor(
     config: FlowEngineConfigV1 = DEFAULT_FLOW_ENGINE_CONFIG_V1,
@@ -160,8 +161,8 @@ export class CvdEngine {
         if (c === undefined || c.featureTimestampMs >= minTs) break;
         this.retentionHeadIndex += 1;
       }
-      this.updateHeadAndCompactIfNeeded();
     }
+    this.updateHeadAndCompactIfNeeded();
   }
 
   public ingestTradeEvent(event: MarketEventV1): TradeNormalizationResult {
@@ -293,7 +294,40 @@ export class CvdEngine {
     tr.lastEvictedAsOfMs = asOfMs;
   }
 
+  public getOldestRetainedTradeTimestampMs(): number | null {
+    const oldest = this.trades[this.headIndex];
+    return oldest?.featureTimestampMs ?? null;
+  }
+
+  public isWindowTruncated(windowDurationMs: number, asOfMs: number): boolean {
+    if (!this.hasTruncatedTrades) return false;
+    const oldestTs = this.getOldestRetainedTradeTimestampMs();
+    if (oldestTs === null) return false;
+    return oldestTs > asOfMs - windowDurationMs;
+  }
+
   private updateHeadAndCompactIfNeeded(): void {
+    const minRequiredHead =
+      this.trades.length > this.config.maxRetainedTrades
+        ? this.trades.length - this.config.maxRetainedTrades
+        : 0;
+    if (minRequiredHead > 0) {
+      this.hasTruncatedTrades = true;
+      if (this.retentionHeadIndex < minRequiredHead) {
+        this.retentionHeadIndex = minRequiredHead;
+      }
+      const prune = (tr: RollingWindowTracker): void => {
+        while (
+          tr.headIndex < minRequiredHead &&
+          tr.headIndex < this.trades.length
+        ) {
+          const evicted = this.trades[tr.headIndex++];
+          if (evicted !== undefined) removeTradeFromSums(tr, evicted);
+        }
+      };
+      this.durationTrackers.forEach(prune);
+      this.eventCountTrackers.forEach(prune);
+    }
     let minIdx = this.retentionHeadIndex;
     for (const tr of this.durationTrackers) {
       if (tr.headIndex < minIdx) minIdx = tr.headIndex;
@@ -317,6 +351,11 @@ export class CvdEngine {
     asOfMs: number,
     opts?: CvdSnapshotOptions,
   ): RollingCvdWindowSnapshotV1 {
+    const truncated = this.isWindowTruncated(tr.windowDurationMs, asOfMs);
+    const effectiveOpts: CvdSnapshotOptions = truncated
+      ? { ...opts, forceDegraded: true }
+      : (opts ?? {});
+
     if (
       this.isMonotonic &&
       asOfMs >= tr.lastEvictedAsOfMs &&
@@ -333,7 +372,7 @@ export class CvdEngine {
         tr,
         this.activeAnchor.malformedTradeCount,
         this.config.minTradeSideCoverageRatio,
-        opts,
+        effectiveOpts,
       );
     }
     const adHoc = createZeroTradeSums();
@@ -348,7 +387,7 @@ export class CvdEngine {
       adHoc,
       this.activeAnchor.malformedTradeCount,
       this.config.minTradeSideCoverageRatio,
-      opts,
+      effectiveOpts,
     );
   }
 }

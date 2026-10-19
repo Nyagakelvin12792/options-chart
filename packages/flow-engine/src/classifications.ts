@@ -42,6 +42,7 @@ export interface ClassificationEvaluationInputV1 {
   readonly recentReplenishments: readonly ReplenishmentEventV1[];
   readonly hasUnresolvedGap: boolean;
   readonly isStale: boolean;
+  readonly isBaselineTruncated?: boolean;
 }
 
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
@@ -286,7 +287,9 @@ export class ClassificationsEngine {
             ? "insufficient-trade-side-coverage"
             : inp.bookCoverageRatio < cfg.minBookCoverageRatio
               ? "insufficient-book-coverage"
-              : null;
+              : inp.isBaselineTruncated === true
+                ? "truncated-retention-window"
+                : null;
 
       if (gateReason !== null) {
         const dup = this.records.some(

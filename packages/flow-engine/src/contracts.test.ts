@@ -34,6 +34,7 @@ import {
   FLOW_TIMEFRAME_DURATION_MS,
   FlowFeatureSnapshotV1Schema,
   RelevantLevelV1Schema,
+  ResponseUnavailableReasonSchema,
   type FlowFeatureSnapshotV1,
 } from "./contracts";
 
@@ -307,15 +308,15 @@ describe("flow-engine configuration and contracts", () => {
     expect(() =>
       createFlowEngineConfig({ minBookCoverageRatio: 1.2 }),
     ).toThrow();
+    expect(DEFAULT_FLOW_ENGINE_CONFIG_V1.maxDeduplicationHistory).toBe(10_000);
+    expect(DEFAULT_FLOW_ENGINE_CONFIG_V1.maxRetainedTrades).toBe(20_000);
     expect(() =>
-      createFlowEngineConfig({ rollingDurationWindowsMs: [] }),
+      createFlowEngineConfig({ maxDeduplicationHistory: -1 }),
     ).toThrow();
-    expect(() =>
-      createFlowEngineConfig({
-        absorptionBaselineWindowMs: 30_000,
-        absorptionCandidateWindowMs: 30_000,
-      }),
-    ).toThrow();
+    expect(() => createFlowEngineConfig({ maxRetainedTrades: 0 })).toThrow();
+    expect(ResponseUnavailableReasonSchema.parse("truncated-window")).toBe(
+      "truncated-window",
+    );
   });
 
   it("validates RelevantLevelV1Schema and FlowFeatureSnapshotV1Schema", () => {

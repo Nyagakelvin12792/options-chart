@@ -8,6 +8,11 @@ import { roundDecimal } from "./decimal";
 
 export const FEATURE_HEALTH_POLICY_VERSION = "flow-feature-health-v1" as const;
 
+interface ActiveHealthEventEntry {
+  readonly id: string;
+  readonly detectedAtMs: number;
+}
+
 export class FeatureHealthTracker {
   private readonly config: FlowEngineConfigV1;
   public lastEventReceiptTimestampMs: number | null = null;
@@ -23,7 +28,13 @@ export class FeatureHealthTracker {
   public outOfOrderEventCount = 0;
   public lateIgnoredEventCount = 0;
   public cutoffExcludedEventCount = 0;
-  public activeHealthEventIds: string[] = [];
+  public isDeduplicationExhausted = false;
+  public hasTruncatedRetention = false;
+  private activeHealthEvents: ActiveHealthEventEntry[] = [];
+
+  public get activeHealthEventIds(): readonly string[] {
+    return this.activeHealthEvents.map((e) => e.id);
+  }
 
   public constructor(
     config: FlowEngineConfigV1 = DEFAULT_FLOW_ENGINE_CONFIG_V1,
@@ -59,27 +70,30 @@ export class FeatureHealthTracker {
     if (event.type === "gap") {
       this.gapCount += 1;
       this.hasUnresolvedGap = true;
-      this.pushHealthEventId(event.healthEventId);
+      this.pushHealthEventId(event.healthEventId, event.detectedAtMs);
     } else if (event.type === "stale") {
       this.staleCount += 1;
-      this.pushHealthEventId(event.healthEventId);
+      this.pushHealthEventId(event.healthEventId, event.detectedAtMs);
     } else if (event.type === "reconnect") {
       this.reconnectCount += 1;
-      this.pushHealthEventId(event.healthEventId);
+      this.pushHealthEventId(event.healthEventId, event.detectedAtMs);
     } else if (event.type === "duplicate") {
       this.duplicateCount += 1;
-      this.pushHealthEventId(event.healthEventId);
+      this.pushHealthEventId(event.healthEventId, event.detectedAtMs);
     } else if (event.type === "collector-error") {
       this.hasCollectorError = true;
-      this.pushHealthEventId(event.healthEventId);
+      this.pushHealthEventId(event.healthEventId, event.detectedAtMs);
     }
   }
 
-  public recordSequenceGap(relatedEventId?: string): void {
+  public recordSequenceGap(
+    relatedEventId?: string,
+    detectedAtMs?: number,
+  ): void {
     this.gapCount += 1;
     this.hasUnresolvedGap = true;
     if (relatedEventId !== undefined) {
-      this.pushHealthEventId(relatedEventId);
+      this.pushHealthEventId(relatedEventId, detectedAtMs);
     }
   }
 
@@ -87,10 +101,10 @@ export class FeatureHealthTracker {
     this.hasUnresolvedGap = false;
   }
 
-  public recordDuplicate(relatedEventId?: string): void {
+  public recordDuplicate(relatedEventId?: string, detectedAtMs?: number): void {
     this.duplicateCount += 1;
     if (relatedEventId !== undefined) {
-      this.pushHealthEventId(relatedEventId);
+      this.pushHealthEventId(relatedEventId, detectedAtMs);
     }
   }
 
@@ -102,10 +116,13 @@ export class FeatureHealthTracker {
     this.outOfOrderEventCount += 1;
   }
 
-  public recordLateIgnored(relatedEventId?: string): void {
+  public recordLateIgnored(
+    relatedEventId?: string,
+    detectedAtMs?: number,
+  ): void {
     this.lateIgnoredEventCount += 1;
     if (relatedEventId !== undefined) {
-      this.pushHealthEventId(relatedEventId);
+      this.pushHealthEventId(relatedEventId, detectedAtMs);
     }
   }
 
@@ -113,10 +130,19 @@ export class FeatureHealthTracker {
     this.cutoffExcludedEventCount += 1;
   }
 
-  public pushHealthEventId(id: string): void {
-    this.activeHealthEventIds.push(id);
-    if (this.activeHealthEventIds.length > this.config.maxEvidenceEventIds) {
-      this.activeHealthEventIds = this.activeHealthEventIds.slice(
+  public recordDeduplicationEviction(): void {
+    this.isDeduplicationExhausted = true;
+  }
+
+  public recordRetentionTruncation(): void {
+    this.hasTruncatedRetention = true;
+  }
+
+  public pushHealthEventId(id: string, detectedAtMs?: number): void {
+    const ts = detectedAtMs ?? this.lastEventReceiptTimestampMs ?? 0;
+    this.activeHealthEvents.push({ id, detectedAtMs: ts });
+    if (this.activeHealthEvents.length > this.config.maxEvidenceEventIds) {
+      this.activeHealthEvents = this.activeHealthEvents.slice(
         -this.config.maxEvidenceEventIds,
       );
     }
@@ -168,6 +194,12 @@ export class FeatureHealthTracker {
     if (this.outOfOrderEventCount > 0) {
       degradationReasons.push("out-of-order-events-detected");
     }
+    if (this.isDeduplicationExhausted) {
+      degradationReasons.push("deduplication-capacity-exhausted");
+    }
+    if (this.hasTruncatedRetention) {
+      degradationReasons.push("truncated-retention-window");
+    }
 
     let score = 1.0;
     if (this.hasUnresolvedGap) {
@@ -186,6 +218,12 @@ export class FeatureHealthTracker {
       score -= (1 - bookCoverageRatio) * 0.2;
     }
     if (this.malformedEventCount > 0) {
+      score -= 0.1;
+    }
+    if (this.isDeduplicationExhausted) {
+      score -= 0.15;
+    }
+    if (this.hasTruncatedRetention) {
       score -= 0.1;
     }
 
@@ -211,6 +249,10 @@ export class FeatureHealthTracker {
       availability = "available";
     }
 
+    const coherentHealthIds = this.activeHealthEvents
+      .filter((e) => e.detectedAtMs <= asOfReceiptTimestampMs)
+      .map((e) => e.id);
+
     return Object.freeze({
       availability,
       isStale,
@@ -232,7 +274,7 @@ export class FeatureHealthTracker {
       lateIgnoredEventCount: this.lateIgnoredEventCount,
       confidenceScore,
       degradationReasons: Object.freeze(degradationReasons),
-      activeHealthEventIds: Object.freeze([...this.activeHealthEventIds]),
+      activeHealthEventIds: Object.freeze(coherentHealthIds),
     });
   }
 }

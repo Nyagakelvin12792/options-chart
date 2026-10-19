@@ -56,6 +56,23 @@ export interface FlowEngineConfigV1 {
   readonly minTradeSideCoverageRatio: number;
   readonly minBookCoverageRatio: number;
   readonly maxEvidenceEventIds: number;
+  /**
+   * Guaranteed in-memory deduplication horizon (FIFO ring buffer capacity).
+   * Ingestion of duplicate event IDs within this horizon is transparently
+   * deduplicated without altering state. Exact deduplication across unbounded
+   * historical timelines is delegated to the M11.2 SQLite store. When internal
+   * FIFO capacity is evicted, the engine records deduplication capacity exhaustion
+   * and degrades health rather than silently assuming infinite memory.
+   */
+  readonly maxDeduplicationHistory: number;
+  /**
+   * Absolute bound on raw retained normalized trade history. Cumulative anchor
+   * counters are strictly preserved indefinitely across eviction. When eviction
+   * truncates a trade required for response-efficiency or classification duration
+   * windows, affected windows are marked unavailable or degraded rather than
+   * silently computing over truncated data.
+   */
+  readonly maxRetainedTrades: number;
 }
 
 export const FlowEngineConfigV1Schema = z
@@ -102,6 +119,8 @@ export const FlowEngineConfigV1Schema = z
     minTradeSideCoverageRatio: positiveRatio,
     minBookCoverageRatio: positiveRatio,
     maxEvidenceEventIds: posInt,
+    maxDeduplicationHistory: posInt,
+    maxRetainedTrades: posInt,
   })
   .strict()
   .superRefine((config, ctx) => {
@@ -181,6 +200,8 @@ export const DEFAULT_FLOW_ENGINE_CONFIG_V1: FlowEngineConfigV1 =
     minTradeSideCoverageRatio: 0.8,
     minBookCoverageRatio: 0.5,
     maxEvidenceEventIds: 128,
+    maxDeduplicationHistory: 10_000,
+    maxRetainedTrades: 20_000,
   });
 
 export function createFlowEngineConfig(

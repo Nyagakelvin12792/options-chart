@@ -1,11 +1,18 @@
 import os from "node:os";
 import { describe, expect, it } from "vitest";
-import type { MarketEventV1 } from "@options-chart/market-data";
+import type {
+  MarketEventV1,
+  MarketHealthEventV1,
+} from "@options-chart/market-data";
+import { MarketHealthEventV1Schema } from "@options-chart/market-data";
+import { computeSnapshotAuditDigest } from "./audit";
 import { FlowFeatureSnapshotV1Schema } from "./contracts";
 import { FlowEngine } from "./engine";
 
-function generateSyntheticEvents(count: number): readonly MarketEventV1[] {
-  const events: MarketEventV1[] = new Array<MarketEventV1>(count);
+function generateSyntheticEvents(
+  count: number,
+): readonly (MarketEventV1 | MarketHealthEventV1)[] {
+  const events: (MarketEventV1 | MarketHealthEventV1)[] = new Array(count);
   let price = 65_000;
   const startTs = 1_700_000_000_000;
   let l2Seq = 1000;
@@ -52,8 +59,37 @@ function generateSyntheticEvents(count: number): readonly MarketEventV1[] {
   };
 
   for (let i = 1; i < count; i += 1) {
-    const ts = startTs + i * 5;
-    const isL2 = i % 10 < 3; // 30% L2 deltas, 70% trades
+    if (i === 10_000) {
+      // Health reconnect event
+      const ts = startTs + i * 5;
+      events[i] = MarketHealthEventV1Schema.parse({
+        schemaVersion: "market-health-event-v1",
+        healthEventId: "market-health-event-v1:0000000000002710",
+        venue: "binance",
+        symbol: "BTC-USDT",
+        channel: "trade",
+        detectedAtMs: ts,
+        connectionId: "conn-bench-0",
+        severity: "info",
+        type: "reconnect",
+        details: {
+          reason: "routine-resync",
+          attempt: 1,
+          backoffMs: 50,
+        },
+      });
+      continue;
+    }
+    if (i === 10_001) {
+      // Duplicate of health event at 10,000
+      events[i] = events[10_000]!;
+      continue;
+    }
+
+    // Dense same-timestamp traffic between 20,000 and 24,999 (5,000 trades at exact same ms)
+    const isDense = i >= 20_000 && i < 25_000;
+    const ts = isDense ? startTs + 20_000 * 5 : startTs + i * 5;
+    const isL2 = !isDense && i % 10 < 3; // 30% L2 deltas when not dense
     const hexId = i.toString(16).padStart(16, "0");
     const eventId = `market-event-v1:${hexId}`;
 
@@ -140,7 +176,10 @@ describe("FlowEngine Performance Benchmark", () => {
     const engine = new FlowEngine();
 
     for (let i = 0; i < events.length; i += 1) {
-      engine.ingest(events[i]!, { deferSnapshot: true, mode: "replay" });
+      engine.ingestStorageRecord(events[i]!, {
+        deferSnapshot: true,
+        mode: "replay",
+      });
       if (i % 10_000 === 0 || i === events.length - 1) {
         const currentHeap = process.memoryUsage().heapUsed;
         if (currentHeap > peakHeapUsed) {
@@ -175,7 +214,7 @@ describe("FlowEngine Performance Benchmark", () => {
     );
     console.log(`Throughput: ${throughput.toLocaleString()} events/sec`);
     console.log(
-      `Peak Retained Internal State: ${peakRetainedTrades} trades, ${engine.getRetainedEvidenceIdCount()} evidence IDs, ${engine.getDeduplicationHistoryCount()} dedup IDs, book bids=${finalSnapshot.book.retainedBidLevels}, book asks=${finalSnapshot.book.retainedAskLevels}`,
+      `Peak Retained Internal State: ${peakRetainedTrades} trades (max configured: ${engine.config.maxRetainedTrades}), ${engine.getRetainedEvidenceIdCount()} evidence IDs, ${engine.getDeduplicationHistoryCount()} dedup IDs, book bids=${finalSnapshot.book.retainedBidLevels}, book asks=${finalSnapshot.book.retainedAskLevels}`,
     );
     console.log(
       `Heap Evidence: initial=${initialHeapMb} MB, peak=${peakHeapMb} MB, final=${finalHeapMb} MB (net heap delta: ${netHeapDeltaMb >= 0 ? "+" : ""}${netHeapDeltaMb} MB)`,
@@ -187,18 +226,99 @@ describe("FlowEngine Performance Benchmark", () => {
     const parseResult = FlowFeatureSnapshotV1Schema.safeParse(finalSnapshot);
     expect(parseResult.success).toBe(true);
 
-    // Verify that engine internal retention remained bounded
+    // Verify bounded internal state
+    expect(peakRetainedTrades).toBeLessThanOrEqual(
+      engine.config.maxRetainedTrades,
+    );
+    expect(engine.getRetainedTradeCount()).toBeLessThanOrEqual(
+      engine.config.maxRetainedTrades,
+    );
     expect(finalSnapshot.evidenceEventIds.length).toBeLessThanOrEqual(
       engine.config.maxEvidenceEventIds,
     );
     expect(engine.getRetainedEvidenceIdCount()).toBeLessThanOrEqual(
       engine.config.maxEvidenceEventIds,
     );
-    expect(engine.getDeduplicationHistoryCount()).toBeLessThanOrEqual(10_000);
-    expect(finalSnapshot.cvd.activeAnchor.includedTradeCount).toBe(70_000);
+    expect(engine.getDeduplicationHistoryCount()).toBeLessThanOrEqual(
+      engine.config.maxDeduplicationHistory,
+    );
+
+    // Health and deduplication verification
+    expect(finalSnapshot.health.reconnectCount).toBe(1);
+    expect(finalSnapshot.health.duplicateCount).toBe(1);
     expect(finalSnapshot.book.availability).toBe("available");
+
+    // Cumulative counters preserved despite trade truncation
+    expect(finalSnapshot.cvd.activeAnchor.includedTradeCount).toBeGreaterThan(
+      60_000,
+    );
+    expect(finalSnapshot.health.degradationReasons).toContain(
+      "truncated-retention-window",
+    );
 
     // Verify peak heap during benchmark remained reasonable (< 500 MB)
     expect(peakHeapMb).toBeLessThan(500);
   }, 30_000);
+
+  it("proves mixed-record cutoff replay with post-cutoff health event matches eligible live-prefix snapshot and digest", () => {
+    const count = 5_000;
+    const records = generateSyntheticEvents(count) as (
+      MarketEventV1 | MarketHealthEventV1
+    )[];
+    const cutoffMs = 1_700_000_000_000 + 3_000 * 5;
+
+    // Add a post-cutoff health event at the end
+    const postCutoffHealth = MarketHealthEventV1Schema.parse({
+      schemaVersion: "market-health-event-v1",
+      healthEventId: "market-health-event-v1:0000000000009999",
+      venue: "binance",
+      symbol: "BTC-USDT",
+      channel: "trade",
+      detectedAtMs: cutoffMs + 10_000,
+      connectionId: "conn-bench-0",
+      severity: "warning",
+      type: "reconnect",
+      details: {
+        reason: "post-cutoff-resync",
+        attempt: 2,
+        backoffMs: 200,
+      },
+    });
+    records.push(postCutoffHealth);
+
+    const eligibleRecords = records.filter((r) => {
+      const ts =
+        r.schemaVersion === "market-health-event-v1"
+          ? r.detectedAtMs
+          : r.receiptTimestampMs;
+      return ts <= cutoffMs;
+    });
+
+    const liveEngine = new FlowEngine();
+    for (const rec of eligibleRecords) {
+      liveEngine.ingestStorageRecord(rec, {
+        deferSnapshot: true,
+        mode: "incremental",
+      });
+    }
+    const snapLive = liveEngine.snapshot();
+    const digestLive = computeSnapshotAuditDigest(snapLive);
+
+    const replayEngine = new FlowEngine();
+    for (const rec of records) {
+      replayEngine.ingestStorageRecord(rec, {
+        replayCutoffMs: cutoffMs,
+        deferSnapshot: true,
+        mode: "replay",
+      });
+    }
+    const snapReplay = replayEngine.snapshot();
+    const digestReplay = computeSnapshotAuditDigest(snapReplay);
+
+    expect(snapReplay).toEqual(snapLive);
+    expect(digestReplay).toBe(digestLive);
+    expect(replayEngine.cutoffExcludedEventCount).toBe(
+      records.length - eligibleRecords.length,
+    );
+  });
 });
