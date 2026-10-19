@@ -1,0 +1,104 @@
+.panel {
+  margin: 16px 0;
+  padding: 20px;
+  border: 1px solid #344154;
+  border-radius: 12px;
+  background: #121b28;
+  color: #e1e7ef;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.eyebrow {
+  margin: 0;
+  color: #a5b5cc;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+.ready,
+.blocked {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.ready {
+  color: #a6eccb;
+  background: #173b30;
+}
+.blocked {
+  color: #f1d49b;
+  background: #3a3020;
+}
+.upload {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 16px;
+  font-weight: 600;
+}
+.upload input {
+  max-width: 100%;
+  font-size: 12px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+.grid dt {
+  color: #a5b5cc;
+  font-size: 12px;
+}
+.grid dd {
+  margin: 4px 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.table {
+  overflow: auto;
+}
+.table table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.table td,
+.table th {
+  padding: 8px;
+  border-bottom: 1px solid #344154;
+  white-space: nowrap;
+}
+.panel button {
+  margin-top: 12px;
+  padding: 6px 12px;
+  border: 1px solid #64748b;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.panel summary {
+  cursor: pointer;
+}
+.panel :focus-visible {
+  outline: 2px solid #83baff;
+  outline-offset: 4px;
+}
+@media (max-width: 650px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .panel {
+    padding: 14px;
+  }
+}

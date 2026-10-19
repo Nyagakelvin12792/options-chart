@@ -83,6 +83,7 @@ import {
   type PositionedProfileBar,
   type ProfileMetric,
 } from "@/components/gamma-overlay";
+import { MacroContextPanel } from "@/components/macro-context-panel";
 import { RiskTerminal } from "@/components/risk-terminal";
 import { IndicatorControls } from "@/components/indicator-controls";
 import {
@@ -2976,6 +2977,8 @@ export function DashboardClient({
           onSettingsChange={handlePositionSettingsChange}
         />
       </div>
+
+      <MacroContextPanel />
 
       <footer className="status-bar">
         <span>

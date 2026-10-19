@@ -4333,3 +4333,7 @@ A task is done only when all applicable items are true.
 A milestone is done only when its exit criteria pass.
 
 A visual feature is never allowed to declare a data milestone complete.
+
+## M10.10 BTC macros context import
+
+Add an isolated file-import consumer for the BTC-macros draft contract. Validate external JSON with Zod. Revalidate freshness at use time, preserve source dates and vetoes, and keep all options formulas, chart levels, and position sizing independent. Track evidence in docs/progress/M10/M10.10.md. Release remains dependent on the producer's M5 acceptance and integration browser evidence.
