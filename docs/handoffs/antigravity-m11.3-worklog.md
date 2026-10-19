@@ -1,6 +1,6 @@
 # Antigravity M11.3 Checkpoint Worklog
 
-Status: IN PROGRESS - CHECKPOINT 1 COMPLETE
+Status: IN PROGRESS - CHECKPOINT 2 COMPLETE
 Branch: `handoff/antigravity-m11`
 Accepted base: `d536eba623114325661480f07dc458c21f619af3`
 Last updated: 2026-10-19 by Antigravity
@@ -29,9 +29,9 @@ Status: COMPLETE
 | ------------------------------------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Orchestrator                                     | Workspace integration, barrel exports, worklog                   | `packages/flow-engine/src/index.ts`, `package.json`, `tsconfig.json`, `docs/handoffs/antigravity-m11.3-worklog.md`                                                                                                                                                                                 |
 | Agent A (`ea57eec4-a388-4633-90a2-54208a7c7ed9`) | Contracts, configuration, decimal policy, effective-time policy  | `packages/flow-engine/package.json`, `packages/flow-engine/tsconfig.json`, `packages/flow-engine/src/contracts.ts`, `packages/flow-engine/src/configuration.ts`, `packages/flow-engine/src/decimal.ts`, `packages/flow-engine/src/effective-time.ts`, `packages/flow-engine/src/contracts.test.ts` |
-| Agent B                                          | Trade flow, CVD, and candle buckets                              | `packages/flow-engine/src/trade-flow.ts`, `packages/flow-engine/src/cvd.ts`, `packages/flow-engine/src/candle-buckets.ts`, `packages/flow-engine/src/cvd.test.ts`, `packages/flow-engine/fixtures/cvd-golden.json`                                                                                 |
-| Agent C                                          | Order book and liquidity behavior                                | `packages/flow-engine/src/order-book.ts`, `packages/flow-engine/src/liquidity.ts`, `packages/flow-engine/src/order-book.test.ts`, `packages/flow-engine/fixtures/book-golden.json`                                                                                                                 |
-| Agent D                                          | Response efficiency, level context, and classifications          | `packages/flow-engine/src/response-efficiency.ts`, `packages/flow-engine/src/level-context.ts`, `packages/flow-engine/src/classifications.ts`, `packages/flow-engine/src/classifications.test.ts`, `packages/flow-engine/fixtures/classifications-golden.json`                                     |
+| Agent B (`e197563c-1c2f-4f27-a2e9-c16ea0eee36f`) | Trade flow, CVD, and candle buckets                              | `packages/flow-engine/src/trade-flow.ts`, `packages/flow-engine/src/cvd.ts`, `packages/flow-engine/src/candle-buckets.ts`, `packages/flow-engine/src/cvd.test.ts`, `packages/flow-engine/fixtures/cvd-golden.json`                                                                                 |
+| Agent C (`10b57908-a900-43ad-9b74-34fbd1339347`) | Order book and liquidity behavior                                | `packages/flow-engine/src/order-book.ts`, `packages/flow-engine/src/liquidity.ts`, `packages/flow-engine/src/order-book.test.ts`, `packages/flow-engine/fixtures/book-golden.json`                                                                                                                 |
+| Agent D (`cd93c070-3662-4b45-a6bc-39516d59334e`) | Response efficiency, level context, and classifications          | `packages/flow-engine/src/response-efficiency.ts`, `packages/flow-engine/src/level-context.ts`, `packages/flow-engine/src/classifications.ts`, `packages/flow-engine/src/classifications.test.ts`, `packages/flow-engine/fixtures/classifications-golden.json`                                     |
 | Agent E                                          | Feature health, integrated engine, replay, audit, and benchmarks | `packages/flow-engine/src/feature-health.ts`, `packages/flow-engine/src/engine.ts`, `packages/flow-engine/src/audit.ts`, `packages/flow-engine/src/engine.test.ts`, `packages/flow-engine/src/benchmark.test.ts`, `packages/flow-engine/fixtures/replay-session.json`                              |
 | Agent F                                          | Read-only adversarial reviewer                                   | Read-only (`none`)                                                                                                                                                                                                                                                                                 |
 
@@ -52,6 +52,7 @@ Status: COMPLETE
 ## Checkpoint 1 - Contracts And Scaffold
 
 Status: COMPLETE
+Commit: `998a59cb4b493554dc0109bb2f95828a8326f8e2`
 
 - **Branch and HEAD (prior to Checkpoint 1 commit):** `handoff/antigravity-m11` at `57f096cfbb72a03427dd74ba1a851455f8e96995`
 - **Completed workstreams:**
@@ -81,3 +82,30 @@ Status: COMPLETE
 - **Reviewer findings:** None at Checkpoint 1.
 - **Remaining limitations:** Feature calculation modules (CVD, order book, liquidity, response efficiency, classifications, health, engine, audit) are scheduled for Checkpoints 2–5.
 - **Next exact command and file:** Implement Agent B modules (`packages/flow-engine/src/trade-flow.ts`, `cvd.ts`, `candle-buckets.ts`, `cvd.test.ts`, `fixtures/cvd-golden.json`) and run `npm exec vitest run packages/flow-engine/src/cvd.test.ts`.
+
+## Checkpoint 2 - CVD And Buckets
+
+Status: COMPLETE
+
+- **Branch and HEAD (prior to Checkpoint 2 commit):** `handoff/antigravity-m11` at `998a59cb4b493554dc0109bb2f95828a8326f8e2`
+- **Completed workstreams:**
+  - Agent B (`e197563c-1c2f-4f27-a2e9-c16ea0eee36f`): Implemented trade-flow normalization (`trade-flow.ts`), exact Binance UTC candle-boundary bucketing including Monday-aligned `1w` (`candle-buckets.ts`), anchored and rolling duration/event-count CVD engine with $O(1)$ amortized head-indexed queues (`cvd.ts`), hand-calculated golden fixture (`fixtures/cvd-golden.json`), and unit tests (`cvd.test.ts`).
+  - Orchestrator: Re-exported `./trade-flow`, `./candle-buckets`, and `./cvd` in `packages/flow-engine/src/index.ts`.
+- **Files changed at Checkpoint 2:**
+  - Agent B:
+    - `packages/flow-engine/src/trade-flow.ts`
+    - `packages/flow-engine/src/candle-buckets.ts`
+    - `packages/flow-engine/src/cvd.ts`
+    - `packages/flow-engine/src/cvd.test.ts`
+    - `packages/flow-engine/fixtures/cvd-golden.json`
+  - Orchestrator:
+    - `packages/flow-engine/src/index.ts`
+    - `docs/handoffs/antigravity-m11.3-worklog.md`
+- **Commands and exact results:**
+  - `npx tsc -b packages/flow-engine` -> PASS (0 errors)
+  - `npm exec vitest run packages/flow-engine/src/cvd.test.ts` -> PASS (`1 passed (1)`, `7 passed (7)`, duration `251ms`)
+  - `npm exec eslint -- packages/flow-engine/src/trade-flow.ts packages/flow-engine/src/candle-buckets.ts packages/flow-engine/src/cvd.ts packages/flow-engine/src/cvd.test.ts` -> PASS (0 errors, 0 warnings)
+- **Failures and classification:** None.
+- **Reviewer findings:** None at Checkpoint 2.
+- **Remaining limitations:** Order-book, liquidity, response-efficiency, classifications, health, and integrated engine modules are recorded in Checkpoints 3–5.
+- **Next exact command and file:** Verify and commit Agent C order-book and liquidity modules (`packages/flow-engine/src/order-book.ts`, `liquidity.ts`, `order-book.test.ts`, `fixtures/book-golden.json`) with `npm exec vitest run packages/flow-engine/src/order-book.test.ts`.
