@@ -1,10 +1,10 @@
 # Antigravity M11.3 Checkpoint Worklog
 
-Status: REVIEW REQUIRED (REVISION 3 COMPLETE)
+Status: REVIEW REQUIRED (CODEX REVISION 4 VERIFIED)
 Branch: `handoff/antigravity-m11`
 Accepted base: `d536eba623114325661480f07dc458c21f619af3`
 Starting commit: `57f096cfbb72a03427dd74ba1a851455f8e96995`
-Last updated: 2026-10-19 by Antigravity
+Last updated: 2026-10-20 by Codex
 
 ## Branch Commit History Table
 
@@ -19,6 +19,7 @@ Last updated: 2026-10-19 by Antigravity
 | `117bd0e` | Checkpoint 7 (Rev 2)  | `fix(flow-engine): address review findings and strengthen replay determinism`           |
 | `1faec1e` | Checkpoint 7 (Rev 2)  | `docs(flow-engine): record checkpoint 7 review reconciliation and regression hardening` |
 | `ce99baf` | Checkpoint 8 (Rev 3)  | `fix(flow-engine): enforce health cutoff, bounded retention, and deduplication policy`  |
+| `f39751f` | Checkpoint 9 (Rev 4)  | `fix(flow-engine): resolve independent review findings`                                 |
 
 ## Coordinator Handoff
 
@@ -372,3 +373,59 @@ Commit: `ce99baf`
   - M11.3 deterministic flow engine package is complete, verified, and hardened. Milestone M11.4 integration awaits coordinator authorization.
 - **Next exact command and file:**
   - Present Revision 3 final handoff report for independent Codex review.
+
+## Checkpoint 9 - Codex Independent Review Corrections
+
+Status: COMPLETE - REVIEW REQUIRED
+Commit: `f39751f2d3c673a5460933a9d2fef9378eca00a7`
+
+- **Independent findings corrected:**
+  - Prevented health-record receipt timestamps from advancing the market-feature
+    cursor or causing subsequently received, valid market events to be rejected
+    as late.
+  - Clamped snapshot receipt timestamps to the current engine watermark so a
+    caller cannot receive a pseudo-historical timestamp combined with current
+    gap, book, CVD, and classification state.
+  - Made active health evidence IDs idempotent across repeated market and health
+    records.
+  - Removed the unvalidated constructor override for deduplication capacity;
+    the versioned `FlowEngineConfigV1` is now the sole authority.
+  - Replaced the array `shift()` deduplication queue with a fixed circular
+    buffer, restoring stable high-volume performance.
+  - Passed receipt timestamps into duplicate, late-event, and sequence-gap
+    health evidence so active evidence filtering remains temporally coherent.
+  - Marked event-count CVD windows unavailable when the absolute retention cap
+    prevents the configured event count from being reconstructed.
+- **Regression coverage added or strengthened:**
+  - Dense same-timestamp retention now proves a 200-event CVD window is
+    unavailable when only 100 trades can be retained.
+  - Health deduplication now proves active evidence IDs remain unique.
+  - Historical snapshot requests now prove watermark clamping and coherent gap
+    evidence.
+  - A health record between two trades now proves that health receipt time does
+    not advance the market-feature cursor.
+- **Verification evidence:**
+  - `npm exec vitest run packages/flow-engine` -> PASS (6 files, 49 tests).
+  - `npm test -- --configLoader runner` -> PASS (71 files, 500 tests).
+  - `npm exec vitest run packages/market-data/src/market-events --configLoader runner`
+    -> PASS (1 file, 18 tests).
+  - `python -B -m pytest -p no:cacheprovider ... services/cryptofeed-collector -q`
+    -> PASS (33 tests in 2.37s).
+  - `npm run test:python` -> PASS (59 tests).
+  - `npm run schemas:market-events:check`, `npm run typecheck`,
+    `npm run lint`, `npm run build`, and `git diff --check` -> PASS.
+  - Targeted Prettier check for all four corrected files -> PASS.
+  - Isolated 100,000-event benchmark -> PASS in 3.116 seconds at 32,091
+    events/second; peak retained state was 20,000 trades, 128 evidence IDs,
+    and 10,000 deduplication IDs.
+- **Known baseline waiver:**
+  - Repository-wide Prettier reports 39 pre-existing tracked-file formatting
+    failures outside M11.3 scope. Recursive `.pytest_cache` traversal may also
+    fail with Windows `EPERM`. Corrected M11.3 files pass targeted formatting.
+- **Remaining limitations:**
+  - No push, merge, deployment, M11.4 work, live execution, or private exchange
+    integration was performed.
+  - M11.3 remains a review candidate pending explicit product-owner approval.
+- **Next exact command and file:**
+  - Run `npm run progress:build`, `npm run progress:check`, and
+    `npm run progress:policy`; then create the local documentation checkpoint.
