@@ -5,6 +5,7 @@
     { "path": "packages/shared" },
     { "path": "packages/market-data" },
     { "path": "packages/flow-engine" },
+    { "path": "packages/decision-engine" },
     { "path": "packages/options-engine" },
     { "path": "packages/chart" }
   ]
