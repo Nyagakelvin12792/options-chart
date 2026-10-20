@@ -13,6 +13,16 @@ export function computeContextId(content: ContextContent): string {
   return `context-${contentHash(content)}`;
 }
 
+/** Validates both the context schema and its content-addressed identity. */
+export function parseDecisionContext(raw: unknown): DecisionContextV1 {
+  const context = DecisionContextV1Schema.parse(raw);
+  const { contextId, ...content } = context;
+  if (contextId !== computeContextId(content)) {
+    throw new Error("contextId does not match decision context content");
+  }
+  return deepFreeze(context);
+}
+
 export function buildDecisionContext(state: MarketStateV1): DecisionContextV1 {
   const {
     identity,
@@ -117,10 +127,8 @@ export function buildDecisionContext(state: MarketStateV1): DecisionContextV1 {
   };
 
   const contextId = computeContextId(content);
-  const validated = DecisionContextV1Schema.parse({
+  return parseDecisionContext({
     ...content,
     contextId,
   });
-
-  return deepFreeze(validated);
 }

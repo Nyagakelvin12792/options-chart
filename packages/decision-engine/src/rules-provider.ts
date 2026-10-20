@@ -12,6 +12,28 @@ import {
 export const DETERMINISTIC_RULES_VERSION = "rules-baseline-v1" as const;
 export const RULES_PROMPT_VERSION = "rules-baseline-v1" as const;
 
+type AssessmentContent = Omit<DecisionAssessmentV1, "assessmentId">;
+
+export function computeAssessmentId(content: AssessmentContent): string {
+  assertCanonicalSafe(content);
+  return `assess-${contentHash(content)}`;
+}
+
+/**
+ * Validates an assessment and verifies content identity for the deterministic
+ * provider. Recorded/future provider IDs remain provider-owned.
+ */
+export function parseDecisionAssessment(raw: unknown): DecisionAssessmentV1 {
+  const assessment = DecisionAssessmentV1Schema.parse(raw);
+  if (assessment.provider === "deterministic-rules-v1") {
+    const { assessmentId, ...content } = assessment;
+    if (assessmentId !== computeAssessmentId(content)) {
+      throw new Error("assessmentId does not match assessment content");
+    }
+  }
+  return deepFreeze(assessment);
+}
+
 function makeDistribution(
   primary: DecisionChoice,
   secondary?: DecisionChoice,
@@ -279,7 +301,7 @@ export function evaluateDecisionRules(
 
   const summary = `Baseline evaluation: ${choice.toUpperCase()} based on ${sortedReasonCodes.join(", ")}`;
 
-  const content = {
+  const content: AssessmentContent = {
     schemaVersion: DECISION_ASSESSMENT_SCHEMA_VERSION,
     contextId: context.contextId,
     provider: "deterministic-rules-v1" as const,
@@ -299,12 +321,10 @@ export function evaluateDecisionRules(
   };
 
   assertCanonicalSafe(content);
-  const assessmentId = `assess-${contentHash(content)}`;
+  const assessmentId = computeAssessmentId(content);
 
-  const validated = DecisionAssessmentV1Schema.parse({
+  return parseDecisionAssessment({
     ...content,
     assessmentId,
   });
-
-  return deepFreeze(validated);
 }

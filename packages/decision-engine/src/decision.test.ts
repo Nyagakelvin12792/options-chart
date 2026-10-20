@@ -3,7 +3,9 @@ import { convergeDecision } from "./convergence";
 import {
   DecisionAssessmentV1Schema,
   DecisionContextV1Schema,
+  type DecisionAssessmentV1,
   type DecisionChoice,
+  type DecisionContextV1,
 } from "./decision-contracts";
 import { buildDecisionContext } from "./decision-context-builder";
 import { buildMarketState } from "./market-state-builder";
@@ -20,6 +22,34 @@ import {
   NOW,
   uptrend,
 } from "./test-support/fixtures";
+
+function recordedAssessment(
+  context: DecisionContextV1,
+  choice: DecisionChoice,
+  confidence = 0.95,
+): DecisionAssessmentV1 {
+  const base = evaluateDecisionRules(context);
+  const distribution: Record<DecisionChoice, number> = {
+    "no-trade": 0,
+    "watch-long": 0,
+    "watch-short": 0,
+    "confirm-long": 0,
+    "confirm-short": 0,
+    "insufficient-data": 0,
+  };
+  distribution[choice] = 1;
+  return DecisionAssessmentV1Schema.parse({
+    ...base,
+    assessmentId: `recorded-${context.contextId}-${choice}`,
+    provider: "recorded-v1",
+    providerVersion: "recorded-test-v1",
+    promptVersion: "recorded-test-v1",
+    choice,
+    distribution,
+    confidence,
+    isStale: false,
+  });
+}
 
 describe("M11.5 Deterministic Decision Baseline", () => {
   it("produces identical context identity and assessment for identical state inputs", () => {
@@ -56,6 +86,27 @@ describe("M11.5 Deterministic Decision Baseline", () => {
         choice: "buy-now" as unknown as DecisionChoice,
       }),
     ).toThrow();
+
+    expect(() =>
+      DecisionAssessmentV1Schema.parse({
+        ...validAssessment,
+        completedAtMs: validAssessment.startedAtMs - 1,
+      }),
+    ).toThrow(/completedAtMs/);
+
+    expect(() =>
+      DecisionAssessmentV1Schema.parse({
+        ...validAssessment,
+        latencyMs: 99,
+      }),
+    ).toThrow(/latencyMs/);
+
+    expect(() =>
+      DecisionAssessmentV1Schema.parse({
+        ...validAssessment,
+        choice: "watch-long",
+      }),
+    ).toThrow(/maximum-probability/);
 
     // Probabilities not summing to 1.0
     expect(() =>
@@ -182,7 +233,7 @@ describe("M11.5 Deterministic Decision Baseline", () => {
     expect(assessment.choice).toBe("no-trade");
 
     // Even if an assessment had confirm-long, convergence step 5 strictly vetoes it
-    const spoofedConfirm = { ...assessment, choice: "confirm-long" as const };
+    const spoofedConfirm = recordedAssessment(context, "confirm-long");
     const converged = convergeDecision(context, spoofedConfirm);
     expect(converged.choice).toBe("no-trade");
     expect(converged.ruleStepTriggered).toBe(5);
@@ -303,12 +354,15 @@ describe("M11.5 Deterministic Decision Baseline", () => {
     const context = buildDecisionContext(state);
     const assessment = evaluateDecisionRules(context);
 
-    const record = buildShadowDecisionRecord(state, context, assessment);
+    const converged = convergeDecision(context, assessment);
+    const record = buildShadowDecisionRecord(state, context, converged);
     expect(Object.isFrozen(record)).toBe(true);
     expect(record.schemaVersion).toBe("shadow-decision-record-v1");
     expect(record.stateId).toBe(state.identity.stateId);
     expect(record.contextId).toBe(context.contextId);
     expect(record.assessmentId).toBe(assessment.assessmentId);
+    expect(record.convergedChoice).toBe(converged.choice);
+    expect(record.convergenceRuleStep).toBe(converged.ruleStepTriggered);
 
     const store = new InMemoryDecisionStore();
     store.append(record);
@@ -317,6 +371,8 @@ describe("M11.5 Deterministic Decision Baseline", () => {
     expect(store.getById(record.recordId)).toEqual(record);
     expect(store.getByStateId(state.identity.stateId)).toHaveLength(1);
     expect(store.getRecent(10)).toHaveLength(1);
+    expect(store.getRecent(0)).toEqual([]);
+    expect(() => store.getRecent(-1)).toThrow(/nonnegative integer/);
 
     // Idempotent duplicate append succeeds without error
     expect(() => store.append(record)).not.toThrow();
@@ -325,7 +381,16 @@ describe("M11.5 Deterministic Decision Baseline", () => {
     // Differing record with same ID throws
     const mutatedHashRecord = { ...record, recordHash: "corrupted-hash" };
     expect(() => store.append(mutatedHashRecord)).toThrow(
-      /DUPLICATE_RECORD_ID_MUTATION/,
+      /recordHash does not match record content/,
     );
+
+    const otherState = buildMarketState(
+      baseInput({
+        identity: { ...baseInput().identity, generationId: "gen-other" },
+      }),
+    );
+    expect(() =>
+      buildShadowDecisionRecord(otherState, context, converged),
+    ).toThrow(/context does not belong to market state/);
   });
 });

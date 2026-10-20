@@ -4,6 +4,8 @@ import {
   computeStateId,
   parseMarketState,
 } from "./market-state-builder";
+import { EvidenceCollector } from "./evidence-collector";
+import { isClassificationAvailableAt } from "./flow-layer";
 import {
   baseInput,
   downtrend,
@@ -67,6 +69,39 @@ describe("MarketStateV1 Builder & Contracts", () => {
     expect(structure.h1.state).toBe("range");
     expect(structure.m15.state).toBe("downtrend");
     expect(structure.agreement).toBe("conflicting");
+  });
+
+  it("rejects structure evidence assigned to the wrong timeframe slot", () => {
+    const input = baseInput({
+      structure: {
+        h4: uptrend("1h"),
+        h1: uptrend("1h"),
+        m15: uptrend("15m"),
+      },
+    });
+
+    expect(() => buildMarketState(input)).toThrow(/h4 requires timeframe 4h/);
+  });
+
+  it("rejects zones whose source is not authoritative for their kind", () => {
+    const input = baseInput({
+      zones: [
+        {
+          asOfMs: NOW - 1000,
+          staleAfterMs: FRESH_MS,
+          zoneId: "spoofed-gamma-wall",
+          kind: "gamma-wall",
+          price: 66_900,
+          strength: "strong",
+          formulaVersion: "wall-v1",
+          source: "user-drawing",
+        },
+      ],
+    });
+
+    expect(() => buildMarketState(input)).toThrow(
+      /gamma-wall zones require deribit provenance/,
+    );
   });
 
   it("marks missing or stale flow as unavailable rather than zero or balanced", () => {
@@ -135,6 +170,54 @@ describe("MarketStateV1 Builder & Contracts", () => {
         (e) => e.name.startsWith("options.") && e.effectiveAtMs > NOW,
       ),
     ).toBe(false);
+  });
+
+  it("excludes classifications finalized after the effective-time cutoff", () => {
+    expect(
+      isClassificationAvailableAt(
+        {
+          lifecycle: "finalized",
+          candidateTimestampMs: NOW - 10_000,
+          finalizedTimestampMs: NOW + 1,
+        },
+        NOW,
+      ),
+    ).toBe(false);
+    expect(
+      isClassificationAvailableAt(
+        {
+          lifecycle: "finalized",
+          candidateTimestampMs: NOW - 10_000,
+          finalizedTimestampMs: NOW - 1,
+        },
+        NOW,
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects duplicate evidence IDs with conflicting metadata", () => {
+    const collector = new EvidenceCollector();
+    collector.add({
+      evidenceId: "same-id",
+      name: "candles.lastPrice",
+      value: 67_000,
+      unit: "usd",
+      formulaVersion: "candles-v1",
+      source: "binance-spot",
+      effectiveAtMs: NOW - 1000,
+    });
+
+    expect(() =>
+      collector.add({
+        evidenceId: "same-id",
+        name: "options.gammaFlipPrice",
+        value: 67_000,
+        unit: "usd",
+        formulaVersion: "gex-v1",
+        source: "deribit",
+        effectiveAtMs: NOW - 1000,
+      }),
+    ).toThrow(/Conflicting evidence/);
   });
 
   it("keeps AVWAP and Volume Profile distinct in location layer", () => {

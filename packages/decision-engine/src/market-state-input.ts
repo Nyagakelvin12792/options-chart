@@ -102,20 +102,43 @@ export const VolumeProfileInputSchema = z
   });
 export type VolumeProfileInput = z.infer<typeof VolumeProfileInputSchema>;
 
-export const ZoneInputSchema = z.strictObject({
-  ...stamp,
-  zoneId: nonEmpty,
-  kind: ZoneKindSchema,
-  price: positiveFinite,
-  strength: ZoneStrengthSchema,
-  formulaVersion: nonEmpty,
-  source: z.enum([
-    "binance-spot",
-    "deribit",
-    "cryptofeed-shadow",
-    "user-drawing",
-  ]),
-});
+export const ZoneInputSchema = z
+  .strictObject({
+    ...stamp,
+    zoneId: nonEmpty,
+    kind: ZoneKindSchema,
+    price: positiveFinite,
+    strength: ZoneStrengthSchema,
+    formulaVersion: nonEmpty,
+    source: z.enum([
+      "binance-spot",
+      "deribit",
+      "cryptofeed-shadow",
+      "user-drawing",
+    ]),
+  })
+  .superRefine((zone, ctx) => {
+    const expectedSource =
+      zone.kind === "gamma-wall" ||
+      zone.kind === "open-interest-wall" ||
+      zone.kind === "volume-wall" ||
+      zone.kind === "gamma-flip" ||
+      zone.kind === "max-pain"
+        ? "deribit"
+        : zone.kind === "flow-wall"
+          ? "cryptofeed-shadow"
+          : zone.kind === "user"
+            ? "user-drawing"
+            : "binance-spot";
+
+    if (zone.source !== expectedSource) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["source"],
+        message: `${zone.kind} zones require ${expectedSource} provenance`,
+      });
+    }
+  });
 export type ZoneInput = z.infer<typeof ZoneInputSchema>;
 
 export const OptionsInputSchema = z.strictObject({
@@ -162,14 +185,33 @@ export const AccountRiskInputSchema = z.strictObject({
 });
 export type AccountRiskInput = z.infer<typeof AccountRiskInputSchema>;
 
-export const MarketStateInputV1Schema = z.strictObject({
-  identity: MarketStateIdentityInputSchema,
-  candles: CandleInputSchema.nullable(),
-  structure: z.strictObject({
+const MarketStructureInputSchema = z
+  .strictObject({
     h4: StructureTimeframeInputSchema.nullable(),
     h1: StructureTimeframeInputSchema.nullable(),
     m15: StructureTimeframeInputSchema.nullable(),
-  }),
+  })
+  .superRefine((structure, ctx) => {
+    const slots = [
+      ["h4", structure.h4, "4h"],
+      ["h1", structure.h1, "1h"],
+      ["m15", structure.m15, "15m"],
+    ] as const;
+    for (const [slot, value, expected] of slots) {
+      if (value !== null && value.timeframe !== expected) {
+        ctx.addIssue({
+          code: "custom",
+          path: [slot, "timeframe"],
+          message: `${slot} requires timeframe ${expected}`,
+        });
+      }
+    }
+  });
+
+export const MarketStateInputV1Schema = z.strictObject({
+  identity: MarketStateIdentityInputSchema,
+  candles: CandleInputSchema.nullable(),
+  structure: MarketStructureInputSchema,
   avwap: AvwapInputSchema.nullable(),
   volumeProfile: VolumeProfileInputSchema.nullable(),
   zones: z.array(ZoneInputSchema),

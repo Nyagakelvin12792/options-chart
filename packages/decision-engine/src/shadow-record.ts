@@ -2,11 +2,13 @@ import { assertCanonicalSafe, contentHash, deepFreeze } from "./canonical";
 import {
   SHADOW_DECISION_RECORD_SCHEMA_VERSION,
   ShadowDecisionRecordV1Schema,
-  type DecisionAssessmentV1,
-  type DecisionChoice,
   type DecisionContextV1,
   type ShadowDecisionRecordV1,
 } from "./decision-contracts";
+import {
+  CONVERGENCE_RULES_VERSION,
+  type ConvergedDecisionResult,
+} from "./convergence";
 import type { MarketStateV1 } from "./market-state-contracts";
 
 type ShadowRecordContent = Omit<
@@ -17,20 +19,29 @@ type ShadowRecordContent = Omit<
 export function buildShadowDecisionRecord(
   state: MarketStateV1,
   context: DecisionContextV1,
-  assessment: DecisionAssessmentV1,
-  convergedChoice: DecisionChoice = assessment.choice,
+  converged: ConvergedDecisionResult,
 ): ShadowDecisionRecordV1 {
+  const assessment = converged.assessment;
+  if (context.stateId !== state.identity.stateId) {
+    throw new Error("shadow record context does not belong to market state");
+  }
+  if (assessment.contextId !== context.contextId) {
+    throw new Error("shadow record assessment does not belong to context");
+  }
+
   const content: ShadowRecordContent = {
     schemaVersion: SHADOW_DECISION_RECORD_SCHEMA_VERSION,
     stateId: state.identity.stateId,
     contextId: context.contextId,
     assessmentId: assessment.assessmentId,
     assessment,
-    convergedChoice,
+    convergedChoice: converged.choice,
+    convergenceRuleStep: converged.ruleStepTriggered,
+    assessmentDiscarded: converged.discarded,
     effectiveAtMs: context.effectiveAtMs,
     createdAtMs: context.createdAtMs,
-    rulesVersion: assessment.providerVersion,
-    reasonCodes: [...assessment.reasonCodes].sort(),
+    rulesVersion: CONVERGENCE_RULES_VERSION,
+    reasonCodes: [...converged.reasonCodes].sort(),
     warnings: [...assessment.warnings].sort(),
     dataHealthSummary: {
       candles: context.dataHealth.candles,
@@ -43,13 +54,34 @@ export function buildShadowDecisionRecord(
   const hash = contentHash(content);
   const recordId = `shadow-${content.effectiveAtMs}-${hash.slice(0, 16)}`;
 
-  const validated = ShadowDecisionRecordV1Schema.parse({
+  return parseShadowDecisionRecord({
     ...content,
     recordId,
     recordHash: hash,
   });
+}
 
-  return deepFreeze(validated);
+/** Validates record links and verifies its content-addressed hash and ID. */
+export function parseShadowDecisionRecord(
+  raw: unknown,
+): ShadowDecisionRecordV1 {
+  const record = ShadowDecisionRecordV1Schema.parse(raw);
+  if (record.assessmentId !== record.assessment.assessmentId) {
+    throw new Error("shadow record assessmentId does not match assessment");
+  }
+  if (record.contextId !== record.assessment.contextId) {
+    throw new Error("shadow record contextId does not match assessment");
+  }
+  const { recordId, recordHash, ...content } = record;
+  const expectedHash = contentHash(content);
+  if (recordHash !== expectedHash) {
+    throw new Error("shadow recordHash does not match record content");
+  }
+  const expectedId = `shadow-${content.effectiveAtMs}-${expectedHash.slice(0, 16)}`;
+  if (recordId !== expectedId) {
+    throw new Error("shadow recordId does not match record content");
+  }
+  return deepFreeze(record);
 }
 
 /**
@@ -84,23 +116,24 @@ export class InMemoryDecisionStore implements DecisionStorePort {
   private readonly insertionOrder: string[] = [];
 
   append(record: ShadowDecisionRecordV1): void {
-    const existing = this.records.get(record.recordId);
+    const validated = parseShadowDecisionRecord(record);
+    const existing = this.records.get(validated.recordId);
     if (existing !== undefined) {
-      if (existing.recordHash === record.recordHash) {
+      if (existing.recordHash === validated.recordHash) {
         // Idempotent duplicate: safe no-op
         return;
       }
       throw new Error(
-        `DUPLICATE_RECORD_ID_MUTATION: recordId ${record.recordId} already exists with differing hash`,
+        `DUPLICATE_RECORD_ID_MUTATION: recordId ${validated.recordId} already exists with differing hash`,
       );
     }
 
-    this.records.set(record.recordId, record);
-    this.insertionOrder.push(record.recordId);
+    this.records.set(validated.recordId, validated);
+    this.insertionOrder.push(validated.recordId);
 
-    const ids = this.stateIndex.get(record.stateId) ?? [];
-    ids.push(record.recordId);
-    this.stateIndex.set(record.stateId, ids);
+    const ids = this.stateIndex.get(validated.stateId) ?? [];
+    ids.push(validated.recordId);
+    this.stateIndex.set(validated.stateId, ids);
   }
 
   getById(recordId: string): ShadowDecisionRecordV1 | null {
@@ -115,6 +148,10 @@ export class InMemoryDecisionStore implements DecisionStorePort {
   }
 
   getRecent(limit: number): readonly ShadowDecisionRecordV1[] {
+    if (!Number.isInteger(limit) || limit < 0) {
+      throw new RangeError("limit must be a nonnegative integer");
+    }
+    if (limit === 0) return [];
     const slice = this.insertionOrder.slice(-limit);
     return slice
       .map((id) => this.records.get(id)!)

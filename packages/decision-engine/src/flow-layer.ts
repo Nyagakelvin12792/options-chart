@@ -28,6 +28,24 @@ const UNAVAILABLE_PRESSURE: Pressure = {
   evidenceRefs: [],
 };
 
+type ClassificationTiming = Pick<
+  LevelClassificationRecordV1,
+  "candidateTimestampMs" | "finalizedTimestampMs" | "lifecycle"
+>;
+
+export function isClassificationAvailableAt(
+  record: ClassificationTiming,
+  effectiveAtMs: number,
+): boolean {
+  return (
+    record.candidateTimestampMs <= effectiveAtMs &&
+    (record.lifecycle === "pending"
+      ? record.finalizedTimestampMs === null
+      : record.finalizedTimestampMs !== null &&
+        record.finalizedTimestampMs <= effectiveAtMs)
+  );
+}
+
 function classifyRatio(ratio: number): FlowPressureState {
   const magnitude = Math.abs(ratio);
   if (magnitude < T.flowBalancedRatio) {
@@ -133,8 +151,23 @@ function response(
   effectiveAtMs: number,
   ctx: LayerContext,
 ): OrderFlowLayerV1["response"] {
+  for (const record of snapshot.classifications) {
+    const finalizedInFuture =
+      record.finalizedTimestampMs !== null &&
+      record.finalizedTimestampMs > effectiveAtMs;
+    if (record.candidateTimestampMs > effectiveAtMs || finalizedInFuture) {
+      ctx.collector.markFuture(`flow:response:${record.recordId}`);
+    } else if (
+      (record.lifecycle === "pending" &&
+        record.finalizedTimestampMs !== null) ||
+      (record.lifecycle === "finalized" && record.finalizedTimestampMs === null)
+    ) {
+      ctx.collector.warn(`FLOW_CLASSIFICATION_INCONSISTENT:${record.recordId}`);
+    }
+  }
+
   const eligible = snapshot.classifications
-    .filter((r) => r.candidateTimestampMs <= effectiveAtMs)
+    .filter((record) => isClassificationAvailableAt(record, effectiveAtMs))
     .sort(
       (a, b) =>
         b.candidateTimestampMs - a.candidateTimestampMs ||

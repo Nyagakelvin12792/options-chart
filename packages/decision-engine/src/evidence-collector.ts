@@ -26,7 +26,15 @@ export class EvidenceCollector {
   /** Records numeric evidence and returns its stable reference ID. */
   add(item: NumericEvidenceV1): string {
     const existing = this.evidence.get(item.evidenceId);
-    if (existing !== undefined && existing.value !== item.value) {
+    if (
+      existing !== undefined &&
+      (existing.name !== item.name ||
+        existing.value !== item.value ||
+        existing.unit !== item.unit ||
+        existing.formulaVersion !== item.formulaVersion ||
+        existing.source !== item.source ||
+        existing.effectiveAtMs !== item.effectiveAtMs)
+    ) {
       throw new Error(`Conflicting evidence for ${item.evidenceId}`);
     }
     this.evidence.set(item.evidenceId, item);

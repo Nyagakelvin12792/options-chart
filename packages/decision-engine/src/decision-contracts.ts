@@ -211,25 +211,54 @@ export const DecisionContextV1Schema = z.strictObject({
 export type DecisionContextV1 = z.infer<typeof DecisionContextV1Schema>;
 
 // ------------------------------------------------------ DecisionAssessmentV1
-export const DecisionAssessmentV1Schema = z.strictObject({
-  schemaVersion: z.literal(DECISION_ASSESSMENT_SCHEMA_VERSION),
-  assessmentId: nonEmpty,
-  contextId: nonEmpty,
-  provider: DecisionProviderSchema,
-  providerVersion: nonEmpty,
-  promptVersion: nonEmpty,
-  startedAtMs: timestampMs,
-  completedAtMs: timestampMs,
-  isStale: z.boolean(),
-  checks: z.array(DecisionCheckResultV1Schema),
-  choice: DecisionChoiceSchema,
-  distribution: DecisionDistributionV1Schema,
-  confidence: ratio01.nullable(),
-  reasonCodes: z.array(nonEmpty),
-  summary: nonEmpty,
-  warnings: z.array(nonEmpty),
-  latencyMs: z.number().int().nonnegative().nullable(),
-});
+export const DecisionAssessmentV1Schema = z
+  .strictObject({
+    schemaVersion: z.literal(DECISION_ASSESSMENT_SCHEMA_VERSION),
+    assessmentId: nonEmpty,
+    contextId: nonEmpty,
+    provider: DecisionProviderSchema,
+    providerVersion: nonEmpty,
+    promptVersion: nonEmpty,
+    startedAtMs: timestampMs,
+    completedAtMs: timestampMs,
+    isStale: z.boolean(),
+    checks: z.array(DecisionCheckResultV1Schema),
+    choice: DecisionChoiceSchema,
+    distribution: DecisionDistributionV1Schema,
+    confidence: ratio01.nullable(),
+    reasonCodes: z.array(nonEmpty),
+    summary: nonEmpty,
+    warnings: z.array(nonEmpty),
+    latencyMs: z.number().int().nonnegative().nullable(),
+  })
+  .superRefine((assessment, ctx) => {
+    if (assessment.completedAtMs < assessment.startedAtMs) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["completedAtMs"],
+        message: "completedAtMs must not precede startedAtMs",
+      });
+    }
+    const elapsedMs = assessment.completedAtMs - assessment.startedAtMs;
+    if (assessment.latencyMs !== null && assessment.latencyMs !== elapsedMs) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["latencyMs"],
+        message: "latencyMs must equal completedAtMs - startedAtMs",
+      });
+    }
+    const selectedProbability = assessment.distribution[assessment.choice];
+    const maximumProbability = Math.max(
+      ...Object.values(assessment.distribution),
+    );
+    if (selectedProbability !== maximumProbability) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["choice"],
+        message: "choice must be a maximum-probability outcome",
+      });
+    }
+  });
 export type DecisionAssessmentV1 = z.infer<typeof DecisionAssessmentV1Schema>;
 
 // ---------------------------------------------------- ShadowDecisionRecordV1
@@ -241,6 +270,8 @@ export const ShadowDecisionRecordV1Schema = z.strictObject({
   assessmentId: nonEmpty,
   assessment: DecisionAssessmentV1Schema,
   convergedChoice: DecisionChoiceSchema,
+  convergenceRuleStep: z.number().int().min(1).max(10),
+  assessmentDiscarded: z.boolean(),
   effectiveAtMs: timestampMs,
   createdAtMs: timestampMs,
   rulesVersion: nonEmpty,
