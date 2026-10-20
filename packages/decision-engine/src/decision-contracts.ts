@@ -87,6 +87,7 @@ export type DecisionCheckResultV1 = z.infer<typeof DecisionCheckResultV1Schema>;
 export const DecisionProviderSchema = z.enum([
   "deterministic-rules-v1",
   "recorded-v1",
+  "jev-v1",
 ]);
 export type DecisionProvider = z.infer<typeof DecisionProviderSchema>;
 
