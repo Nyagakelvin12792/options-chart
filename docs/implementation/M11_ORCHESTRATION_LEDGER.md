@@ -1,8 +1,8 @@
 # M11 Orchestration Ledger
 
-Last updated: 2026-10-19
-Goal status: ACTIVE - M11.3 HANDED TO ANTIGRAVITY
-Automation: prior `continue-options-chart-m11-build` automation remains paused; Antigravity work is manual and bounded by the assignment packet
+Last updated: 2026-10-20
+Goal status: ACTIVE - M11.6 CHECKPOINT 1 VERIFIED
+Automation: no automation is running; M11.6 work is manual, local, and default-off
 
 ## Resume Protocol
 
@@ -29,29 +29,29 @@ starting the batch again.
 
 ## Active Batch
 
-M11.3 Deterministic CVD And Absorption Engine
+M11.6 JEV And LLM Shadow Providers
 
 ### Current Assignment
 
-| Worker      | Write scope                                                                                                          | Status              |
-| ----------- | -------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| Antigravity | `packages/flow-engine/**`, approved root workspace references, and `docs/handoffs/antigravity-m11.3-worklog.md`      | AUTHORIZED          |
-| Codex       | Read-only review until Antigravity handoff; governance, integration acceptance, and milestone status remain reserved | WAITING FOR HANDOFF |
+| Worker    | Write scope                                                                                 | Status                |
+| --------- | ------------------------------------------------------------------------------------------- | --------------------- |
+| Codex     | `packages/decision-engine/**`, M11.6 progress, orchestration ledger, and Codex handoff      | CHECKPOINT 1 VERIFIED |
+| Architect | Provider-boundary review, milestone acceptance, and authorization of live/server checkpoint | REVIEW REQUIRED       |
 
-The controlling packet is `docs/handoffs/antigravity-m11.3-assignment.md`. The accepted
-base is `d536eba623114325661480f07dc458c21f619af3` on
-`handoff/antigravity-m11`. The pre-existing `.gitignore` modification remains
-user-owned and must not be edited, staged, committed, stashed, or reverted.
+The active branch is `codex/m11.6-shadow-providers`, based on the corrected
+M11.4/M11.5 branch. Checkpoint 1 implementation commit is
+`cff6946ff201f6197b74ce952c8e81ba5fc897a4`.
 
 ## Current Checkpoint
 
-- `M11_2_EXIT_APPROVED=true`.
-- M11.2 live evidence passed in GitHub Actions run `38793141169`.
-- Final M11.2 gates passed 33 Python tests and 451 Vitest tests plus typecheck,
-  lint, build, progress gates, and diff check.
-- Antigravity is authorized to begin checkpoint 0 of the M11.3 work package.
-- No merge, deployment, production-feed change, JEV/LLM work, or live execution
-  is authorized.
+- The M11.4/M11.5 corrective implementation is preserved in this branch history.
+- M11.6 checkpoint 1 adds a default-off provider runner, typed JEV adapter,
+  immutable run records, and post-convergence narration contracts and coordinator.
+- Focused tests passed 6 files and 43 tests. Full gates passed 77 files and 544
+  tests plus typecheck, lint, build, and diff check.
+- No live provider call was made because TypeSafe and Minara credentials are not
+  configured. No UI, route, deployment, risk-authority, or execution change is
+  authorized by this checkpoint.
 
 ## Historical M11.2 Workstreams
 
@@ -125,15 +125,22 @@ user-owned and must not be edited, staged, committed, stashed, or reverted.
 
 ## Next Actions
 
-1. Antigravity reads the required context and reports branch, dirty state, write scope,
-   protected files, and planned narrow checks before editing.
-2. Antigravity records checkpoint 0 in `docs/handoffs/antigravity-m11.3-worklog.md`.
-3. Antigravity implements only the M11.3 work package through its bounded checkpoints.
-4. Antigravity commits green checkpoints locally with required attribution but does not
-   push, merge, deploy, or begin M11.4 without explicit approval.
-5. Codex independently reviews the final Antigravity handoff before any milestone exit.
+1. Architect reviews the inherited M11.4/M11.5 correction and M11.6 checkpoint 1
+   safety boundaries.
+2. Product owner supplies a TypeSafe API key through secure server-side environment
+   configuration if a bounded live JEV shadow observation is approved.
+3. Decide whether Minara is the narrator provider and approve its endpoint,
+   authentication, retention, structured-output, and cost-limit contract.
+4. Add the server-only integration entry point and durable audit storage as a separate
+   reviewed checkpoint; keep browser code and chart/risk state isolated.
+5. Do not begin M11.7 calibration until recorded shadow decisions exist and M11.6
+   review gates are accepted.
 
 ## Blockers
 
-- No known start blocker. Preserve the pre-existing user-owned `.gitignore`
-  modification and stop if repository state differs from the assignment packet.
+- A live JEV verification requires `TYPESAFE_API_KEY`; it is not configured.
+- A concrete Minara narrator adapter requires an approved gateway URL,
+  authentication method, structured-output behavior, retention policy, and cost
+  limits. No Minara environment configuration is present.
+- Review and merge authorization remain required before server integration,
+  deployment, UI work, or M11.7 begins.
