@@ -139,6 +139,9 @@ export class FeatureHealthTracker {
   }
 
   public pushHealthEventId(id: string, detectedAtMs?: number): void {
+    if (this.activeHealthEvents.some((event) => event.id === id)) {
+      return;
+    }
     const ts = detectedAtMs ?? this.lastEventReceiptTimestampMs ?? 0;
     this.activeHealthEvents.push({ id, detectedAtMs: ts });
     if (this.activeHealthEvents.length > this.config.maxEvidenceEventIds) {

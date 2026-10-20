@@ -554,6 +554,7 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
   it("14. regression: proves retained trades remain at or below configured maxRetainedTrades under dense same-timestamp traffic while preserving anchor cumulative counters", () => {
     const customConfig = createFlowEngineConfig({
       maxRetainedTrades: 100,
+      rollingEventCountWindows: [200],
     });
     const engine = new FlowEngine(customConfig);
     const baseTs = 1_700_000_000_000;
@@ -577,6 +578,8 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     expect(snap.health.degradationReasons).toContain(
       "truncated-retention-window",
     );
+    expect(snap.cvd.rollingByEventCount[0]?.tradeCount).toBe(100);
+    expect(snap.cvd.rollingByEventCount[0]?.availability).toBe("unavailable");
   });
 
   it("15. regression: deduplicates health records across ingestHealthEvent, ingestStorageRecord, and replayEvents", () => {
@@ -601,6 +604,7 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     const snap4 = engine.replayEvents([gapEvent]);
     expect(snap4.health.gapCount).toBe(1);
     expect(snap4.health.duplicateCount).toBe(3);
+    expect(snap4.health.activeHealthEventIds).toEqual([gapEvent.healthEventId]);
   });
 
   it("16. regression: enforces replay cutoff on health records and proves post-cutoff health events do not mutate state", () => {
@@ -720,9 +724,11 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
 
   it("18. regression: tests deduplication horizon eviction boundary and transparent health degradation", () => {
     const baseTs = 1_700_000_000_000;
-    const engine = new FlowEngine(undefined, undefined, {
-      maxDeduplicationHistory: 5,
-    });
+    const engine = new FlowEngine(
+      createFlowEngineConfig({
+        maxDeduplicationHistory: 5,
+      }),
+    );
 
     const makeEv = (i: number) =>
       makeTradeEvent({
@@ -776,7 +782,9 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     const snapAt1000 = engine.snapshot({
       asOfReceiptTimestampMs: 1_700_000_001_000,
     });
-    expect(snapAt1000.health.activeHealthEventIds).not.toContain(
+    expect(snapAt1000.asOfReceiptTimestampMs).toBe(1_700_000_005_000);
+    expect(snapAt1000.health.hasUnresolvedGap).toBe(true);
+    expect(snapAt1000.health.activeHealthEventIds).toContain(
       "market-health-event-v1:0000000000000066",
     );
 
@@ -786,5 +794,47 @@ describe("FlowEngine Integration, Replay, and Audit", () => {
     expect(snapAt5000.health.activeHealthEventIds).toContain(
       "market-health-event-v1:0000000000000066",
     );
+  });
+
+  it("20. regression: health receipt time does not advance the market feature cursor or reject a subsequently received trade", () => {
+    const baseTs = 1_700_000_000_000;
+    const engine = new FlowEngine();
+    engine.ingest(
+      makeTradeEvent({
+        eventId: "market-event-v1:feature-cursor-001",
+        receiptTimestampMs: baseTs + 1_000,
+        price: 68_000,
+        quantity: 0.1,
+        takerSide: "buy",
+      }),
+    );
+    engine.ingestHealthEvent(
+      makeHealthGapEvent({
+        eventId: "market-health-event-v1:0000000000000055",
+        receiptTimestampMs: baseTs + 5_000,
+      }),
+    );
+
+    const laterReceivedTrade = makeTradeEvent({
+      eventId: "market-event-v1:feature-cursor-002",
+      receiptTimestampMs: baseTs + 6_000,
+      price: 68_100,
+      quantity: 0.2,
+      takerSide: "buy",
+    });
+    const tradeWithEarlierExchangeTime: MarketEventV1 = {
+      ...laterReceivedTrade,
+      exchangeTimestampMs: baseTs + 3_000,
+      payload: {
+        ...(laterReceivedTrade.payload as Record<string, unknown>),
+        tradeTimestampMs: baseTs + 3_000,
+      },
+    };
+    const snapshot = engine.ingest(tradeWithEarlierExchangeTime);
+
+    expect(snapshot?.health.lateIgnoredEventCount).toBe(0);
+    expect(snapshot?.featureTimestampMs).toBe(baseTs + 3_000);
+    expect(snapshot?.cvd.lastTradePrice).toBe(68_100);
+    expect(snapshot?.cvd.lastTradeTimestampMs).toBe(baseTs + 3_000);
   });
 });

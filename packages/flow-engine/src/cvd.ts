@@ -39,6 +39,7 @@ interface RollingWindowTracker extends TradeRunningSums {
   readonly windowMaxEvents: number;
   headIndex: number;
   lastEvictedAsOfMs: number;
+  retentionTruncated: boolean;
 }
 
 function searchTs(
@@ -100,6 +101,7 @@ export class CvdEngine {
       windowMaxEvents: 0,
       headIndex: 0,
       lastEvictedAsOfMs: Number.NEGATIVE_INFINITY,
+      retentionTruncated: false,
     }));
     this.eventCountTrackers = config.rollingEventCountWindows.map((n) => ({
       ...createZeroTradeSums(),
@@ -108,6 +110,7 @@ export class CvdEngine {
       windowMaxEvents: n,
       headIndex: 0,
       lastEvictedAsOfMs: 0,
+      retentionTruncated: false,
     }));
     this.candleBuckets = new CandleBucketAccumulator(config);
   }
@@ -255,7 +258,7 @@ export class CvdEngine {
           tr,
           this.activeAnchor.malformedTradeCount,
           this.config.minTradeSideCoverageRatio,
-          opts,
+          tr.retentionTruncated ? { ...opts, forceUnavailable: true } : opts,
         ),
       ),
     );
@@ -317,6 +320,9 @@ export class CvdEngine {
         this.retentionHeadIndex = minRequiredHead;
       }
       const prune = (tr: RollingWindowTracker): void => {
+        if (tr.headIndex < minRequiredHead) {
+          tr.retentionTruncated = true;
+        }
         while (
           tr.headIndex < minRequiredHead &&
           tr.headIndex < this.trades.length

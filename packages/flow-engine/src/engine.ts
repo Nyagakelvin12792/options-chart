@@ -37,7 +37,9 @@ export class FlowEngine {
   private readonly _config: FlowEngineConfigV1;
   private readonly defaultMode: FlowEngineMode;
   private readonly seenEventIds = new Set<string>();
-  private readonly seenEventIdsQueue: string[] = [];
+  private readonly seenEventIdsQueue: (string | undefined)[];
+  private seenEventIdsQueueStart = 0;
+  private seenEventIdsQueueSize = 0;
   private readonly maxDeduplicationHistory: number;
   private readonly cvdEngine: CvdEngine;
   private readonly orderBookEngine: OrderBookEngine;
@@ -55,13 +57,14 @@ export class FlowEngine {
     initialLevels?: readonly unknown[],
     options?: {
       readonly defaultMode?: FlowEngineMode;
-      readonly maxDeduplicationHistory?: number;
     },
   ) {
     this._config = createFlowEngineConfig(config);
     this.defaultMode = options?.defaultMode ?? "incremental";
-    this.maxDeduplicationHistory =
-      options?.maxDeduplicationHistory ?? this._config.maxDeduplicationHistory;
+    this.maxDeduplicationHistory = this._config.maxDeduplicationHistory;
+    this.seenEventIdsQueue = new Array<string | undefined>(
+      this.maxDeduplicationHistory,
+    );
     this.cvdEngine = new CvdEngine(this._config);
     this.orderBookEngine = new OrderBookEngine(this._config);
     this.liquidityEngine = new LiquidityEngine(this._config);
@@ -116,7 +119,10 @@ export class FlowEngine {
     }
 
     if (this.seenEventIds.has(event.eventId)) {
-      this.healthTracker.recordDuplicate(event.eventId);
+      this.healthTracker.recordDuplicate(
+        event.eventId,
+        event.receiptTimestampMs,
+      );
       return options?.deferSnapshot
         ? null
         : this.snapshot({
@@ -133,7 +139,10 @@ export class FlowEngine {
         this.lastFeatureTimestampMs > 0 &&
         eff.featureTimestampMs < this.lastFeatureTimestampMs
       ) {
-        this.healthTracker.recordLateIgnored(event.eventId);
+        this.healthTracker.recordLateIgnored(
+          event.eventId,
+          event.receiptTimestampMs,
+        );
         return options?.deferSnapshot
           ? null
           : this.snapshot({
@@ -174,7 +183,10 @@ export class FlowEngine {
         this.liquidityEngine.recordBookUpdate(event, applyRes);
       } else {
         if (applyRes.statusReason === "sequence-gap") {
-          this.healthTracker.recordSequenceGap(event.eventId);
+          this.healthTracker.recordSequenceGap(
+            event.eventId,
+            event.receiptTimestampMs,
+          );
           if (this._config.resetCvdOnGap) {
             this.cvdEngine.resetAnchor(
               `gap-anchor-${String(eff.featureTimestampMs)}`,
@@ -183,7 +195,10 @@ export class FlowEngine {
             );
           }
         } else if (applyRes.sequenceTransition.kind === "duplicate") {
-          this.healthTracker.recordDuplicate(event.eventId);
+          this.healthTracker.recordDuplicate(
+            event.eventId,
+            event.receiptTimestampMs,
+          );
         } else if (applyRes.sequenceTransition.kind === "out-of-order") {
           this.healthTracker.recordOutOfOrder();
         } else if (applyRes.statusReason === "malformed-book") {
@@ -226,18 +241,14 @@ export class FlowEngine {
       this.lastAsOfReceiptTimestampMs,
       healthEvent.detectedAtMs,
     );
-    this.lastFeatureTimestampMs = Math.max(
-      this.lastFeatureTimestampMs,
-      healthEvent.detectedAtMs,
-    );
-
     this.healthTracker.recordHealthEvent(healthEvent);
     if (healthEvent.type === "gap") {
       this.orderBookEngine.markSequenceGap();
       if (this._config.resetCvdOnGap) {
+        const anchorTimestampMs = this.lastFeatureTimestampMs;
         this.cvdEngine.resetAnchor(
-          `gap-anchor-${String(healthEvent.detectedAtMs)}`,
-          healthEvent.detectedAtMs,
+          `gap-anchor-${String(anchorTimestampMs)}`,
+          anchorTimestampMs,
           "gap-reset",
         );
       }
@@ -286,8 +297,10 @@ export class FlowEngine {
     if (this.cvdEngine.hasTruncatedTrades) {
       this.healthTracker.recordRetentionTruncation();
     }
-    const asOfReceiptTimestampMs =
-      options?.asOfReceiptTimestampMs ?? this.lastAsOfReceiptTimestampMs;
+    const asOfReceiptTimestampMs = Math.max(
+      options?.asOfReceiptTimestampMs ?? this.lastAsOfReceiptTimestampMs,
+      this.lastAsOfReceiptTimestampMs,
+    );
     const asOfFeatureTimestampMs = this.lastFeatureTimestampMs;
 
     const cvdSnapshot = this.cvdEngine.snapshot(asOfFeatureTimestampMs);
@@ -392,15 +405,23 @@ export class FlowEngine {
   }
 
   private recordSeenEventId(id: string): void {
-    this.seenEventIds.add(id);
-    this.seenEventIdsQueue.push(id);
-    if (this.seenEventIdsQueue.length > this.maxDeduplicationHistory) {
-      const oldest = this.seenEventIdsQueue.shift();
+    if (this.seenEventIdsQueueSize === this.maxDeduplicationHistory) {
+      const oldest = this.seenEventIdsQueue[this.seenEventIdsQueueStart];
       if (oldest !== undefined) {
         this.seenEventIds.delete(oldest);
         this.healthTracker.recordDeduplicationEviction();
       }
+      this.seenEventIdsQueue[this.seenEventIdsQueueStart] = id;
+      this.seenEventIdsQueueStart =
+        (this.seenEventIdsQueueStart + 1) % this.maxDeduplicationHistory;
+    } else {
+      const insertionIndex =
+        (this.seenEventIdsQueueStart + this.seenEventIdsQueueSize) %
+        this.maxDeduplicationHistory;
+      this.seenEventIdsQueue[insertionIndex] = id;
+      this.seenEventIdsQueueSize += 1;
     }
+    this.seenEventIds.add(id);
   }
 
   private pushEvidenceEventId(id: string): void {
