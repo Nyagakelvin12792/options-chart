@@ -1,8 +1,9 @@
 # Antigravity M11.4 / M11.5 Worklog
 
-Status: IN PROGRESS - CHECKPOINT 1 (M11.4 COMPLETE)
+Status: IN PROGRESS - CHECKPOINT 2 (M11.5 COMPLETE)
 Branch: `handoff/antigravity-m11`
 Starting commit: `4be8dd5092a5f0f14c8ae732702657d93442e57a`
+M11.4 commit: `c4ca0efd672eb7f1c012d94949ef3d07136a09e2`
 Authorization: `M11_4_AUTHORIZED=true`, `M11_5_AUTHORIZED=true`, `M11_6_AUTHORIZED=false`,
 `MERGE_TO_MAIN_AUTHORIZED=false`, `DEPLOYMENT_AUTHORIZED=false`, `LIVE_EXECUTION_AUTHORIZED=false`.
 
@@ -72,3 +73,19 @@ M11.2/M11.3 worklogs, `apps/web/**`, auth/Vercel/env/CI files, `services/**`,
   - Typecheck: `npm run typecheck` passed (exit code 0).
   - Git diff check: `git diff --check` passed (exit code 0).
   - Line count audit: all files strictly under 320 lines (limit 400 lines).
+
+## Checkpoint 2 - M11.5 Deterministic Decision Baseline Complete
+
+- Modules implemented in `packages/decision-engine/src/`:
+  - `decision-contracts.ts`: Zod schemas and TypeScript types for `DecisionChoice` (closed 6-choice enum: `no-trade`, `watch-long`, `watch-short`, `confirm-long`, `confirm-short`, `insufficient-data`), `DecisionDistributionV1` (probabilities summing to 1.0 within tolerance), `DecisionCheckResultV1`, `DecisionContextV1`, `DecisionAssessmentV1`, and `ShadowDecisionRecordV1`.
+  - `decision-context-builder.ts`: Pure context derivation from validated `MarketStateV1`, deterministic `computeContextId` via canonical SHA-256 hash, and deep freeze.
+  - `rules-provider.ts`: Pure deterministic rules engine evaluating evidence quality, account permissions, trade geometry, layer contradictions, and structure/flow/location alignment; emits stable reason codes and deterministic distribution.
+  - `convergence.ts`: Strict 10-step deterministic convergence engine enforcing data-health -> account-risk -> geometry -> stale/superseded -> evidence-quality priority ladder.
+  - `shadow-record.ts`: Immutable `ShadowDecisionRecordV1` linking state, context, and assessment with canonical content hash; defines `DecisionStorePort` and deterministic `InMemoryDecisionStore` with idempotency guarantees.
+  - `index.ts`: Barrel exports for all decision contracts, builders, rules provider, convergence, and shadow record modules.
+- Verification ladder:
+  - Vitest: 3 test files, 25 tests passed (`packages/decision-engine/src/decision.test.ts`, `packages/decision-engine/src/generation.test.ts`, `packages/decision-engine/src/market-state.test.ts`).
+  - ESLint: zero errors/warnings in all `packages/decision-engine/src/**/*.ts` files.
+  - Typecheck: `npm run typecheck` passed (exit code 0).
+  - Git diff check: `git diff --check` passed (exit code 0).
+  - Line count audit: all 25 source files strictly under 340 lines (limit 400 lines).
