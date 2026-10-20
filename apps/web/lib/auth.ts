@@ -9,6 +9,18 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
 const allowlistedEmail = process.env.AUTH_ALLOWLIST_EMAIL?.trim().toLowerCase();
 const nextAuthSecret = process.env.NEXTAUTH_SECRET?.trim();
+const temporaryPublicPreviewBranch = "handoff/antigravity-m11";
+
+type PreviewEnvironment = {
+  readonly VERCEL_ENV: string | undefined;
+  readonly VERCEL_GIT_COMMIT_REF: string | undefined;
+};
+
+export const isTemporaryPublicPreview = (
+  environment: PreviewEnvironment,
+): boolean =>
+  environment.VERCEL_ENV === "preview" &&
+  environment.VERCEL_GIT_COMMIT_REF === temporaryPublicPreviewBranch;
 
 const hasVerifiedEmail = (
   profile: Profile | undefined,
@@ -66,6 +78,19 @@ export type DashboardAccess =
     };
 
 export const getDashboardAccess = async (): Promise<DashboardAccess> => {
+  if (
+    isTemporaryPublicPreview({
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
+    })
+  ) {
+    return {
+      authorized: true,
+      label: "Public branch preview",
+      mode: "development",
+    };
+  }
+
   if (
     process.env.NODE_ENV === "development" &&
     process.env.AUTH_DEV_BYPASS !== "false"
