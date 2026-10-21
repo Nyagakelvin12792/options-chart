@@ -7,6 +7,7 @@ coverage/
 playwright-report/
 test-results/
 artifacts/
+.data/
 *.tsbuildinfo
 .env
 .env.local
