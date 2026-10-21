@@ -4,18 +4,56 @@ import type {
 } from "@options-chart/decision-engine";
 import { describe, expect, it, vi } from "vitest";
 
-import type { JevAuditStorePort } from "./audit-store";
+import type {
+  JevAuditStorePort,
+  JevProviderCallReservationRequest,
+  JevProviderCallReservationResult,
+} from "./audit-store";
 import { readJevServerConfig } from "./config";
 import { JevShadowServiceError, runJevShadowAssessment } from "./jev-service";
 import { testDecisionContext } from "./test-support";
 
 class MemoryAuditStore implements JevAuditStorePort {
   public readonly records: ShadowProviderRunRecordV1[] = [];
+  public readonly reservations: JevProviderCallReservationRequest[] = [];
   public failAppend = false;
 
-  public async append(record: ShadowProviderRunRecordV1): Promise<void> {
+  public async append(
+    record: ShadowProviderRunRecordV1,
+    reservationId: string,
+  ): Promise<void> {
     if (this.failAppend) throw new Error("disk unavailable");
+    if (
+      !this.reservations.some(
+        (reservation) => reservation.reservationId === reservationId,
+      )
+    ) {
+      throw new Error("reservation unavailable");
+    }
     this.records.push(record);
+  }
+
+  public async reserveProviderCall(
+    request: JevProviderCallReservationRequest,
+  ): Promise<JevProviderCallReservationResult> {
+    const hourly = this.reservations.filter(
+      (reservation) =>
+        reservation.provider === request.provider &&
+        reservation.startedAtMs >= request.startedAtMs - 60 * 60 * 1_000,
+    ).length;
+    const daily = this.reservations.filter(
+      (reservation) =>
+        reservation.provider === request.provider &&
+        reservation.startedAtMs >= request.startedAtMs - 24 * 60 * 60 * 1_000,
+    ).length;
+    if (hourly >= request.maxCallsPerHour) {
+      return { status: "hourly-exhausted" };
+    }
+    if (daily >= request.maxCallsPerDay) {
+      return { status: "daily-exhausted" };
+    }
+    this.reservations.push(request);
+    return { status: "reserved", reservationId: request.reservationId };
   }
 
   public async findSuccessfulRun(

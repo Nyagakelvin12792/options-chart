@@ -2,7 +2,7 @@ import { parseDecisionContext } from "@options-chart/decision-engine";
 import { NextResponse } from "next/server";
 
 import { getDashboardAccess } from "@/lib/auth";
-import { NdjsonJevAuditStore } from "@/lib/market-intelligence/audit-store";
+import { createJevAuditStore } from "@/lib/market-intelligence/audit-store-factory";
 import {
   getJevServerHealth,
   JevConfigurationError,
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       context,
       {
         config,
-        store: new NdjsonJevAuditStore(config.auditDirectory),
+        store: createJevAuditStore(config),
       },
       { signal: request.signal },
     );

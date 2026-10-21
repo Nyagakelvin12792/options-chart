@@ -23,6 +23,7 @@ TYPESAFE_API_KEY=replace_with_your_real_key
 JEV_SHADOW_ENABLED=false
 JEV_KILL_SWITCH=true
 JEV_MODEL=jev-latest
+JEV_AUDIT_STORE=filesystem
 JEV_AUDIT_DIR=.data/jev-audit
 JEV_TIMEOUT_MS=2000
 JEV_MAX_CALLS_PER_HOUR=12
@@ -72,16 +73,51 @@ request budgets, disabled state, missing credentials, and active kill switch all
 fail closed.
 
 Vercel's function filesystem is temporary and is not accepted as durable audit
-storage. The endpoint reports `JEV_DURABLE_STORE_UNAVAILABLE` when `VERCEL=true`.
-Do not enable Jev in a Vercel environment until a shared durable-store adapter is
-implemented and reviewed.
+storage. The endpoint reports `JEV_DURABLE_STORE_UNAVAILABLE` when `VERCEL=true`
+and `JEV_AUDIT_STORE=filesystem`.
+
+Checkpoint 3 adds a Neon-compatible Postgres adapter. It stores immutable,
+content-validated provider records and persists a separate pre-call reservation
+before Jev is contacted. A Postgres advisory lock makes hourly and daily budgets
+atomic across concurrent Vercel functions. A crashed request keeps its
+reservation and therefore fails safely by consuming budget.
 
 ## Vercel Credential Placement
 
-When shared durable storage is ready, add `TYPESAFE_API_KEY` in the Vercel
-project's Settings, under Environment Variables. Scope it to Preview first. Do
-not prefix it with `NEXT_PUBLIC_`. Keep `JEV_SHADOW_ENABLED=false` and
-`JEV_KILL_SWITCH=true` in Production until the preview observation is reviewed.
+Add `TYPESAFE_API_KEY` in the Vercel project's Settings, under Environment
+Variables. Scope it to Preview first. Do not prefix it with `NEXT_PUBLIC_`.
+Secret values belong in Vercel and must not be copied into source, logs, or chat.
+
+Connect a Neon Postgres database to the Vercel project through the Marketplace,
+then verify that Vercel provisioned `DATABASE_URL`. Configure Preview with:
+
+```text
+JEV_AUDIT_STORE=postgres
+JEV_SHADOW_ENABLED=false
+JEV_KILL_SWITCH=true
+JEV_MAX_CALLS_PER_HOUR=1
+JEV_MAX_CALLS_PER_DAY=1
+```
+
+Redeploy Preview after environment-variable changes. The authenticated `GET`
+health response must report `persistence: "postgres"`, `keyConfigured: true`,
+and only the expected disabled/kill-switch issues. It never returns either
+secret.
+
+For the bounded observation, enable Jev and release the kill switch in Preview
+only, redeploy, and submit one sanitized `DecisionContextV1`. Confirm a valid
+record, model identity, latency, record hash, and persisted reuse. A different
+second context must be rejected by the one-call budget without contacting Jev.
+Restore `JEV_KILL_SWITCH=true` immediately and redeploy. Production remains:
+
+```text
+JEV_AUDIT_STORE=postgres
+JEV_SHADOW_ENABLED=false
+JEV_KILL_SWITCH=true
+```
+
+Do not enable Production until the Preview evidence and Postgres records have
+been reviewed.
 
 ## Emergency Stop
 

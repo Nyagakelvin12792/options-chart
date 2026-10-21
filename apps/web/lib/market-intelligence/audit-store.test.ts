@@ -32,8 +32,16 @@ describe("NDJSON Jev audit store", () => {
     const directory = await mkdtemp(path.join(tmpdir(), "jev-audit-"));
     const store = new NdjsonJevAuditStore(directory);
     const record = runRecord("context-1", 10_000);
-    await store.append(record);
-    await store.append(record);
+    const reservation = await store.reserveProviderCall({
+      reservationId: "reservation-1",
+      provider: "jev-v1",
+      startedAtMs: 10_000,
+      maxCallsPerHour: 1,
+      maxCallsPerDay: 1,
+    });
+    expect(reservation.status).toBe("reserved");
+    await store.append(record, "reservation-1");
+    await store.append(record, "reservation-1");
 
     expect(await store.countProviderRunsSince("jev-v1", 0)).toBe(1);
     expect(
@@ -44,6 +52,29 @@ describe("NDJSON Jev audit store", () => {
       "utf8",
     );
     expect(content.trim().split(/\r?\n/u)).toHaveLength(1);
+  });
+
+  it("persists reservations before calls and enforces the budget", async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), "jev-budget-"));
+    const store = new NdjsonJevAuditStore(directory);
+    expect(
+      await store.reserveProviderCall({
+        reservationId: "reservation-1",
+        provider: "jev-v1",
+        startedAtMs: 10_000,
+        maxCallsPerHour: 1,
+        maxCallsPerDay: 2,
+      }),
+    ).toMatchObject({ status: "reserved" });
+    expect(
+      await store.reserveProviderCall({
+        reservationId: "reservation-2",
+        provider: "jev-v1",
+        startedAtMs: 10_001,
+        maxCallsPerHour: 1,
+        maxCallsPerDay: 2,
+      }),
+    ).toEqual({ status: "hourly-exhausted" });
   });
 
   it("fails closed when persistent audit data is corrupt", async () => {

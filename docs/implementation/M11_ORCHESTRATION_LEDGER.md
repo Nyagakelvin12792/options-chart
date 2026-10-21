@@ -127,13 +127,14 @@ branch. The server-integration commit is
 
 ## Next Actions
 
-1. Product owner places the TypeSafe key only in `apps/web/.env.local`, with the
-   provider disabled and the kill switch active.
-2. Run the authenticated health check, then a one-call local shadow observation
-   using hourly and daily request budgets of one; inspect the persisted record and
-   restore the kill switch.
-3. Architect reviews M11.4/M11.5 corrections and both M11.6 checkpoints.
-4. Select a shared durable-store adapter before any Vercel provider activation.
+1. Verify the product owner's reported Vercel `TYPESAFE_API_KEY` is a server-only
+   Preview Secret, with the provider disabled and the kill switch active.
+2. Provision or attach Neon Postgres, confirm `DATABASE_URL`, and configure
+   `JEV_AUDIT_STORE=postgres` in Preview.
+3. Architect reviews M11.4/M11.5 corrections and all three M11.6 checkpoints,
+   including the Postgres schema and atomic budget reservation.
+4. Deploy Checkpoint 3 to Preview, run one bounded shadow observation, inspect the
+   persisted record and reuse behavior, then restore the kill switch.
 5. Decide whether Minara is the narrator provider and approve its endpoint,
    authentication, retention, structured-output, and cost-limit contract.
 6. Do not begin M11.7 calibration until recorded shadow decisions exist and M11.6
@@ -141,11 +142,11 @@ branch. The server-integration commit is
 
 ## Blockers
 
-- A live JEV verification requires the user to insert `TYPESAFE_API_KEY` into the
-  ignored local app environment file. The key must not be committed or pasted into
-  an agent conversation.
-- Vercel activation is blocked because its function filesystem is temporary and no
-  shared durable-store adapter has been selected.
+- The product owner reports that the TypeSafe key is in Vercel, but its Preview
+  scope and Secret classification have not been independently verified.
+- The shared Postgres adapter is implemented locally, but Vercel activation remains
+  blocked until Neon is provisioned or attached, `DATABASE_URL` is present, the
+  checkpoint is reviewed, and a Preview deployment is available.
 - A concrete Minara narrator adapter requires an approved gateway URL,
   authentication method, structured-output behavior, retention policy, and cost
   limits. No Minara environment configuration is present.

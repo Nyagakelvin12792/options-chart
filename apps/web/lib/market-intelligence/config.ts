@@ -10,6 +10,8 @@ export interface JevServerConfig {
   readonly apiKey: string | null;
   readonly model: string;
   readonly auditDirectory: string;
+  readonly auditStore: "filesystem" | "postgres";
+  readonly databaseUrl: string | null;
   readonly timeoutMs: number;
   readonly maxCallsPerHour: number;
   readonly maxCallsPerDay: number;
@@ -22,7 +24,7 @@ export interface JevServerHealth {
   readonly killSwitch: boolean;
   readonly ready: boolean;
   readonly keyConfigured: boolean;
-  readonly persistence: "filesystem" | "unavailable-on-vercel";
+  readonly persistence: "filesystem" | "postgres" | "unavailable-on-vercel";
   readonly model: string;
   readonly timeoutMs: number;
   readonly maxCallsPerHour: number;
@@ -82,6 +84,19 @@ function modelName(value: string | undefined): string {
   return model;
 }
 
+function auditStoreName(
+  value: string | undefined,
+): JevServerConfig["auditStore"] {
+  const normalized = value?.trim().toLowerCase() || "filesystem";
+  if (normalized !== "filesystem" && normalized !== "postgres") {
+    throw new JevConfigurationError(
+      "JEV_CONFIGURATION_INVALID",
+      "JEV_AUDIT_STORE must be filesystem or postgres",
+    );
+  }
+  return normalized;
+}
+
 export function readJevServerConfig(
   environment: Environment,
   cwd = process.cwd(),
@@ -116,6 +131,8 @@ export function readJevServerConfig(
       cwd,
       environment.JEV_AUDIT_DIR?.trim() || DEFAULT_AUDIT_DIRECTORY,
     ),
+    auditStore: auditStoreName(environment.JEV_AUDIT_STORE),
+    databaseUrl: environment.DATABASE_URL?.trim() || null,
     timeoutMs: boundedInteger(
       environment.JEV_TIMEOUT_MS,
       2_000,
@@ -141,13 +158,22 @@ export function getJevServerHealth(config: JevServerConfig): JevServerHealth {
   if (!config.enabled) issues.push("JEV_SHADOW_DISABLED");
   if (config.killSwitch) issues.push("JEV_KILL_SWITCH_ACTIVE");
   if (config.apiKey === null) issues.push("JEV_API_KEY_MISSING");
-  if (config.isVercel) issues.push("JEV_DURABLE_STORE_UNAVAILABLE");
+  if (config.auditStore === "postgres" && config.databaseUrl === null) {
+    issues.push("JEV_DATABASE_URL_MISSING");
+  }
+  if (config.isVercel && config.auditStore === "filesystem") {
+    issues.push("JEV_DURABLE_STORE_UNAVAILABLE");
+  }
+  const persistence =
+    config.isVercel && config.auditStore === "filesystem"
+      ? "unavailable-on-vercel"
+      : config.auditStore;
   return {
     enabled: config.enabled,
     killSwitch: config.killSwitch,
     ready: issues.length === 0,
     keyConfigured: config.apiKey !== null,
-    persistence: config.isVercel ? "unavailable-on-vercel" : "filesystem",
+    persistence,
     model: config.model,
     timeoutMs: config.timeoutMs,
     maxCallsPerHour: config.maxCallsPerHour,

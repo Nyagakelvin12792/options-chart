@@ -1,3 +1,5 @@
+import { createHash, randomUUID } from "node:crypto";
+
 import {
   JevDecisionProvider,
   parseDecisionContext,
@@ -9,8 +11,6 @@ import {
 import type { JevAuditStorePort } from "./audit-store";
 import { assertJevServerReady, type JevServerConfig } from "./config";
 
-const HOUR_MS = 60 * 60 * 1_000;
-const DAY_MS = 24 * HOUR_MS;
 const activeRuns = new Map<
   string,
   Promise<{
@@ -53,8 +53,9 @@ export async function runJevShadowAssessment(
   options: JevShadowServiceOptions = {},
 ): Promise<JevShadowServiceResult> {
   const validatedContext = parseDecisionContext(context);
+  const storeKey = persistenceKey(dependencies.config);
   const key = [
-    dependencies.config.auditDirectory,
+    storeKey,
     dependencies.config.model,
     validatedContext.contextId,
   ].join(":");
@@ -62,7 +63,7 @@ export async function runJevShadowAssessment(
   if (existing !== undefined) return existing;
 
   const task = serializedProviderRun(
-    [dependencies.config.auditDirectory, dependencies.config.model].join(":"),
+    [storeKey, dependencies.config.model].join(":"),
     () => execute(validatedContext, dependencies, options),
   );
   activeRuns.set(key, task);
@@ -71,6 +72,16 @@ export async function runJevShadowAssessment(
   } finally {
     if (activeRuns.get(key) === task) activeRuns.delete(key);
   }
+}
+
+function persistenceKey(config: JevServerConfig): string {
+  if (config.auditStore === "filesystem") {
+    return `filesystem:${config.auditDirectory}`;
+  }
+  const databaseIdentity = createHash("sha256")
+    .update(config.databaseUrl ?? "missing")
+    .digest("hex");
+  return `postgres:${databaseIdentity}`;
 }
 
 function serializedProviderRun<T>(
@@ -111,24 +122,30 @@ async function execute(
 
   const now = dependencies.now ?? Date.now;
   const currentTime = now();
-  const [hourlyCalls, dailyCalls] = await Promise.all([
-    dependencies.store.countProviderRunsSince(
-      provider.provider,
-      currentTime - HOUR_MS,
-    ),
-    dependencies.store.countProviderRunsSince(
-      provider.provider,
-      currentTime - DAY_MS,
-    ),
-  ]);
-  if (hourlyCalls >= dependencies.config.maxCallsPerHour) {
+  let reservation;
+  try {
+    reservation = await dependencies.store.reserveProviderCall({
+      reservationId: randomUUID(),
+      provider: provider.provider,
+      startedAtMs: currentTime,
+      maxCallsPerHour: dependencies.config.maxCallsPerHour,
+      maxCallsPerDay: dependencies.config.maxCallsPerDay,
+    });
+  } catch {
+    throw new JevShadowServiceError(
+      "JEV_AUDIT_RESERVATION_FAILED",
+      503,
+      "Jev request was blocked because its durable call reservation failed",
+    );
+  }
+  if (reservation.status === "hourly-exhausted") {
     throw new JevShadowServiceError(
       "JEV_HOURLY_BUDGET_EXHAUSTED",
       429,
       "Jev hourly request budget is exhausted",
     );
   }
-  if (dailyCalls >= dependencies.config.maxCallsPerDay) {
+  if (reservation.status === "daily-exhausted") {
     throw new JevShadowServiceError(
       "JEV_DAILY_BUDGET_EXHAUSTED",
       429,
@@ -143,7 +160,7 @@ async function execute(
     ...(dependencies.now ? { now: dependencies.now } : {}),
   });
   try {
-    await dependencies.store.append(record);
+    await dependencies.store.append(record, reservation.reservationId);
   } catch {
     throw new JevShadowServiceError(
       "JEV_AUDIT_PERSIST_FAILED",
