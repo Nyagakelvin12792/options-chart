@@ -13,24 +13,16 @@ const profile = (email: string, emailVerified: boolean): Profile => ({
 });
 
 describe("temporary public preview", () => {
-  it("bypasses sign-in only for the designated Vercel preview branch", () => {
+  it("bypasses sign-in for every Vercel Preview deployment", () => {
     expect(
       isTemporaryPublicPreview({
         VERCEL_ENV: "preview",
-        VERCEL_GIT_COMMIT_REF: "handoff/antigravity-m11",
       }),
     ).toBe(true);
 
     expect(
       isTemporaryPublicPreview({
         VERCEL_ENV: "production",
-        VERCEL_GIT_COMMIT_REF: "handoff/antigravity-m11",
-      }),
-    ).toBe(false);
-    expect(
-      isTemporaryPublicPreview({
-        VERCEL_ENV: "preview",
-        VERCEL_GIT_COMMIT_REF: "main",
       }),
     ).toBe(false);
   });

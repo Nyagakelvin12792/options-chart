@@ -47,7 +47,10 @@ the kill switch immediately after the observation.
 
 ## Health And Assessment Endpoints
 
-Both endpoints require the existing dashboard access check.
+Both endpoints use the existing dashboard access check. Under the temporary
+development exception, Vercel Preview deployments are publicly reachable while
+Production still requires the allowlisted Google account. Keep Jev disabled and
+kill-switched on any public Preview except during the single bounded observation.
 
 ```text
 GET  /api/intelligence/jev
@@ -99,7 +102,7 @@ JEV_MAX_CALLS_PER_HOUR=1
 JEV_MAX_CALLS_PER_DAY=1
 ```
 
-Redeploy Preview after environment-variable changes. The authenticated `GET`
+Redeploy Preview after environment-variable changes. The public Preview `GET`
 health response must report `persistence: "postgres"`, `keyConfigured: true`,
 and only the expected disabled/kill-switch issues. It never returns either
 secret.

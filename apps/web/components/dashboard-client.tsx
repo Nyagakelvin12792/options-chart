@@ -143,7 +143,7 @@ import {
 
 interface DashboardClientProps {
   readonly accessLabel: string;
-  readonly accessMode: "google" | "development";
+  readonly accessMode: "google" | "development" | "preview";
 }
 
 interface ChartBenchmarkResult {

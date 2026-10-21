@@ -39,7 +39,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
 | Vercel deployment | COMPLETE | Production deployment verified through commit `2ea42ca` |
-| Private authentication | COMPLETE | Google login with one exact allowlisted account |
+| Access control | TEMPORARY PREVIEW OVERRIDE | Local development and all Vercel Previews are public; Production retains Google login with one exact allowlisted account |
 | Account risk terminal | COMPLETE | Live chart-synchronized long/short sizing capped by account risk, daily loss, drawdown, leverage, and margin; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
@@ -89,7 +89,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-029 | project uses a new dedicated repository | ACCEPTED |
 | ADR-030 | Gamma territory uses subtle regime shading plus labeled Gamma Flip | ACCEPTED |
 | ADR-031 | v1 includes a collapsible Gamma-by-price profile | ACCEPTED |
-| ADR-032 | authentication uses Google with one allowlisted account | ACCEPTED |
+| ADR-032 | Production authentication uses Google with one allowlisted account; local and Vercel Preview access is temporarily public by product-owner override | ACCEPTED WITH TEMPORARY EXCEPTION |
 | ADR-033 | free Vercel URL is used initially | ACCEPTED |
 | ADR-034 | product-owner approval occurs at milestone exits | ACCEPTED |
 | ADR-035 | Codex is primary implementer; Antigravity/Gemini is independent reviewer/browser verifier | ACCEPTED |

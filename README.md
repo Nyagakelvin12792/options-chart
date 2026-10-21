@@ -12,7 +12,7 @@ The first production release is intentionally read-only. It uses public market d
 - TradingView Lightweight Charts as the primary chart engine.
 - Chart-first desktop interface with a right-side level rail.
 - Vercel Hobby deployment target.
-- Google authentication with one allowlisted account.
+- Public Vercel Previews during development; Production retains the allowlisted Google account gate.
 
 ## Current Status
 

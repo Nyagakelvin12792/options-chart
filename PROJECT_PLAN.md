@@ -417,6 +417,12 @@ The profile must share the same price scale as the main chart where practical.
 
 ## Authentication
 
+Temporary product-owner override (2026-10-21): local development and every
+Vercel Preview deployment open directly without Google sign-in so UI and
+integration work can be reviewed. Production retains the allowlisted Google
+account gate. Jev remains disabled and kill-switched by default; a public
+Preview must never be used to enable an unbounded provider run.
+
 Use:
 
 ```text
