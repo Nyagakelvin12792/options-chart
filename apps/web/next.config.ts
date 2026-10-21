@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   transpilePackages: [
     "@options-chart/chart",
+    "@options-chart/decision-engine",
     "@options-chart/market-data",
     "@options-chart/options-engine",
     "@options-chart/worker-protocol",

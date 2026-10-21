@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "options-chart-cryptofeed-collector"
+version = "0.1.0"
+description = "Local zero-cost Cryptofeed shadow collector for options-chart market events."
+requires-python = ">=3.11"
+dependencies = [
+  "cryptofeed>=2.4,<3",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8,<9",
+]
+
+[project.scripts]
+options-chart-cryptofeed = "cryptofeed_collector.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

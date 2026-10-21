@@ -22,6 +22,26 @@ interface RiskTerminalProps {
   readonly previewPosition?: PositionDrawing | null;
   readonly settings?: PositionToolSettings;
   readonly onSettingsChange?: (settings: PositionToolSettings) => void;
+  readonly onSnapshotChange?: (snapshot: RiskTerminalSnapshot) => void;
+}
+
+export interface RiskTerminalSnapshot {
+  readonly asOfMs: number;
+  readonly state: "available" | "reduced" | "prohibited";
+  readonly reasonCodes: readonly string[];
+  readonly proposedTrade: {
+    readonly asOfMs: number;
+    readonly staleAfterMs: number;
+    readonly side: PositionSide;
+    readonly entryPrice: number;
+    readonly stopPrice: number;
+    readonly targetPrice: number | null;
+    readonly entrySource: string;
+    readonly stopSource: string;
+    readonly targetSource: string | null;
+    readonly rewardRiskRatio: number | null;
+    readonly rewardRiskFormulaVersion: string;
+  } | null;
 }
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -135,6 +155,7 @@ export function RiskTerminal({
   previewPosition = null,
   settings,
   onSettingsChange,
+  onSnapshotChange,
 }: RiskTerminalProps) {
   const [positionSide, setPositionSide] = useState<PositionSide>("long");
   const [balanceUsd, setBalanceUsd] = useState("10000");
@@ -233,6 +254,34 @@ export function RiskTerminal({
       riskPercent,
     ],
   );
+
+  useEffect(() => {
+    if (!onSnapshotChange) return;
+    const asOfMs = Date.now();
+    const proposedTrade = activePosition
+      ? {
+          asOfMs,
+          staleAfterMs: 60_000,
+          side: effectiveSide,
+          entryPrice: activePosition.entry,
+          stopPrice: activePosition.stopLoss,
+          targetPrice: activePosition.takeProfit,
+          entrySource: "position-tool",
+          stopSource: "position-tool",
+          targetSource: "position-tool",
+          rewardRiskRatio: riskResult.rewardRiskRatio,
+          rewardRiskFormulaVersion: "risk-terminal-v1",
+        }
+      : null;
+    onSnapshotChange({
+      asOfMs,
+      state: riskResult.valid ? "available" : "prohibited",
+      reasonCodes: riskResult.valid
+        ? ["RISK_TERMINAL_READY"]
+        : [riskResult.reason],
+      proposedTrade,
+    });
+  }, [activePosition, effectiveSide, onSnapshotChange, riskResult]);
 
   const selectPositionSide = (nextSide: PositionSide) => {
     if (nextSide === positionSide) return;

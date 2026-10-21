@@ -1,0 +1,21 @@
+{
+  "identity": {
+    "venue": "binance",
+    "symbol": "BTCUSDT",
+    "instrumentType": "spot",
+    "channel": "trade",
+    "exchangeTimestampMs": 1700000000002,
+    "sequence": "emoji-key-order",
+    "payload": {
+      "schemaVersion": "binance-spot-trade-payload-v1",
+      "tradeId": "emoji-key-order",
+      "price": "6.4e4",
+      "quantity": "1.25E-1",
+      "tradeTimestampMs": 1700000000002,
+      "takerSide": "sell",
+      "\uffff": "before-plane",
+      "\ud83d\ude00": "after-plane"
+    }
+  },
+  "expectedEventId": "market-event-v1:37097bb6c13cdd2f"
+}

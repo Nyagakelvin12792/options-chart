@@ -1,12 +1,31 @@
 import type { Profile } from "next-auth";
 import { describe, expect, it } from "vitest";
 
-import { isAllowlistedGoogleProfile } from "../apps/web/lib/auth";
+import {
+  isAllowlistedGoogleProfile,
+  isTemporaryPublicPreview,
+} from "../apps/web/lib/auth";
 import { getAuthErrorMessage } from "../apps/web/lib/auth-error";
 
 const profile = (email: string, emailVerified: boolean): Profile => ({
   email,
   email_verified: emailVerified,
+});
+
+describe("temporary public preview", () => {
+  it("bypasses sign-in for every Vercel Preview deployment", () => {
+    expect(
+      isTemporaryPublicPreview({
+        VERCEL_ENV: "preview",
+      }),
+    ).toBe(true);
+
+    expect(
+      isTemporaryPublicPreview({
+        VERCEL_ENV: "production",
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("Google authentication allowlist", () => {

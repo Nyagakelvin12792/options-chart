@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "market-health-event-v1",
+  "healthEventId": "market-health-event-v1:596f7e1c82888864",
+  "venue": "binance",
+  "symbol": "BTC-USDT",
+  "channel": "trade",
+  "detectedAtMs": 1700000000111,
+  "connectionId": "conn-1",
+  "severity": "info",
+  "relatedEventId": "market-event-v1:772a5596dc127ecb",
+  "type": "duplicate",
+  "details": {
+    "duplicateEventId": "market-event-v1:772a5596dc127ecb",
+    "firstSeenAtMs": 1700000000111
+  }
+}

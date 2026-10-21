@@ -9,6 +9,13 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
 const allowlistedEmail = process.env.AUTH_ALLOWLIST_EMAIL?.trim().toLowerCase();
 const nextAuthSecret = process.env.NEXTAUTH_SECRET?.trim();
+type PreviewEnvironment = {
+  readonly VERCEL_ENV: string | undefined;
+};
+
+export const isTemporaryPublicPreview = (
+  environment: PreviewEnvironment,
+): boolean => environment.VERCEL_ENV === "preview";
 
 const hasVerifiedEmail = (
   profile: Profile | undefined,
@@ -58,7 +65,7 @@ export type DashboardAccess =
   | {
       readonly authorized: true;
       readonly label: string;
-      readonly mode: "google" | "development";
+      readonly mode: "google" | "development" | "preview";
     }
   | {
       readonly authorized: false;
@@ -66,6 +73,18 @@ export type DashboardAccess =
     };
 
 export const getDashboardAccess = async (): Promise<DashboardAccess> => {
+  if (
+    isTemporaryPublicPreview({
+      VERCEL_ENV: process.env.VERCEL_ENV,
+    })
+  ) {
+    return {
+      authorized: true,
+      label: "Public preview",
+      mode: "preview",
+    };
+  }
+
   if (
     process.env.NODE_ENV === "development" &&
     process.env.AUTH_DEV_BYPASS !== "false"

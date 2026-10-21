@@ -1,0 +1,18 @@
+{
+  "venue": "binance",
+  "symbol": "BTC-USDT",
+  "instrumentType": "spot",
+  "channels": ["trade", "l2-book"],
+  "collectorVersion": "cryptofeed-shadow-0.1.0",
+  "storage": {
+    "directory": "data/events",
+    "prefix": "binance-btc-usdt",
+    "maxBytes": 10485760
+  },
+  "health": {
+    "staleAfterMs": 15000
+  },
+  "liveCollection": {
+    "enabled": false
+  }
+}

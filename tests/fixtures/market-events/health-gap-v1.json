@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "market-health-event-v1",
+  "healthEventId": "market-health-event-v1:b83456a67638a6d0",
+  "venue": "binance",
+  "symbol": "BTCUSDT",
+  "channel": "l2-book",
+  "detectedAtMs": 1700000000500,
+  "connectionId": "binance-spot-btcusdt-shared",
+  "severity": "warning",
+  "type": "gap",
+  "details": {
+    "previousSequence": 100,
+    "expectedSequence": 101,
+    "actualSequence": 105,
+    "missingCount": 4
+  }
+}

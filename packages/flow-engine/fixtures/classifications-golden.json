@@ -1,0 +1,165 @@
+{
+  "fixtureVersion": "flow-classifications-golden-v1",
+  "baseTimestampMs": 1700000000000,
+  "candidateTimestampMs": 1700000300000,
+  "midHorizonTimestampMs": 1700000330000,
+  "horizonTimestampMs": 1700000360000,
+  "levels": {
+    "resistance100k": {
+      "id": "lvl-res-100k",
+      "price": 100000,
+      "kind": "gamma-wall",
+      "observedAtMs": 1700000000000,
+      "validFromMs": 1700000000000,
+      "validUntilMs": null,
+      "sourceVersion": "gex-v1",
+      "role": "resistance"
+    },
+    "support100k": {
+      "id": "lvl-sup-100k",
+      "price": 100000,
+      "kind": "open-interest-wall",
+      "observedAtMs": 1700000000000,
+      "validFromMs": 1700000000000,
+      "validUntilMs": null,
+      "sourceVersion": "oi-v1",
+      "role": "support"
+    }
+  },
+  "scenarios": [
+    {
+      "name": "buy-absorption-to-bearish-rejection",
+      "levelKey": "resistance100k",
+      "candidatePrices": [99980, 99990, 99995],
+      "candidateSide": "buy",
+      "candidateQuoteEach": 5000,
+      "midHorizonTrade": {
+        "timestampMs": 1700000330000,
+        "price": 99850,
+        "side": "sell",
+        "quoteVolume": 8000
+      },
+      "horizonTrades": [
+        {
+          "timestampMs": 1700000330000,
+          "price": 99850,
+          "side": "sell",
+          "quoteVolume": 8000
+        },
+        {
+          "timestampMs": 1700000345000,
+          "price": 99900,
+          "side": "sell",
+          "quoteVolume": 6000
+        },
+        {
+          "timestampMs": 1700000360000,
+          "price": 99880,
+          "side": "sell",
+          "quoteVolume": 7000
+        }
+      ],
+      "expectedPendingClassification": "buy-absorption",
+      "expectedFinalOutcome": "bearish-rejection"
+    },
+    {
+      "name": "sell-absorption-to-bullish-rejection",
+      "levelKey": "support100k",
+      "candidatePrices": [100020, 100010, 100005],
+      "candidateSide": "sell",
+      "candidateQuoteEach": 5000,
+      "midHorizonTrade": {
+        "timestampMs": 1700000330000,
+        "price": 100150,
+        "side": "buy",
+        "quoteVolume": 8000
+      },
+      "horizonTrades": [
+        {
+          "timestampMs": 1700000330000,
+          "price": 100150,
+          "side": "buy",
+          "quoteVolume": 8000
+        },
+        {
+          "timestampMs": 1700000345000,
+          "price": 100100,
+          "side": "buy",
+          "quoteVolume": 6000
+        },
+        {
+          "timestampMs": 1700000360000,
+          "price": 100120,
+          "side": "buy",
+          "quoteVolume": 7000
+        }
+      ],
+      "expectedPendingClassification": "sell-absorption",
+      "expectedFinalOutcome": "bullish-rejection"
+    },
+    {
+      "name": "buy-absorption-to-acceptance",
+      "levelKey": "resistance100k",
+      "candidatePrices": [99980, 99990, 99995],
+      "candidateSide": "buy",
+      "candidateQuoteEach": 5000,
+      "midHorizonTrade": {
+        "timestampMs": 1700000315000,
+        "price": 100080,
+        "side": "buy",
+        "quoteVolume": 15000
+      },
+      "horizonTrades": [
+        {
+          "timestampMs": 1700000315000,
+          "price": 100080,
+          "side": "buy",
+          "quoteVolume": 15000
+        },
+        {
+          "timestampMs": 1700000340000,
+          "price": 100090,
+          "side": "buy",
+          "quoteVolume": 15000
+        },
+        {
+          "timestampMs": 1700000360000,
+          "price": 100100,
+          "side": "buy",
+          "quoteVolume": 10000
+        }
+      ],
+      "expectedPendingClassification": "buy-absorption",
+      "expectedFinalOutcome": "acceptance"
+    },
+    {
+      "name": "buy-absorption-to-unresolved",
+      "levelKey": "resistance100k",
+      "candidatePrices": [99980, 99990, 99995],
+      "candidateSide": "buy",
+      "candidateQuoteEach": 5000,
+      "midHorizonTrade": {
+        "timestampMs": 1700000330000,
+        "price": 99970,
+        "side": "sell",
+        "quoteVolume": 4000
+      },
+      "horizonTrades": [
+        {
+          "timestampMs": 1700000330000,
+          "price": 99970,
+          "side": "sell",
+          "quoteVolume": 4000
+        },
+        {
+          "timestampMs": 1700000360000,
+          "price": 100020,
+          "side": "buy",
+          "quoteVolume": 4000
+        }
+      ],
+      "expectedPendingClassification": "buy-absorption",
+      "expectedFinalOutcome": "unresolved"
+    }
+  ]
+}

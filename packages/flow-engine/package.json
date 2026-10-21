@@ -1,0 +1,19 @@
+{
+  "name": "@options-chart/flow-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@options-chart/market-data": "*",
+    "zod": "4.4.3"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./canonical-json": "./src/canonical-json.ts",
+    "./classifications": "./src/classifications.ts",
+    "./contracts": "./src/contracts.ts",
+    "./cvd": "./src/cvd.ts",
+    "./decimal": "./src/decimal.ts",
+    "./order-book": "./src/order-book.ts"
+  }
+}

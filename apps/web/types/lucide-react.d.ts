@@ -19,6 +19,8 @@ declare module "lucide-react" {
   export const ArrowDownRight: LucideIcon;
   export const ArrowUpRight: LucideIcon;
   export const BarChart3: LucideIcon;
+  export const BrainCircuit: LucideIcon;
+  export const ChevronDown: LucideIcon;
   export const Eye: LucideIcon;
   export const EyeOff: LucideIcon;
   export const History: LucideIcon;
@@ -29,9 +31,11 @@ declare module "lucide-react" {
   export const Pause: LucideIcon;
   export const Play: LucideIcon;
   export const RotateCcw: LucideIcon;
+  export const RefreshCw: LucideIcon;
   export const SeparatorHorizontal: LucideIcon;
   export const SeparatorVertical: LucideIcon;
   export const Settings2: LucideIcon;
+  export const ShieldCheck: LucideIcon;
   export const StepForward: LucideIcon;
   export const Trash2: LucideIcon;
 }

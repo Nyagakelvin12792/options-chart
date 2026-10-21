@@ -1,0 +1,332 @@
+{
+  "fixtureVersion": "cvd-golden-fixture-v1",
+  "anchorTimestampMs": 1700438400000,
+  "asOfFeatureTimestampMs": 1700438490000,
+  "events": [
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000001",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700438405000,
+      "receiptTimestampMs": 1700438405020,
+      "sequence": 1,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 1001,
+        "price": "50000.00",
+        "quantity": "0.4",
+        "tradeTimestampMs": 1700438405000,
+        "takerSide": "buy",
+        "isBuyerMaker": true
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "2.4.1",
+        "connectionId": "conn-golden-1",
+        "recordedAtMs": 1700438405020
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000002",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700438420000,
+      "receiptTimestampMs": 1700438420015,
+      "sequence": 2,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 1002,
+        "price": "50000.00",
+        "quantity": "0.1",
+        "tradeTimestampMs": 1700438420000,
+        "takerSide": "sell",
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "2.4.1",
+        "connectionId": "conn-golden-1",
+        "recordedAtMs": 1700438420015
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000003",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700438450000,
+      "receiptTimestampMs": 1700438450010,
+      "sequence": 3,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 1003,
+        "price": "50000.00",
+        "quantity": "0.2",
+        "tradeTimestampMs": 1700438450000,
+        "takerSide": null,
+        "isBuyerMaker": true
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "2.4.1",
+        "connectionId": "conn-golden-1",
+        "recordedAtMs": 1700438450010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000004",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": 1700438470000,
+      "receiptTimestampMs": 1700438470010,
+      "sequence": 4,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 1004,
+        "price": "50000.00",
+        "quantity": "0.3",
+        "tradeTimestampMs": 1700438470000,
+        "takerSide": null,
+        "isBuyerMaker": false
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "2.4.1",
+        "connectionId": "conn-golden-1",
+        "recordedAtMs": 1700438470010
+      }
+    },
+    {
+      "schemaVersion": "market-event-v1",
+      "eventId": "market-event-v1:0000000000000005",
+      "venue": "binance",
+      "symbol": "BTC-USDT",
+      "instrumentType": "spot",
+      "channel": "trade",
+      "exchangeTimestampMs": null,
+      "receiptTimestampMs": 1700438480000,
+      "sequence": 5,
+      "payload": {
+        "schemaVersion": "binance-spot-trade-payload-v1",
+        "tradeId": 1005,
+        "price": "50000.00",
+        "quantity": "0.1",
+        "tradeTimestampMs": null,
+        "takerSide": null
+      },
+      "provenance": {
+        "collector": "cryptofeed",
+        "collectorVersion": "2.4.1",
+        "connectionId": "conn-golden-1",
+        "recordedAtMs": 1700438480000
+      }
+    }
+  ],
+  "expectedNormalizedTrades": [
+    {
+      "eventId": "market-event-v1:0000000000000001",
+      "receiptTimestampMs": 1700438405020,
+      "featureTimestampMs": 1700438405000,
+      "featureTimeSource": "exchange",
+      "price": 50000,
+      "baseQuantity": 0.4,
+      "quoteVolume": 20000,
+      "takerSide": "buy",
+      "takerSideSource": "explicit-taker-side",
+      "signedQuoteDelta": 20000
+    },
+    {
+      "eventId": "market-event-v1:0000000000000002",
+      "receiptTimestampMs": 1700438420015,
+      "featureTimestampMs": 1700438420000,
+      "featureTimeSource": "exchange",
+      "price": 50000,
+      "baseQuantity": 0.1,
+      "quoteVolume": 5000,
+      "takerSide": "sell",
+      "takerSideSource": "explicit-taker-side",
+      "signedQuoteDelta": -5000
+    },
+    {
+      "eventId": "market-event-v1:0000000000000003",
+      "receiptTimestampMs": 1700438450010,
+      "featureTimestampMs": 1700438450000,
+      "featureTimeSource": "exchange",
+      "price": 50000,
+      "baseQuantity": 0.2,
+      "quoteVolume": 10000,
+      "takerSide": "sell",
+      "takerSideSource": "binance-buyer-maker",
+      "signedQuoteDelta": -10000
+    },
+    {
+      "eventId": "market-event-v1:0000000000000004",
+      "receiptTimestampMs": 1700438470010,
+      "featureTimestampMs": 1700438470000,
+      "featureTimeSource": "exchange",
+      "price": 50000,
+      "baseQuantity": 0.3,
+      "quoteVolume": 15000,
+      "takerSide": "buy",
+      "takerSideSource": "binance-buyer-maker",
+      "signedQuoteDelta": 15000
+    },
+    {
+      "eventId": "market-event-v1:0000000000000005",
+      "receiptTimestampMs": 1700438480000,
+      "featureTimestampMs": 1700438480000,
+      "featureTimeSource": "receipt",
+      "price": 50000,
+      "baseQuantity": 0.1,
+      "quoteVolume": 5000,
+      "takerSide": null,
+      "takerSideSource": "unknown",
+      "signedQuoteDelta": null
+    }
+  ],
+  "expectedSnapshot": {
+    "availability": "degraded",
+    "activeAnchor": {
+      "anchorId": "session-anchor-0",
+      "anchorTimestampMs": 1700438400000,
+      "resetReason": "initial",
+      "buyQuoteVolume": 35000,
+      "sellQuoteVolume": 15000,
+      "unknownSideQuoteVolume": 5000,
+      "totalQuoteVolume": 55000,
+      "buyBaseQuantity": 0.7,
+      "sellBaseQuantity": 0.3,
+      "unknownSideBaseQuantity": 0.1,
+      "totalBaseQuantity": 1.1,
+      "rawCvdQuote": 20000,
+      "includedTradeCount": 5,
+      "unknownSideTradeCount": 1,
+      "malformedTradeCount": 0,
+      "directionalCoverageRatio": 0.909091,
+      "availability": "degraded"
+    },
+    "rolling60s": {
+      "windowId": "duration-60000ms",
+      "windowKind": "duration",
+      "windowDurationMs": 60000,
+      "windowMaxEvents": null,
+      "buyQuoteVolume": 15000,
+      "sellQuoteVolume": 10000,
+      "unknownSideQuoteVolume": 5000,
+      "totalQuoteVolume": 30000,
+      "rawCvdQuote": 5000,
+      "tradeCount": 3,
+      "unknownSideTradeCount": 1,
+      "directionalCoverageRatio": 0.833333,
+      "availability": "degraded"
+    },
+    "rolling300s": {
+      "windowId": "duration-300000ms",
+      "windowKind": "duration",
+      "windowDurationMs": 300000,
+      "windowMaxEvents": null,
+      "buyQuoteVolume": 35000,
+      "sellQuoteVolume": 15000,
+      "unknownSideQuoteVolume": 5000,
+      "totalQuoteVolume": 55000,
+      "rawCvdQuote": 20000,
+      "tradeCount": 5,
+      "unknownSideTradeCount": 1,
+      "directionalCoverageRatio": 0.909091,
+      "availability": "degraded"
+    },
+    "candles1m": [
+      {
+        "timeframe": "1m",
+        "openTimeMs": 1700438400000,
+        "closeTimeMs": 1700438459999,
+        "buyQuoteVolume": 20000,
+        "sellQuoteVolume": 15000,
+        "unknownSideQuoteVolume": 0,
+        "totalQuoteVolume": 35000,
+        "buyBaseQuantity": 0.4,
+        "sellBaseQuantity": 0.3,
+        "rawCvdQuote": 5000,
+        "cumulativeCvdFromAnchorQuote": 5000,
+        "anchorId": "session-anchor-0",
+        "tradeCount": 3,
+        "unknownSideTradeCount": 0,
+        "directionalCoverageRatio": 1,
+        "isClosed": true,
+        "availability": "available"
+      },
+      {
+        "timeframe": "1m",
+        "openTimeMs": 1700438460000,
+        "closeTimeMs": 1700438519999,
+        "buyQuoteVolume": 15000,
+        "sellQuoteVolume": 0,
+        "unknownSideQuoteVolume": 5000,
+        "totalQuoteVolume": 20000,
+        "buyBaseQuantity": 0.3,
+        "sellBaseQuantity": 0,
+        "rawCvdQuote": 15000,
+        "cumulativeCvdFromAnchorQuote": 20000,
+        "anchorId": "session-anchor-0",
+        "tradeCount": 2,
+        "unknownSideTradeCount": 1,
+        "directionalCoverageRatio": 0.75,
+        "isClosed": false,
+        "availability": "degraded"
+      }
+    ],
+    "candles5m": [
+      {
+        "timeframe": "5m",
+        "openTimeMs": 1700438400000,
+        "closeTimeMs": 1700438699999,
+        "buyQuoteVolume": 35000,
+        "sellQuoteVolume": 15000,
+        "unknownSideQuoteVolume": 5000,
+        "totalQuoteVolume": 55000,
+        "buyBaseQuantity": 0.7,
+        "sellBaseQuantity": 0.3,
+        "rawCvdQuote": 20000,
+        "cumulativeCvdFromAnchorQuote": 20000,
+        "anchorId": "session-anchor-0",
+        "tradeCount": 5,
+        "unknownSideTradeCount": 1,
+        "directionalCoverageRatio": 0.909091,
+        "isClosed": false,
+        "availability": "degraded"
+      }
+    ],
+    "candles1w": [
+      {
+        "timeframe": "1w",
+        "openTimeMs": 1700438400000,
+        "closeTimeMs": 1701043199999,
+        "buyQuoteVolume": 35000,
+        "sellQuoteVolume": 15000,
+        "unknownSideQuoteVolume": 5000,
+        "totalQuoteVolume": 55000,
+        "buyBaseQuantity": 0.7,
+        "sellBaseQuantity": 0.3,
+        "rawCvdQuote": 20000,
+        "cumulativeCvdFromAnchorQuote": 20000,
+        "anchorId": "session-anchor-0",
+        "tradeCount": 5,
+        "unknownSideTradeCount": 1,
+        "directionalCoverageRatio": 0.909091,
+        "isClosed": false,
+        "availability": "degraded"
+      }
+    ]
+  }
+}

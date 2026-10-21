@@ -51,3 +51,4 @@ export {
   type DeribitConsolidatedSnapshot,
 } from "./deribit/schemas";
 export * from "./deribit";
+export * from "./market-events";

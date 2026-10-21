@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.5
-Last updated: 2026-09-17
-Overall status: M0-M8 and M10.2-M10.9 complete, pushed to main, and deployed; M9 observation evidence remains open
-Current milestone: Continue with the native AVWAP interaction batch
+Version: 0.9.11
+Last updated: 2026-10-21
+Overall status: M0-M8 and M10.2-M10.9 deployed; M11.4-M11.6 integration is implemented on `codex/m11-integration-ui`, while held-out M11.7 and M9 live-session evidence remain open
+Current milestone: M11.6 REVIEW REQUIRED; activation and user-facing promotion remain gated
 Production status: M10.9 DEPLOYED AND VERIFIED through GitHub main `cb37892` and Vercel deployment `AMLqXkgxG5GLkvEao6puNxdMn3hY`
 
 ---
@@ -39,7 +39,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Gamma overlays | COMPLETE | Independent signal profiles, wall zones, confluence scoring, and audit details delivered |
 | Reliability testing | IN PROGRESS | Automated suites pass; M9 live-session and 24-hour evidence remains open |
 | Vercel deployment | COMPLETE | Production deployment verified through commit `2ea42ca` |
-| Private authentication | COMPLETE | Google login with one exact allowlisted account |
+| Access control | TEMPORARY PREVIEW OVERRIDE | Local development and all Vercel Previews are public; Production retains Google login with one exact allowlisted account |
 | Account risk terminal | COMPLETE | Live chart-synchronized long/short sizing capped by account risk, daily loss, drawdown, leverage, and margin; no execution |
 | Wall confluence | COMPLETE | Independent signals, expiry breadth, reaction classification, overlap strength, ranked zones, and flow confidence delivered |
 | Replay | COMPLETE | Bounded local Deribit snapshots aligned without future leakage to 1x/2x/5x/10x Binance candle replay |
@@ -48,6 +48,13 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Chart refinement M10.7 | COMPLETE | Antigravity `b06593d` reviewed, integrated, pushed, and verified through the production alias at `7cd98a7` |
 | Native chart interactions M10.8 | COMPLETE - VERCEL VERIFICATION PENDING | One-shot tools, candle-snapped VP preview, selected-range rail, and whole-range movement pushed through `d2b651e` |
 | Native position interactions M10.9 | COMPLETE - DEPLOYED AND VERIFIED | Single-gesture long/short creation, live Risk Terminal preview, persistent default R:R, and post-creation editing deployed at `options-chart-upload.vercel.app` |
+| JEV and Cryptofeed architecture M11.1 | APPROVED - DOCUMENTATION ONLY | Lean signal stack, staged collector, typed decisions, narration, replay, calibration, and paper-ledger contracts approved; runtime remains disabled |
+| Cryptofeed shadow collector M11.2 | COMPLETE - LINUX LIVE VERIFIED | Ubuntu run `38793141169` validated 1,465 unique market events across trades and L2, with zero duplicate IDs, schema errors, or collector-error records |
+| Compact market state M11.4 | COMPLETE ON REVIEW BRANCH | Live Binance/Deribit/chart/risk adapters build the versioned state with confirmed H4/H1/M15 pivots and no future evidence |
+| Deterministic baseline M11.5 | COMPLETE ON REVIEW BRANCH | The rules baseline is connected to the dashboard and remains the primary decision authority |
+| Jev shadow integration M11.6 | IMPLEMENTED - ACTIVATION PENDING | Explicit, cached Jev requests are visibly shadow-labelled and safety convergence can only reduce deterministic risk; a live provider call is still required |
+| Replay and calibration M11.7 | FRAMEWORK COMPLETE - EVIDENCE PENDING | Comparison, calibration, class frequency, MFE/MAE, drawdown, ablation, and conservative paper-ledger code is tested; no held-out observation corpus exists yet |
+| User-facing promotion M11.8 | BLOCKED BY EVIDENCE | M9 reliability, live Jev activation, held-out comparison, and product-owner evidence review remain required |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -87,7 +94,7 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-029 | project uses a new dedicated repository | ACCEPTED |
 | ADR-030 | Gamma territory uses subtle regime shading plus labeled Gamma Flip | ACCEPTED |
 | ADR-031 | v1 includes a collapsible Gamma-by-price profile | ACCEPTED |
-| ADR-032 | authentication uses Google with one allowlisted account | ACCEPTED |
+| ADR-032 | Production authentication uses Google with one allowlisted account; local and Vercel Preview access is temporarily public by product-owner override | ACCEPTED WITH TEMPORARY EXCEPTION |
 | ADR-033 | free Vercel URL is used initially | ACCEPTED |
 | ADR-034 | product-owner approval occurs at milestone exits | ACCEPTED |
 | ADR-035 | Codex is primary implementer; Antigravity/Gemini is independent reviewer/browser verifier | ACCEPTED |
@@ -112,6 +119,9 @@ Do not mark work complete based only on a screenshot or successful page render.
 | ADR-054 | Anchored VWAP uses Binance candle volume, strict replay cutoffs, direct chart anchors, and a shared settings surface while remaining independent from options calculations | ACCEPTED |
 | ADR-055 | drawing tools are native one-shot interactions owned by ChartAdapter; Fixed Range Volume Profile previews and edits use candle-snapped transient state without changing options or risk formulas | ACCEPTED |
 | ADR-056 | native long/short positions use one drag gesture, persistent bounded default R:R, transient risk preview, and commit-on-release edit persistence | ACCEPTED |
+| ADR-057 | Cryptofeed is an optional persistent shadow collector and cannot replace authoritative production feeds without parity, gap, stale, and replay evidence | ACCEPTED |
+| ADR-058 | JEV is an optional typed semantic decision provider behind deterministic health and risk checks; it cannot calculate or enlarge numeric risk | ACCEPTED |
+| ADR-059 | A general-purpose LLM may narrate converged evidence but cannot calculate signals, alter decisions, or change numeric risk | ACCEPTED |
 
 Change PROPOSED to ACCEPTED after product-owner confirmation or implementation lock.
 
@@ -800,6 +810,34 @@ Evidence:
 
 ---
 
+## M11.1 JEV and Cryptofeed Integration Architecture
+
+Status: APPROVED - DOCUMENTATION ONLY
+
+- [x] Reviewed QuantDinger's worker, risk-gate, audit, and decision-boundary patterns.
+- [x] Preserved existing Binance, Deribit, formula, chart-adapter, and risk contracts.
+- [x] Defined a persistent Cryptofeed shadow-collector boundary outside ordinary Vercel requests.
+- [x] Defined versioned market-event, decision-context, and assessment contracts.
+- [x] Restricted JEV to typed semantic assessment behind deterministic checks.
+- [x] Defined stale-result cancellation, fail-closed required mode, replay calibration, and paper-ledger gates.
+- [x] Kept live execution, private exchange credentials, and recurring hosted infrastructure out of scope.
+- [x] Product owner approved proceeding with the staged architecture on 2026-09-22.
+- [x] Limited the primary decision surface to structure, location, flow, options regime, and trade quality.
+- [x] Restricted the LLM to concise narration after deterministic convergence.
+
+Evidence:
+
+- Architecture: `docs/architecture/JEV_CRYPTOFEED_INTEGRATION.md`.
+- Journal: `docs/progress/M11/M11.1.md`.
+- No production code, dependency, formula, or deployment change was made.
+
+Implementation plan:
+
+- `docs/implementation/M11_MARKET_INTELLIGENCE_IMPLEMENTATION_PLAN.md`
+- `docs/progress/M11/M11.2.md`
+
+---
+
 # 6. Validation Scoreboard
 
 Do not change a status to PASS without test evidence.
@@ -1047,6 +1085,61 @@ Mitigation:
 ---
 
 # 10. Change Log
+
+## 2026-10-21
+
+### M11.4-M11.7-LIVE-DECISION-INTEGRATION
+
+- Connected the deterministic decision engine to live Binance candles, confirmed H4/H1/M15 pivots, chart AVWAP and volume profile, Deribit options state, confluence zones, user levels, and the Risk Terminal.
+- Added a compact Decision Dock that separates observed data, deterministic rules, Jev shadow assessment, safety convergence, and calibration status. Jev remains explicit-request, cached, default-off, and unable to enlarge risk or reverse direction.
+- Added browser-safe canonical hashing with regression parity against Node SHA-256 so decision identities remain unchanged in the client bundle.
+- Added shadow evaluation reporting for rules-only versus rules-plus-Jev, coverage, stale decisions, class frequency, forward return, MFE, MAE, drawdown, calibration, and five ablation dimensions.
+- Added a conservative paper ledger with fees, adverse slippage, 25% liquidity participation, partial fills, and stop-first same-bar ambiguity.
+- Validation passed: 84 Vitest files with 568 tests, production build, and a desktop/mobile Decision Dock Playwright check.
+- Promotion remains withheld: no live Jev call or held-out observation corpus exists, M9 reliability evidence is incomplete, and provider confidence is not shown as win probability.
+
+## 2026-10-19
+
+### M11.3-ANTIGRAVITY-HANDOFF
+
+- The product owner replaced the unused Qwen assignment with Antigravity for the next implementation batch.
+- M11.3 is authorized from accepted M11.2 base `d536eba623114325661480f07dc458c21f619af3` on `handoff/antigravity-m11` with `M11_2_EXIT_APPROVED=true`.
+- The assignment is restricted to the deterministic `packages/flow-engine` work package, approved workspace references, and its Antigravity worklog. JEV, LLM, UI, production feeds, deployment, risk formulas, and execution remain excluded.
+- Antigravity may create green local checkpoint commits with required attribution. Push, merge, deployment, M11.4, and milestone-exit authority remain withheld pending explicit approval and independent review.
+- The old remote `handoff/qwen-m11` branch is retained as historical evidence; it contains no Qwen implementation work.
+
+## 2026-10-15
+
+### M11.2-LINUX-LIVE-VERIFICATION
+
+- Added Binance's official unauthenticated market-data-only REST and WebSocket hosts to the Cryptofeed shadow adapter after the first Ubuntu probe exposed an HTTP 451 from the default metadata host.
+- Extended terminal error handling to cover callback and feed construction before the stale monitor starts, with a regression test for constructor failure.
+- GitHub Actions run `38793141169` passed 33 collector tests and a bounded 90-second public-data observation on Python 3.12.
+- The retained artifact contains 1,467 valid records: 599 trades, 866 L2-book events, and two explicit observability records. All 1,465 market event IDs are unique; validation errors, duplicate IDs, and collector-error records are zero.
+- The collector ended with GNU `timeout` code 124 as designed. Production Binance candles, Deribit options, Vercel behavior, risk controls, and no-live-execution boundaries were unchanged.
+- Final branch gates passed: 33 Python collector tests, 65 Vitest files with 451 tests, typecheck, lint, production build, progress build/check/policy, and diff check.
+- M11.2 is complete. The push-triggered one-off workflow was removed after evidence capture so it cannot become an accidental recurring collector.
+
+### M11.2-SEQUENCE-PARITY-CORRECTION
+
+- Selected opaque non-empty sequence strings as the canonical cross-runtime contract while retaining nonnegative integer and null support.
+- Added TypeScript and Python regression tests for opaque strings and empty-string rejection; regenerated the checked JSON Schemas with `minLength: 1`.
+- Focused validation passed with 18 TypeScript and 32 Python tests; schema synchronization, typecheck, lint, production build, and both progress gates passed.
+- The full Vitest run passed 450 functional tests and failed only the known resource-sensitive AVWAP timing assertion at 114.34 ms versus 100 ms; its isolated two-test rerun passed.
+- The contention-free split gates passed 449 non-performance tests plus both isolated AVWAP performance tests.
+- Live dependency installation was attempted with Python 3.13 and an isolated Python 3.12 runtime. Cryptofeed 2.5.0 remains unavailable on Windows because `order-book` publishes POSIX/macOS wheels and its source build explicitly rejects the Windows architecture.
+- No live websocket, reconnect, or shutdown evidence is claimed. Run the bounded observation on a Linux runner before M11.3 begins.
+
+## 2026-09-22
+
+### M11.1-JEV-CRYPTOFEED-INTEGRATION-ARCHITECTURE
+
+- Added a staged architecture that uses Cryptofeed for optional normalized market-event collection and JEV for optional typed semantic assessment.
+- Kept Binance candles, Deribit options, validated calculations, risk sizing, and protective behavior deterministic and authoritative.
+- Defined shadow, replay, calibration, and paper-trade promotion gates before any user-facing decision authority.
+- Recorded QuantDinger and `jev-trader` as architectural references rather than application dependencies.
+- Product owner approved the architecture, accepted ADR-057 through ADR-059, and selected GPT-5.5 for routine implementation with GPT-5.6 reserved for high-risk reviews.
+- Added the staged M11.2-M11.8 implementation plan, explicit repository ownership, promotion gates, analysis-panel contract, and token controls.
 
 Use newest entries first.
 
@@ -1625,7 +1718,8 @@ This prevents agents from repeatedly replacing each other's implementations.
 2. Capture M9.7 high-volatility, M9.8 quiet, and M9.9 near-expiry session evidence.
 3. Complete the M9.10 24-hour browser stability run.
 4. Freeze v1 formulas only after the observation gates pass, then complete the `v1.0.0` release tag.
-5. Preserve independent wall signals, compact chart markers, and risk-terminal isolation in subsequent UI refinements.
+5. Begin M11.3 CVD and absorption work only after M11.2 handoff review, preserving the shadow-only collector boundary.
+6. Preserve independent wall signals, compact chart markers, and risk-terminal isolation in subsequent UI refinements.
 
 ---
 
