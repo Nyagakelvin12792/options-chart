@@ -1,7 +1,7 @@
 # M11 Orchestration Ledger
 
-Last updated: 2026-10-20
-Goal status: ACTIVE - M11.6 CHECKPOINT 1 VERIFIED
+Last updated: 2026-10-21
+Goal status: ACTIVE - M11.6 CHECKPOINT 2 VERIFIED
 Automation: no automation is running; M11.6 work is manual, local, and default-off
 
 ## Resume Protocol
@@ -33,25 +33,27 @@ M11.6 JEV And LLM Shadow Providers
 
 ### Current Assignment
 
-| Worker    | Write scope                                                                                 | Status                |
-| --------- | ------------------------------------------------------------------------------------------- | --------------------- |
-| Codex     | `packages/decision-engine/**`, M11.6 progress, orchestration ledger, and Codex handoff      | CHECKPOINT 1 VERIFIED |
-| Architect | Provider-boundary review, milestone acceptance, and authorization of live/server checkpoint | REVIEW REQUIRED       |
+| Worker    | Write scope                                                                           | Status                |
+| --------- | ------------------------------------------------------------------------------------- | --------------------- |
+| Codex     | Jev server boundary, local durable audit store, tests, runbook, progress, and handoff | CHECKPOINT 2 VERIFIED |
+| Architect | Checkpoints 1-2 review, live-observation approval, and production-store selection     | REVIEW REQUIRED       |
 
-The active branch is `codex/m11.6-shadow-providers`, based on the corrected
-M11.4/M11.5 branch. Checkpoint 1 implementation commit is
-`cff6946ff201f6197b74ce952c8e81ba5fc897a4`.
+The active branch is `codex/m11.6-checkpoint-2`, based on the pushed checkpoint-1
+branch. The server-integration commit is
+`b48ffa84e5a50bca5183e99b389b791dea66d87c`.
 
 ## Current Checkpoint
 
 - The M11.4/M11.5 corrective implementation is preserved in this branch history.
-- M11.6 checkpoint 1 adds a default-off provider runner, typed JEV adapter,
-  immutable run records, and post-convergence narration contracts and coordinator.
-- Focused tests passed 6 files and 43 tests. Full gates passed 77 files and 544
-  tests plus typecheck, lint, build, and diff check.
-- No live provider call was made because TypeSafe and Minara credentials are not
-  configured. No UI, route, deployment, risk-authority, or execution change is
-  authorized by this checkpoint.
+- Checkpoint 1 adds the default-off provider runner, typed JEV adapter, immutable
+  run records, and post-convergence narration contracts and coordinator.
+- Checkpoint 2 adds the authenticated Node route, strict configuration, default
+  kill switch, local NDJSON durability, request budgets, single-flight reuse,
+  content-identity validation, and a Vercel durability guard.
+- Focused checkpoint-2 tests passed 3 files and 10 tests. Full gates passed 80
+  files and 554 tests plus typecheck, lint, build, and diff check.
+- No live provider call, deployment, UI change, risk-authority change, or execution
+  change is authorized by this checkpoint.
 
 ## Historical M11.2 Workstreams
 
@@ -125,22 +127,27 @@ M11.4/M11.5 branch. Checkpoint 1 implementation commit is
 
 ## Next Actions
 
-1. Architect reviews the inherited M11.4/M11.5 correction and M11.6 checkpoint 1
-   safety boundaries.
-2. Product owner supplies a TypeSafe API key through secure server-side environment
-   configuration if a bounded live JEV shadow observation is approved.
-3. Decide whether Minara is the narrator provider and approve its endpoint,
+1. Product owner places the TypeSafe key only in `apps/web/.env.local`, with the
+   provider disabled and the kill switch active.
+2. Run the authenticated health check, then a one-call local shadow observation
+   using hourly and daily request budgets of one; inspect the persisted record and
+   restore the kill switch.
+3. Architect reviews M11.4/M11.5 corrections and both M11.6 checkpoints.
+4. Select a shared durable-store adapter before any Vercel provider activation.
+5. Decide whether Minara is the narrator provider and approve its endpoint,
    authentication, retention, structured-output, and cost-limit contract.
-4. Add the server-only integration entry point and durable audit storage as a separate
-   reviewed checkpoint; keep browser code and chart/risk state isolated.
-5. Do not begin M11.7 calibration until recorded shadow decisions exist and M11.6
+6. Do not begin M11.7 calibration until recorded shadow decisions exist and M11.6
    review gates are accepted.
 
 ## Blockers
 
-- A live JEV verification requires `TYPESAFE_API_KEY`; it is not configured.
+- A live JEV verification requires the user to insert `TYPESAFE_API_KEY` into the
+  ignored local app environment file. The key must not be committed or pasted into
+  an agent conversation.
+- Vercel activation is blocked because its function filesystem is temporary and no
+  shared durable-store adapter has been selected.
 - A concrete Minara narrator adapter requires an approved gateway URL,
   authentication method, structured-output behavior, retention policy, and cost
   limits. No Minara environment configuration is present.
-- Review and merge authorization remain required before server integration,
-  deployment, UI work, or M11.7 begins.
+- Review and merge authorization remain required before deployment, UI work, or
+  M11.7 begins.
