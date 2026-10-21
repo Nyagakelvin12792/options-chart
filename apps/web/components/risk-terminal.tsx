@@ -276,7 +276,9 @@ export function RiskTerminal({
     onSnapshotChange({
       asOfMs,
       state: riskResult.valid ? "available" : "prohibited",
-      reasonCodes: riskResult.valid ? ["RISK_TERMINAL_READY"] : [riskResult.reason],
+      reasonCodes: riskResult.valid
+        ? ["RISK_TERMINAL_READY"]
+        : [riskResult.reason],
       proposedTrade,
     });
   }, [activePosition, effectiveSide, onSnapshotChange, riskResult]);

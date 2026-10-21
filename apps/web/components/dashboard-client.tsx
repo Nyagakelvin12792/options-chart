@@ -509,8 +509,9 @@ export function DashboardClient({
     useState<VolumeProfileResult | null>(null);
   const [anchoredVwapResult, setAnchoredVwapResult] =
     useState<AnchoredVwapResult | null>(null);
-  const [riskSnapshot, setRiskSnapshot] =
-    useState<RiskTerminalSnapshot | null>(null);
+  const [riskSnapshot, setRiskSnapshot] = useState<RiskTerminalSnapshot | null>(
+    null,
+  );
   const [structureHistory, setStructureHistory] = useState<
     Partial<Record<"15m" | "1h" | "4h", readonly Candle[]>>
   >({});

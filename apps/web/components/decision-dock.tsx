@@ -9,7 +9,12 @@ import {
   type MarketStateV1,
   type ShadowProviderRunRecordV1,
 } from "@options-chart/decision-engine";
-import { BrainCircuit, ChevronDown, RefreshCw, ShieldCheck } from "lucide-react";
+import {
+  BrainCircuit,
+  ChevronDown,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface DecisionDockProps {
@@ -23,7 +28,9 @@ interface DecisionDockProps {
 type JevPhase = "idle" | "running" | "success" | "error";
 
 const choiceLabel = (choice: DecisionChoice | null): string =>
-  choice === null ? "WAITING FOR DATA" : choice.replaceAll("-", " ").toUpperCase();
+  choice === null
+    ? "WAITING FOR DATA"
+    : choice.replaceAll("-", " ").toUpperCase();
 
 const decisionTone = (choice: DecisionChoice | null): string => {
   if (choice?.includes("long")) return "long";
@@ -46,13 +53,17 @@ const primaryTrigger = (
   state: MarketStateV1 | null,
 ): string => {
   if (!choice || !state) return "Waiting for validated market state.";
-  if (choice === "insufficient-data") return "Wait for fresh H4, H1, and candle evidence.";
-  if (choice === "no-trade") return "No valid setup. Keep risk off until conditions improve.";
+  if (choice === "insufficient-data")
+    return "Wait for fresh H4, H1, and candle evidence.";
+  if (choice === "no-trade")
+    return "No valid setup. Keep risk off until conditions improve.";
   const long = choice.endsWith("long");
   const level = long
     ? state.location.strongestSupport?.price
     : state.location.strongestResistance?.price;
-  const action = choice.startsWith("confirm") ? "Confirmation present near" : "Watch for a retest and rejection near";
+  const action = choice.startsWith("confirm")
+    ? "Confirmation present near"
+    : "Watch for a retest and rejection near";
   return `${action} ${formatPrice(level)}.`;
 };
 
@@ -152,7 +163,9 @@ export function DecisionDock({
     } catch (error) {
       setJevRun(null);
       setJevPhase("error");
-      setJevError(error instanceof Error ? error.message : "Jev request failed");
+      setJevError(
+        error instanceof Error ? error.message : "Jev request failed",
+      );
     }
   };
 
@@ -179,7 +192,10 @@ export function DecisionDock({
         </div>
         <div>
           <dt>Structure</dt>
-          <dd>{context?.marketStructure.agreement.replaceAll("-", " ") ?? "unavailable"}</dd>
+          <dd>
+            {context?.marketStructure.agreement.replaceAll("-", " ") ??
+              "unavailable"}
+          </dd>
         </div>
         <div>
           <dt>Options</dt>
@@ -212,7 +228,8 @@ export function DecisionDock({
 
       {disagreement ? (
         <p className="decision-warning" role="status">
-          Jev disagrees. Safety convergence kept the result at {choiceLabel(displayChoice)}.
+          Jev disagrees. Safety convergence kept the result at{" "}
+          {choiceLabel(displayChoice)}.
         </p>
       ) : null}
       {buildError ? <p className="decision-error">{buildError}</p> : null}
@@ -247,18 +264,34 @@ export function DecisionDock({
 
       <div className="decision-freshness">
         <ShieldCheck size={12} aria-hidden="true" />
-        Deterministic primary · age {ageLabel(nowMs, context?.effectiveAtMs ?? null)}
+        Deterministic primary · age{" "}
+        {ageLabel(nowMs, context?.effectiveAtMs ?? null)}
         {jevIsCurrent && jevReused ? " · Jev cache reused" : ""}
       </div>
 
       {detailsOpen ? (
         <div className="decision-details">
           <dl>
-            <div><dt>Observed</dt><dd>Binance candles · Deribit options</dd></div>
-            <div><dt>Derived</dt><dd>Structure, zones, AVWAP, volume profile</dd></div>
-            <div><dt>Rules</dt><dd>{baseline?.summary ?? "Waiting for a valid context"}</dd></div>
-            <div><dt>Model</dt><dd>{currentJevRun?.assessment?.summary ?? "Not requested"}</dd></div>
-            <div><dt>Calibration</dt><dd>Pending held-out shadow sample</dd></div>
+            <div>
+              <dt>Observed</dt>
+              <dd>Binance candles · Deribit options</dd>
+            </div>
+            <div>
+              <dt>Derived</dt>
+              <dd>Structure, zones, AVWAP, volume profile</dd>
+            </div>
+            <div>
+              <dt>Rules</dt>
+              <dd>{baseline?.summary ?? "Waiting for a valid context"}</dd>
+            </div>
+            <div>
+              <dt>Model</dt>
+              <dd>{currentJevRun?.assessment?.summary ?? "Not requested"}</dd>
+            </div>
+            <div>
+              <dt>Calibration</dt>
+              <dd>Pending held-out shadow sample</dd>
+            </div>
           </dl>
           {context?.warnings.length ? (
             <p>Warnings: {context.warnings.join(", ")}</p>

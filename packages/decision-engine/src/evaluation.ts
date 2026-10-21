@@ -154,7 +154,9 @@ function buildAblations(
       value,
       count: items.length,
       meanForwardReturnBps:
-        mean(items.map((item) => directionalReturn(item, item.convergedChoice))) ?? 0,
+        mean(
+          items.map((item) => directionalReturn(item, item.convergedChoice)),
+        ) ?? 0,
       meanMfeBps: mean(items.map((item) => item.mfeBps)) ?? 0,
       meanMaeBps: mean(items.map((item) => item.maeBps)) ?? 0,
     }));
@@ -205,22 +207,28 @@ export function evaluateShadowObservations(
       providerRuns.length,
     ),
     convergenceChangeRatio: ratio(
-      providerRuns.filter((item) => item.convergedChoice !== item.providerChoice)
-        .length,
+      providerRuns.filter(
+        (item) => item.convergedChoice !== item.providerChoice,
+      ).length,
       providerRuns.length,
     ),
     classFrequencies: DECISION_CHOICES.map((choice) => ({
       choice,
-      baselineCount: observations.filter((item) => item.baselineChoice === choice)
-        .length,
-      providerCount: providerRuns.filter((item) => item.providerChoice === choice)
-        .length,
-      convergedCount: observations.filter((item) => item.convergedChoice === choice)
-        .length,
+      baselineCount: observations.filter(
+        (item) => item.baselineChoice === choice,
+      ).length,
+      providerCount: providerRuns.filter(
+        (item) => item.providerChoice === choice,
+      ).length,
+      convergedCount: observations.filter(
+        (item) => item.convergedChoice === choice,
+      ).length,
     })),
     performance: {
       baselineMeanDirectionalReturnBps: mean(
-        observations.map((item) => directionalReturn(item, item.baselineChoice)),
+        observations.map((item) =>
+          directionalReturn(item, item.baselineChoice),
+        ),
       ),
       convergedMeanDirectionalReturnBps: mean(convergedReturns),
       convergedMaxDrawdownBps: maxDrawdown(convergedReturns),

@@ -27,7 +27,9 @@ test("keeps deterministic and Jev shadow opinions compact and distinct", async (
     await expect(dock.getByRole("button", { name: "Check Jev" })).toBeVisible();
 
     await dock.getByRole("button", { name: "Details" }).click();
-    await expect(dock.getByText("Pending held-out shadow sample")).toBeVisible();
+    await expect(
+      dock.getByText("Pending held-out shadow sample"),
+    ).toBeVisible();
 
     const dimensions = await dock.evaluate((element) => {
       const rect = element.getBoundingClientRect();

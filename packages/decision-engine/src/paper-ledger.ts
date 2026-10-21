@@ -63,8 +63,7 @@ export function simulateConservativePaperOrder(
     order.quantityBtc,
     entryBar.availableLiquidityBtc * 0.25,
   );
-  const status =
-    filledQuantityBtc < order.quantityBtc ? "partial" : "filled";
+  const status = filledQuantityBtc < order.quantityBtc ? "partial" : "filled";
   const side = order.side === "long" ? 1 : -1;
   const slippage = order.slippageBps / 10_000;
   const entryFillPrice = order.entryPrice * (1 + side * slippage);
@@ -74,7 +73,9 @@ export function simulateConservativePaperOrder(
 
   for (const bar of bars.slice(entryIndex)) {
     const stopHit =
-      order.side === "long" ? bar.low <= order.stopPrice : bar.high >= order.stopPrice;
+      order.side === "long"
+        ? bar.low <= order.stopPrice
+        : bar.high >= order.stopPrice;
     const targetHit =
       order.side === "long"
         ? bar.high >= order.targetPrice

@@ -1,3 +1,4 @@
+<!-- prettier-ignore -->
 >>> COMPLETED BY: Codex
 >>> STATUS: REVIEW REQUIRED
 >>> BRANCH: codex/m11-integration-ui

@@ -193,7 +193,8 @@ export function buildDashboardDecisionSnapshot(
   const previous = input.activeCandles.at(-2) ?? null;
   const avwapPoint = input.anchoredVwap?.latestPoint ?? null;
   const profile = input.volumeProfile;
-  const optionsAsOf = input.optionsResult?.summary.metadata.calculatedAt ?? null;
+  const optionsAsOf =
+    input.optionsResult?.summary.metadata.calculatedAt ?? null;
 
   const marketInput: MarketStateInputV1 = {
     identity: {
@@ -211,7 +212,10 @@ export function buildDashboardDecisionSnapshot(
         ? null
         : {
             asOfMs: Math.min(input.nowMs, latest.closeTime),
-            staleAfterMs: Math.max(90_000, latest.closeTime - latest.openTime + 60_000),
+            staleAfterMs: Math.max(
+              90_000,
+              latest.closeTime - latest.openTime + 60_000,
+            ),
             sourceVersion: "binance-spot-candle-v1",
             lastPrice: latest.close,
             previousPrice: previous?.close ?? null,
