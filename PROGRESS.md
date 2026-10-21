@@ -1,10 +1,10 @@
 # BTC Options Metrics Dashboard
 ## PROGRESS.md
 
-Version: 0.9.10
-Last updated: 2026-10-19
-Overall status: M0-M8 and M10.2-M10.9 deployed; M11.2 is complete, while M9 live-session evidence remains open
-Current milestone: M11.3 AUTHORIZED; implementation handed to Antigravity at accepted base `d536eba`
+Version: 0.9.11
+Last updated: 2026-10-21
+Overall status: M0-M8 and M10.2-M10.9 deployed; M11.4-M11.6 integration is implemented on `codex/m11-integration-ui`, while held-out M11.7 and M9 live-session evidence remain open
+Current milestone: M11.6 REVIEW REQUIRED; activation and user-facing promotion remain gated
 Production status: M10.9 DEPLOYED AND VERIFIED through GitHub main `cb37892` and Vercel deployment `AMLqXkgxG5GLkvEao6puNxdMn3hY`
 
 ---
@@ -50,6 +50,11 @@ Do not mark work complete based only on a screenshot or successful page render.
 | Native position interactions M10.9 | COMPLETE - DEPLOYED AND VERIFIED | Single-gesture long/short creation, live Risk Terminal preview, persistent default R:R, and post-creation editing deployed at `options-chart-upload.vercel.app` |
 | JEV and Cryptofeed architecture M11.1 | APPROVED - DOCUMENTATION ONLY | Lean signal stack, staged collector, typed decisions, narration, replay, calibration, and paper-ledger contracts approved; runtime remains disabled |
 | Cryptofeed shadow collector M11.2 | COMPLETE - LINUX LIVE VERIFIED | Ubuntu run `38793141169` validated 1,465 unique market events across trades and L2, with zero duplicate IDs, schema errors, or collector-error records |
+| Compact market state M11.4 | COMPLETE ON REVIEW BRANCH | Live Binance/Deribit/chart/risk adapters build the versioned state with confirmed H4/H1/M15 pivots and no future evidence |
+| Deterministic baseline M11.5 | COMPLETE ON REVIEW BRANCH | The rules baseline is connected to the dashboard and remains the primary decision authority |
+| Jev shadow integration M11.6 | IMPLEMENTED - ACTIVATION PENDING | Explicit, cached Jev requests are visibly shadow-labelled and safety convergence can only reduce deterministic risk; a live provider call is still required |
+| Replay and calibration M11.7 | FRAMEWORK COMPLETE - EVIDENCE PENDING | Comparison, calibration, class frequency, MFE/MAE, drawdown, ablation, and conservative paper-ledger code is tested; no held-out observation corpus exists yet |
+| User-facing promotion M11.8 | BLOCKED BY EVIDENCE | M9 reliability, live Jev activation, held-out comparison, and product-owner evidence review remain required |
 | Trading-readiness validation | IN PROGRESS | M9.6-M9.10 observation evidence and M9.11-M9.12 release gates remain |
 
 ---
@@ -1080,6 +1085,18 @@ Mitigation:
 ---
 
 # 10. Change Log
+
+## 2026-10-21
+
+### M11.4-M11.7-LIVE-DECISION-INTEGRATION
+
+- Connected the deterministic decision engine to live Binance candles, confirmed H4/H1/M15 pivots, chart AVWAP and volume profile, Deribit options state, confluence zones, user levels, and the Risk Terminal.
+- Added a compact Decision Dock that separates observed data, deterministic rules, Jev shadow assessment, safety convergence, and calibration status. Jev remains explicit-request, cached, default-off, and unable to enlarge risk or reverse direction.
+- Added browser-safe canonical hashing with regression parity against Node SHA-256 so decision identities remain unchanged in the client bundle.
+- Added shadow evaluation reporting for rules-only versus rules-plus-Jev, coverage, stale decisions, class frequency, forward return, MFE, MAE, drawdown, calibration, and five ablation dimensions.
+- Added a conservative paper ledger with fees, adverse slippage, 25% liquidity participation, partial fills, and stop-first same-bar ambiguity.
+- Validation passed: 84 Vitest files with 568 tests, production build, and a desktop/mobile Decision Dock Playwright check.
+- Promotion remains withheld: no live Jev call or held-out observation corpus exists, M9 reliability evidence is incomplete, and provider confidence is not shown as win probability.
 
 ## 2026-10-19
 

@@ -1,11 +1,11 @@
 import {
-  CLASSIFICATIONS_POLICY_VERSION,
-  CVD_POLICY_VERSION,
   FlowFeatureSnapshotV1Schema,
-  ORDER_BOOK_POLICY_VERSION,
   type FlowFeatureSnapshotV1,
   type LevelClassificationRecordV1,
-} from "@options-chart/flow-engine";
+} from "@options-chart/flow-engine/contracts";
+import { CLASSIFICATIONS_POLICY_VERSION } from "@options-chart/flow-engine/classifications";
+import { CVD_POLICY_VERSION } from "@options-chart/flow-engine/cvd";
+import { ORDER_BOOK_POLICY_VERSION } from "@options-chart/flow-engine/order-book";
 import { recordEvidence, type LayerContext } from "./layer-context";
 import type {
   FlowPressureState,

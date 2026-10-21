@@ -5,6 +5,7 @@ import {
   CALCULATION_VERSION as VOLUME_PROFILE_CALCULATION_VERSION,
   LightweightChartsAdapter,
   VolumeProfileController,
+  type AnchoredVwapResult,
   type ChartAdapter,
   type ChartAdapterDiagnostics,
   type ChartDrawing,
@@ -12,6 +13,7 @@ import {
   type ChartDrawingPreview,
   type ChartVisibleRange,
   type LevelSegment,
+  type VolumeProfileResult,
 } from "@options-chart/chart";
 import type {
   Candle,
@@ -25,6 +27,7 @@ import { TimeframeManager } from "../lib/timeframe-manager";
 import {
   BinanceKlineSocket,
   BinanceRestClient,
+  bootstrapHistory,
   CandleStore,
   DeribitOptionsDataEngine,
   DeribitRestClient,
@@ -84,6 +87,8 @@ import {
   type ProfileMetric,
 } from "@/components/gamma-overlay";
 import { RiskTerminal } from "@/components/risk-terminal";
+import type { RiskTerminalSnapshot } from "@/components/risk-terminal";
+import { DecisionDock } from "@/components/decision-dock";
 import { IndicatorControls } from "@/components/indicator-controls";
 import {
   ANCHORED_VWAP_SETTINGS_STORAGE_KEY,
@@ -140,6 +145,7 @@ import {
   serializeVolumeProfileSettings,
   VOLUME_PROFILE_SETTINGS_STORAGE_KEY,
 } from "@/lib/volume-profile-settings";
+import { buildDashboardDecisionSnapshot } from "@/lib/market-intelligence/dashboard-decision";
 
 interface DashboardClientProps {
   readonly accessLabel: string;
@@ -411,6 +417,7 @@ export function DashboardClient({
   const [feedState, setFeedState] = useState<FeedHealthState>("CONNECTING");
   const [candleStatus, setCandleStatus] = useState("Initializing");
   const [candleCount, setCandleCount] = useState(0);
+  const [decisionCandles, setDecisionCandles] = useState<readonly Candle[]>([]);
   const [volumeProfileRevision, setVolumeProfileRevision] = useState(0);
   const [liveLastPrice, setLastPrice] = useState<number | null>(null);
   const [dayChange, setDayChange] = useState<number | null>(null);
@@ -498,6 +505,15 @@ export function DashboardClient({
   const [positionedConfluenceZones, setPositionedConfluenceZones] = useState<
     readonly PositionedWallConfluenceZone[]
   >([]);
+  const [volumeProfileResult, setVolumeProfileResult] =
+    useState<VolumeProfileResult | null>(null);
+  const [anchoredVwapResult, setAnchoredVwapResult] =
+    useState<AnchoredVwapResult | null>(null);
+  const [riskSnapshot, setRiskSnapshot] =
+    useState<RiskTerminalSnapshot | null>(null);
+  const [structureHistory, setStructureHistory] = useState<
+    Partial<Record<"15m" | "1h" | "4h", readonly Candle[]>>
+  >({});
 
   const replayFrame = useMemo(
     () => (replayState ? selectReplayFrame(replayState) : null),
@@ -617,6 +633,37 @@ export function DashboardClient({
     } catch {
       return null;
     }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const refreshStructureHistory = async () => {
+      const client = restClientRef.current;
+      if (!client) return;
+      const timeframes = ["15m", "1h", "4h"] as const;
+      const results = await Promise.all(
+        timeframes.map(async (interval) => {
+          try {
+            const result = await bootstrapHistory(client, {
+              interval,
+              targetBars: 240,
+              maxPageRetries: 1,
+            });
+            return [interval, result.candles] as const;
+          } catch {
+            return [interval, []] as const;
+          }
+        }),
+      );
+      if (!active) return;
+      setStructureHistory(Object.fromEntries(results));
+    };
+    void refreshStructureHistory();
+    const timer = setInterval(() => void refreshStructureHistory(), 5 * 60_000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
   }, []);
 
   const activeExpiries = useMemo(
@@ -931,6 +978,63 @@ export function DashboardClient({
       })),
     [confluenceZones, lastPrice],
   );
+  const decisionResult = useMemo(() => {
+    try {
+      const activeCandles = (
+        replayActive ? (replayTimeline?.candles ?? []) : decisionCandles
+      )
+        .filter((candle) => candle.openTime <= auditNow)
+        .slice(-2);
+      const boundedStructure = Object.fromEntries(
+        Object.entries(structureHistory).map(([timeframe, candles]) => [
+          timeframe,
+          candles?.filter((candle) => candle.closeTime <= auditNow) ?? [],
+        ]),
+      );
+      return {
+        snapshot: buildDashboardDecisionSnapshot({
+          nowMs: auditNow,
+          activeTimeframe: selectedInterval,
+          expiryScope: expirySelection,
+          mode: replayActive ? "replay" : "live-shadow",
+          replayCursorMs: replayActive ? auditNow : null,
+          generationId: `dashboard-${selectedInterval}-${activeCandles.at(-1)?.openTime ?? 0}`,
+          activeCandles,
+          structureCandles: boundedStructure,
+          anchoredVwap: anchoredVwapResult,
+          volumeProfile: volumeProfileResult,
+          confluenceZones,
+          drawings,
+          optionsResult,
+          atmIvCurrent: ivSummary.atmMarkIvDecimal,
+          nextExpiryMs: selectedExpiry > 0 ? selectedExpiry : null,
+          risk: riskSnapshot,
+        }),
+        error: null,
+      };
+    } catch {
+      return {
+        snapshot: null,
+        error: "Decision state is waiting for validated market inputs.",
+      };
+    }
+  }, [
+    anchoredVwapResult,
+    auditNow,
+    confluenceZones,
+    decisionCandles,
+    drawings,
+    expirySelection,
+    ivSummary.atmMarkIvDecimal,
+    optionsResult,
+    replayActive,
+    replayTimeline,
+    riskSnapshot,
+    selectedExpiry,
+    selectedInterval,
+    structureHistory,
+    volumeProfileResult,
+  ]);
   const displayedLevels = useMemo(
     () =>
       (optionsResult?.summary.keyLevels ?? []).filter(
@@ -1215,6 +1319,7 @@ export function DashboardClient({
       activeIntervalRef.current,
       store.getSorted(),
     );
+    setDecisionCandles(store.getSorted().slice(-2));
     setCandleStatus(
       `Reconciled ${result.barsRepaired} bar${result.barsRepaired === 1 ? "" : "s"}`,
     );
@@ -1261,6 +1366,7 @@ export function DashboardClient({
       });
       setVolumeProfileRevision((revision) => revision + 1);
       setCandleCount(store.size);
+      setDecisionCandles(store.getSorted().slice(-2));
       setCandleStatus(
         result.candles.length > 0
           ? `Loaded ${result.candles.length} older ${intervalAtStart} bars`
@@ -1311,6 +1417,7 @@ export function DashboardClient({
       },
       onRender: (renderInput) => {
         adapter.setVolumeProfile?.("dashboard-volume-profile", renderInput);
+        setVolumeProfileResult(renderInput.result);
       },
     });
     volumeProfileControllerRef.current = volumeProfileController;
@@ -1321,6 +1428,7 @@ export function DashboardClient({
       cacheCapacity: 40,
       onRender: (renderInput) => {
         adapter.setAnchoredVwap?.("dashboard-anchored-vwap", renderInput);
+        setAnchoredVwapResult(renderInput.result);
       },
     });
     anchoredVwapControllerRef.current = anchoredVwapController;
@@ -1649,6 +1757,7 @@ export function DashboardClient({
       const latest = visibleTo ?? null;
       latestCandleRef.current = latest;
       setCandleCount(historyCandles.length);
+      setDecisionCandles(historyCandles.slice(-2));
       setLastPrice(latest?.close ?? null);
       setDayChange(calculateDayChange(historyCandles));
       setCandleStatus(status);
@@ -1682,6 +1791,7 @@ export function DashboardClient({
           latestCandleRef.current = candle;
           setLastPrice(candle.close);
           setCandleCount(store.size);
+          setDecisionCandles(store.getSorted().slice(-2));
           if (startsNewBar) {
             setVolumeProfileRevision((revision) => revision + 1);
           }
@@ -1737,6 +1847,7 @@ export function DashboardClient({
               });
             }
             setCandleCount(accumulatedCandles.length);
+            setDecisionCandles(accumulatedCandles.slice(-2));
             setVolumeProfileRevision((revision) => revision + 1);
             setCandleStatus(
               accumulatedCandles.length >= meta.targetBars
@@ -2967,14 +3078,26 @@ export function DashboardClient({
             </div>
           </div>
         </section>
-        <RiskTerminal
-          drawings={drawings}
-          previewPosition={
-            drawingPreview?.type === "position" ? drawingPreview.drawing : null
-          }
-          settings={positionSettings}
-          onSettingsChange={handlePositionSettingsChange}
-        />
+        <aside className="analysis-rail" aria-label="Decision and risk tools">
+          <DecisionDock
+            state={decisionResult.snapshot?.state ?? null}
+            context={decisionResult.snapshot?.context ?? null}
+            baseline={decisionResult.snapshot?.baseline ?? null}
+            buildError={decisionResult.error}
+            nowMs={auditNow}
+          />
+          <RiskTerminal
+            drawings={drawings}
+            previewPosition={
+              drawingPreview?.type === "position"
+                ? drawingPreview.drawing
+                : null
+            }
+            settings={positionSettings}
+            onSettingsChange={handlePositionSettingsChange}
+            onSnapshotChange={setRiskSnapshot}
+          />
+        </aside>
       </div>
 
       <footer className="status-bar">

@@ -8,6 +8,12 @@
     "zod": "4.4.3"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./canonical-json": "./src/canonical-json.ts",
+    "./classifications": "./src/classifications.ts",
+    "./contracts": "./src/contracts.ts",
+    "./cvd": "./src/cvd.ts",
+    "./decimal": "./src/decimal.ts",
+    "./order-book": "./src/order-book.ts"
   }
 }

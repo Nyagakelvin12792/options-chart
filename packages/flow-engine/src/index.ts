@@ -13,3 +13,4 @@ export * from "./classifications";
 export * from "./feature-health";
 export * from "./engine";
 export * from "./audit";
+export * from "./canonical-json";

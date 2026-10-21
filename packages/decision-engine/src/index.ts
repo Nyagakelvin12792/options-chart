@@ -16,3 +16,5 @@ export * from "./shadow-provider-runner";
 export * from "./jev-provider";
 export * from "./narration-contracts";
 export * from "./narration-coordinator";
+export * from "./evaluation";
+export * from "./paper-ledger";

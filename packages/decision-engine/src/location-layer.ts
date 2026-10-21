@@ -1,4 +1,4 @@
-import { computeAbsoluteBpsDistance } from "@options-chart/flow-engine";
+import { computeAbsoluteBpsDistance } from "@options-chart/flow-engine/decimal";
 import { recordEvidence, type LayerContext } from "./layer-context";
 import {
   type AvwapState,
